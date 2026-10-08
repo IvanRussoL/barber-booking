@@ -205,6 +205,22 @@ Contiene i movimenti di denaro legati alle prenotazioni: pagamenti online, saldi
 | `riferimento_provider` | VARCHAR(255), facoltativa, univoca | Identificativo della sessione di pagamento o del rimborso presso il provider (Stripe o PayPal); vuoto per i saldi in sede. Essendo univoco, un webhook ripetuto ritrova la stessa riga invece di crearne una nuova |
 | `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento in cui il movimento è stato registrato |
 
+### Tabella `impostazioni`
+
+Contiene i dati e le regole configurabili del salone. Ha una sola riga, modificabile solo dal proprietario.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | TINYINT, chiave primaria, vale sempre 1 | Garantisce che esista una sola riga di impostazioni |
+| `nome_salone` | VARCHAR(100), obbligatoria | Nome mostrato sul sito |
+| `indirizzo` | VARCHAR(255), obbligatoria | Indirizzo mostrato ai visitatori |
+| `telefono` | VARCHAR(20), obbligatoria | Telefono del salone, con prefisso internazionale |
+| `fuso_orario` | VARCHAR(64), obbligatoria, predefinito 'Europe/Rome' | Nome del fuso orario (formato IANA, usato dal modulo `zoneinfo` di Python); serve a convertire le date salvate in UTC e a calcolare le regole che dipendono dall'ora |
+| `latitudine` | DECIMAL(9,6), obbligatoria | Latitudine del salone per la mappa |
+| `longitudine` | DECIMAL(9,6), obbligatoria | Longitudine del salone per la mappa |
+| `percentuale_acconto` | TINYINT, obbligatoria, da 1 a 99 | Percentuale del totale da pagare online se il cliente sceglie l'acconto; l'importo in centesimi lo calcola il server |
+| `data_apertura` | DATE, obbligatoria | Data locale da cui partono i blocchi di 15 giorni della finestra di prenotazione |
+
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  
 ## 6. Struttura del progetto Flask

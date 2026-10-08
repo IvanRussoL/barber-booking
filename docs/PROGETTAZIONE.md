@@ -43,12 +43,15 @@ Gli utenti sono quattro:
 - Gli slot liberi si calcolano **per singolo dipendente**.
 - Un dipendente non può avere due prenotazioni sovrapposte: il controllo avviene **nella stessa transazione** che crea la prenotazione, per evitare doppie prenotazioni in caso di richieste simultanee.
 ### Orari e disponibilità
-- Orario unico per tutti i dipendenti: **09:00–13:00 e 15:00–23:00**, da martedì a domenica.
-- Il salone è **chiuso il lunedì**: nessuna prenotazione è possibile in quel giorno. La regola è verificata sul server in fase di calcolo degli slot e di creazione della prenotazione, non solo nell'interfaccia.
-- Gli appuntamenti possono iniziare ogni **30 minuti** (9:00, 9:30, 10:00, ...). Un appuntamento deve stare per intero dentro un turno: non può attraversare la pausa 13:00–15:00 né finire dopo le 23:00.
+### Orari e disponibilità
+- Il proprietario imposta il **calendario settimanale** del salone: per ogni giorno della settimana indica se è aperto o chiuso e quali turni ha (es. 09:00–13:00 e 15:00–23:00). Il calendario è unico per tutti i dipendenti.
+- Valore di partenza: **lunedì chiuso**; gli altri giorni aperti con i turni 09:00–13:00 e 15:00–23:00. Il proprietario può cambiarlo (per esempio chiudere il martedì o la domenica).
+- Il proprietario può inserire **eccezioni per una data precisa**: un giorno normalmente chiuso reso apribile (con i suoi turni) oppure un giorno normalmente aperto reso chiuso.
+- Nei giorni chiusi e fuori dai turni non è possibile prenotare. La regola è verificata sul server in fase di calcolo degli slot e di creazione della prenotazione, non solo nell'interfaccia.
+- Gli appuntamenti possono iniziare ogni **30 minuti**. Un appuntamento deve stare per intero dentro un turno: non può attraversare la pausa tra due turni né finire dopo la chiusura.
 - **Finestra di prenotazione**: le prenotazioni si aprono a **blocchi fissi di 15 giorni consecutivi**, a partire dalla data di apertura del sito (impostata dal proprietario). Il cliente può prenotare solo le date del blocco corrente; terminato il blocco, se ne apre uno nuovo. I blocchi non dipendono dai mesi del calendario.
 - **Assenze del dipendente** (malattia, ferie): il proprietario registra un periodo (giorni o ore) in cui non riceve prenotazioni; la sua card mostra un segno di indisponibilità.
-- **Chiusure del salone** (ferie): nel periodo nessuno riceve prenotazioni.
+- **Chiusure del salone** (ferie): periodo di più giorni consecutivi in cui nessuno riceve prenotazioni.
 - Le chiusure del salone non fanno eccezione alla finestra: le date successive alla riapertura si prenotano quando il blocco che le contiene si apre.
 ### Pagamenti
 - Il pagamento online è obbligatorio, in modalità test.

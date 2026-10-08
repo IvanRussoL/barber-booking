@@ -242,6 +242,23 @@ Le classi sono divise in quattro gruppi, ognuno con un solo compito. Le rotte Fl
 
 Classi definite con `@dataclass` che rappresentano una riga del database (es. `Utente`, `Servizio`, `Prenotazione`). Contengono i dati e pochi metodi semplici che li riguardano (es. la durata totale di una prenotazione). Non eseguono query.
 
+| Modello | Tabella | Differenze rispetto alle colonne della sezione 4 |
+|---|---|---|
+| `Utente` | `utenti` | Nessuna |
+| `Servizio` | `servizi` | Nessuna |
+| `Prenotazione` | `prenotazioni` | Contiene la lista dei suoi `ServizioPrenotato`; metodi per durata totale e prezzo totale (somme dei servizi) |
+| `ServizioPrenotato` | `prenotazioni_servizi` | Include anche il nome del servizio, letto da `servizi`, per mostrarlo nello storico |
+| `Turno` | `orari_settimanali`, `eccezioni_turni` | Solo `ora_inizio` e `ora_fine`: il giorno lo indica chi chiede i turni |
+| `EccezioneData` | `eccezioni_date` | Contiene la lista dei suoi `Turno` |
+| `Indisponibilita` | `indisponibilita` | Nessuna |
+| `Pagamento` | `pagamenti` | Nessuna |
+| `Impostazioni` | `impostazioni` | Nessuna |
+
+La tabella `eventi` non ha un modello: si scrive con un semplice INSERT e si legge solo per le statistiche, caricandola direttamente in un DataFrame di pandas.
+
+Gli utenti sono una sola classe `Utente` con il campo `ruolo`, senza sottoclassi per cliente, dipendente e proprietario: i tre ruoli hanno gli stessi dati, il proprietario può anche ricevere prenotazioni come un dipendente, e i permessi li decide il controllo degli accessi, non la classe. L'ereditarietà è usata dove le classi hanno comportamenti diversi: `PaymentProvider` e le eccezioni.
+
+
 ### Repository
 
 Una classe per ogni gruppo di tabelle (es. `UtenteRepository`, `PrenotazioneRepository`). Contengono tutte le query SQL, sempre parametrizzate, e trasformano le righe del database in modelli. Sono l'unico posto del progetto in cui si scrive SQL.
@@ -249,6 +266,17 @@ Una classe per ogni gruppo di tabelle (es. `UtenteRepository`, `PrenotazioneRepo
 ### Servizi
 
 Contengono le regole di business della sezione 3: calcolo degli slot liberi, creazione della prenotazione con controllo anti-sovrapposizione nella stessa transazione, annullamenti e rimborsi. Usano i repository e non dipendono da Flask, quindi si testano con pytest senza avviare il sito.
+
+| Servizio | Compito |
+|---|---|
+| `AuthService` | Registrazione e login: hash della password, controllo che l'account sia attivo |
+| `DisponibilitaService` | Slot liberi di un dipendente in una data, considerando finestra del mese, turni, indisponibilità e prenotazioni esistenti (comprese quelle in attesa di pagamento non scadute) |
+| `PrenotazioneService` | Creazione della prenotazione con controllo anti-sovrapposizione nella stessa transazione, annullamento (regola delle 2 ore per il cliente), decadenza delle prenotazioni scadute |
+| `PagamentoService` | Avvio del pagamento tramite `PaymentProvider`, gestione idempotente del webhook, saldo in sede, calcolo dello stato del pagamento, rimborsi |
+| `SaloneService` | Operazioni del proprietario su servizi, orari, eccezioni, assenze e chiusure, con le regole della sezione 3 |
+| `StatisticheService` | Lettura di eventi e prenotazioni con pandas e creazione dei grafici con matplotlib |
+
+Le operazioni del proprietario stanno in un solo servizio perché sono brevi e simili: dividerle creerebbe classi quasi vuote. Se una diventa complessa, si separa.
 
 ### Provider di pagamento
 

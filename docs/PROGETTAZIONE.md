@@ -191,6 +191,20 @@ Contiene i periodi in cui non si ricevono prenotazioni: assenze di un dipendente
 
 Indice: (`dipendente_id`, `inizio`) per il calcolo degli slot.
 
+### Tabella `pagamenti`
+
+Contiene i movimenti di denaro legati alle prenotazioni: pagamenti online, saldi in sede e rimborsi, una riga per movimento. Gli stati `acconto_pagato` e `saldato` non si salvano: si calcolano confrontando la somma dei movimenti completati con il totale della prenotazione.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco del movimento |
+| `prenotazione_id` | INT, obbligatoria, chiave esterna verso `prenotazioni.id` | La prenotazione a cui si riferisce il movimento |
+| `tipo` | ENUM('online', 'in_sede', 'rimborso'), obbligatoria | Pagamento online tramite il provider, saldo registrato dal proprietario in sede, oppure rimborso |
+| `importo_centesimi` | INT, obbligatoria, maggiore di 0 | Importo in centesimi, calcolato sempre dal server; per i rimborsi è l'importo restituito |
+| `stato` | ENUM('in_attesa', 'completato', 'fallito'), obbligatoria, predefinito 'in_attesa' | Un pagamento online diventa 'completato' solo tramite il webhook; un saldo in sede nasce già 'completato' |
+| `riferimento_provider` | VARCHAR(255), facoltativa, univoca | Identificativo della sessione di pagamento o del rimborso presso il provider (Stripe o PayPal); vuoto per i saldi in sede. Essendo univoco, un webhook ripetuto ritrova la stessa riga invece di crearne una nuova |
+| `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento in cui il movimento è stato registrato |
+
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  
 ## 6. Struttura del progetto Flask

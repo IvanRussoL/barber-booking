@@ -75,6 +75,9 @@ Gli utenti sono quattro:
 - Il dipendente vede **solo la propria** agenda e le proprie statistiche.
 - Il primo proprietario si crea da riga di comando, non da una pagina pubblica.
 ## 4. Modello dei dati (tabelle e relazioni)
+
+Convenzione: tutte le colonne DATETIME sono salvate in **UTC**. Il server le converte nel fuso orario del salone solo per mostrarle e per i calcoli su turni, griglia e finestra di prenotazione.
+
 ### Tabella `utenti`
 
 Contiene tutte le persone che accedono al sito: clienti, dipendenti e proprietario.
@@ -104,6 +107,40 @@ Contiene i servizi offerti dal salone, con durata e prezzo attuali. Li gestisce 
 | `durata_minuti` | INT, obbligatoria, maggiore di 0 e multiplo di 30 | Durata del servizio in minuti; multiplo di 30 per restare allineata alla griglia degli appuntamenti senza lasciare buchi non prenotabili; la durata di una prenotazione è la somma delle durate dei servizi scelti |
 | `prezzo_centesimi` | INT, obbligatoria, maggiore o uguale a 0 | Prezzo attuale in centesimi di euro (2500 = 25,00 €), nell'unità richiesta da Stripe; evita gli errori di arrotondamento dei numeri decimali |
 | `attivo` | BOOLEAN, obbligatoria, predefinito sì | Se vale no il servizio non è più prenotabile; si disattiva invece di cancellare, per conservare lo storico delle prenotazioni |
+
+### Tabella `prenotazioni`
+
+Contiene gli appuntamenti: chi prenota, presso quale dipendente, quando e in quale stato. I servizi scelti sono nella tabella di collegamento `prenotazioni_servizi`.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco della prenotazione |
+| `cliente_id` | INT, obbligatoria, chiave esterna verso `utenti.id` | Il cliente che ha prenotato; il codice verifica che abbia ruolo cliente |
+| `dipendente_id` | INT, obbligatoria, chiave esterna verso `utenti.id` | Il professionista che esegue tutti i servizi; il codice verifica che riceva prenotazioni e sia attivo |
+| `inizio` | DATETIME, obbligatoria | Data e ora di inizio, allineata alla griglia di 30 minuti |
+| `fine` | DATETIME, obbligatoria, successiva a `inizio` | Data e ora di fine, fissata alla creazione come inizio + somma delle durate; usata per il controllo anti-sovrapposizione |
+| `stato` | ENUM('in_attesa_pagamento', 'confermata', 'scaduta', 'annullata'), obbligatoria, predefinito 'in_attesa_pagamento' | Ciclo di vita della prenotazione; diventa 'confermata' solo tramite il webhook del pagamento |
+| `modalita_pagamento` | ENUM('acconto', 'completo'), obbligatoria | Scelta del cliente al momento della prenotazione; gli importi li calcola il server |
+| `scade_il` | DATETIME, obbligatoria | Momento oltre il quale una prenotazione in attesa di pagamento decade e libera lo slot (creazione + 30 minuti) |
+| `annullata_il` | DATETIME, facoltativa | Momento dell'annullamento; vuota se la prenotazione non è annullata |
+| `annullata_da` | ENUM('cliente', 'salone'), facoltativa | Chi ha annullato; serve per lo storico e le statistiche |
+| `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento di creazione della prenotazione |
+
+Indici: (`dipendente_id`, `inizio`) per il calcolo degli slot e il controllo delle sovrapposizioni; `cliente_id` per lo storico del cliente.
+
+### Tabella `prenotazioni_servizi`
+
+Collega ogni prenotazione ai servizi scelti e conserva durata e prezzo applicati al momento della prenotazione.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `prenotazione_id` | INT, obbligatoria, chiave esterna verso `prenotazioni.id` | La prenotazione a cui appartiene il servizio |
+| `servizio_id` | INT, obbligatoria, chiave esterna verso `servizi.id` | Il servizio scelto |
+| `durata_minuti` | INT, obbligatoria | Durata del servizio al momento della prenotazione |
+| `prezzo_centesimi` | INT, obbligatoria | Prezzo al momento della prenotazione; non cambia se il proprietario modifica i prezzi in seguito. Il totale della prenotazione è la somma di questa colonna |
+
+Chiave primaria composta (`prenotazione_id`, `servizio_id`): lo stesso servizio non può comparire due volte nella stessa prenotazione.
+
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  
 ## 6. Struttura del progetto Flask

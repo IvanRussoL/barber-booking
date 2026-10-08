@@ -43,7 +43,6 @@ Gli utenti sono quattro:
 - Gli slot liberi si calcolano **per singolo dipendente**.
 - Un dipendente non può avere due prenotazioni sovrapposte: il controllo avviene **nella stessa transazione** che crea la prenotazione, per evitare doppie prenotazioni in caso di richieste simultanee.
 ### Orari e disponibilità
-### Orari e disponibilità
 - Il proprietario imposta il **calendario settimanale** del salone: per ogni giorno della settimana indica se è aperto o chiuso e quali turni ha (es. 09:00–13:00 e 15:00–23:00). Il calendario è unico per tutti i dipendenti.
 - Valore di partenza: **lunedì chiuso**; gli altri giorni aperti con i turni 09:00–13:00 e 15:00–23:00. Il proprietario può cambiarlo (per esempio chiudere il martedì o la domenica).
 - Il proprietario può inserire **eccezioni per una data precisa**: un giorno normalmente chiuso reso apribile (con i suoi turni) oppure un giorno normalmente aperto reso chiuso.
@@ -53,6 +52,8 @@ Gli utenti sono quattro:
 - **Assenze del dipendente** (malattia, ferie): il proprietario registra un periodo (giorni o ore) in cui non riceve prenotazioni; la sua card mostra un segno di indisponibilità.
 - **Chiusure del salone** (ferie): periodo di più giorni consecutivi in cui nessuno riceve prenotazioni.
 - Le chiusure del salone non fanno eccezione alla finestra: le date successive alla riapertura si prenotano quando il blocco che le contiene si apre.
+- Il proprietario sceglie il **fuso orario** del salone; le regole che dipendono dall'ora (annullamento a 2 ore, scadenza del pagamento, finestra di prenotazione) si calcolano in quel fuso.
+- Il **calendario settimanale** e le **eccezioni per data** non si possono modificare nei giorni che hanno già prenotazioni confermate: il proprietario deve prima contattare i clienti (hanno telefono ed email) e annullare le prenotazioni, con rimborso. Le **assenze** dei dipendenti e le **chiusure per ferie** seguono invece la procedura con elenco e conferma descritta in "Annullamenti".
 ### Pagamenti
 - Il pagamento online è obbligatorio, in modalità test.
 - Il cliente sceglie se pagare un **acconto** (percentuale configurabile dal proprietario, resto in sede) oppure l'**importo completo**.
@@ -72,7 +73,22 @@ Gli utenti sono quattro:
 - Il dipendente vede **solo la propria** agenda e le proprie statistiche.
 - Il primo proprietario si crea da riga di comando, non da una pagina pubblica.
 ## 4. Modello dei dati (tabelle e relazioni)
- 
+### Tabella `utenti`
+
+Contiene tutte le persone che accedono al sito: clienti, dipendenti e proprietario.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco dell'utente |
+| `email` | VARCHAR(255), obbligatoria, univoca | Indirizzo email usato per il login; non possono esistere due utenti con la stessa email |
+| `password_hash` | VARCHAR(255), obbligatoria | Hash della password generato con Werkzeug; la password in chiaro non viene mai salvata |
+| `nome` | VARCHAR(100), obbligatoria | Nome della persona |
+| `cognome` | VARCHAR(100), obbligatoria | Cognome della persona |
+| `telefono` | VARCHAR(20), obbligatoria | Numero di telefono con prefisso internazionale (es. +39...), usato dal salone per contattare l'utente |
+| `ruolo` | ENUM('cliente', 'dipendente', 'proprietario'), obbligatoria, predefinito 'cliente' | Determina i permessi dell'utente ed è la base del controllo degli accessi; lo assegna solo il server, mai un modulo inviato dal browser |
+| `riceve_prenotazioni` | BOOLEAN, obbligatoria, predefinito no | Indica se la persona è un professionista prenotabile con una propria agenda (dipendenti e proprietario che lavora in sala); la modifica solo il proprietario |
+| `attivo` | BOOLEAN, obbligatoria, predefinito sì | Se vale no l'account non può accedere e non è prenotabile; si disattiva invece di cancellare, per conservare lo storico |
+| `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento di creazione dell'account, scritto automaticamente dal database |
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  
 ## 6. Struttura del progetto Flask
@@ -84,3 +100,6 @@ Gli utenti sono quattro:
 ## 9. Scelte tecniche e alternative scartate
  
 ## 10. Sviluppi futuri
+- Interfaccia in più lingue (oggi solo italiano) e valute diverse dall'euro, per saloni in altri Paesi.
+- Conferma dell'indirizzo email con un messaggio di verifica.
+- Hash delle password con argon2, al posto di Werkzeug.

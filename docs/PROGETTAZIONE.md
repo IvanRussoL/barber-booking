@@ -236,6 +236,27 @@ Contiene le visite alle pagine e i click, per le statistiche e il funnel visite 
 Indice: (`tipo`, `creato_il`) per le statistiche per periodo.
 
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
+Le classi sono divise in quattro gruppi, ognuno con un solo compito. Le rotte Flask restano sottili: leggono la richiesta, chiamano un servizio e mostrano il risultato.
+
+### Modelli
+
+Classi definite con `@dataclass` che rappresentano una riga del database (es. `Utente`, `Servizio`, `Prenotazione`). Contengono i dati e pochi metodi semplici che li riguardano (es. la durata totale di una prenotazione). Non eseguono query.
+
+### Repository
+
+Una classe per ogni gruppo di tabelle (es. `UtenteRepository`, `PrenotazioneRepository`). Contengono tutte le query SQL, sempre parametrizzate, e trasformano le righe del database in modelli. Sono l'unico posto del progetto in cui si scrive SQL.
+
+### Servizi
+
+Contengono le regole di business della sezione 3: calcolo degli slot liberi, creazione della prenotazione con controllo anti-sovrapposizione nella stessa transazione, annullamenti e rimborsi. Usano i repository e non dipendono da Flask, quindi si testano con pytest senza avviare il sito.
+
+### Provider di pagamento
+
+Classe astratta `PaymentProvider` (modulo `abc`) che definisce le operazioni di pagamento comuni a tutti i provider (es. creare una sessione di pagamento, verificare una notifica, rimborsare). Ha due implementazioni: `StripeProvider` per l'uso reale in modalità test e `FakeProvider` per i test automatici. I servizi usano solo la classe astratta, quindi aggiungere un provider (es. PayPal nella fase 7b) non richiede di modificarli.
+
+### Eccezioni personalizzate
+
+Il modulo `eccezioni.py` definisce una classe base, `BarberBookingError`, e le eccezioni specifiche che ne derivano (es. `SlotNonDisponibileError`). I servizi le sollevano quando una regola di business è violata; un gestore centrale registrato con `@app.errorhandler` le trasforma in un messaggio per l'utente o in un codice HTTP. Si crea una nuova eccezione solo se va gestita in modo diverso dalle altre.
  
 ## 6. Struttura del progetto Flask
  

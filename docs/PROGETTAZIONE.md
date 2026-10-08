@@ -221,6 +221,21 @@ Contiene i dati e le regole configurabili del salone. Ha una sola riga, modifica
 | `percentuale_acconto` | TINYINT, obbligatoria, da 1 a 99 | Percentuale del totale da pagare online se il cliente sceglie l'acconto; l'importo in centesimi lo calcola il server |
 | `data_apertura` | DATE, obbligatoria | Data locale da cui partono i blocchi di 15 giorni della finestra di prenotazione |
 
+### Tabella `eventi`
+
+Contiene le visite alle pagine e i click, per le statistiche e il funnel visite → prenotazioni. Non salva indirizzi IP né l'identità dell'utente.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | BIGINT, chiave primaria, auto-incrementale | Identificativo dell'evento; BIGINT perché è la tabella che cresce più in fretta |
+| `tipo` | VARCHAR(50), obbligatoria | Tipo di evento (es. 'visita_pagina', 'click', 'prenotazione_creata'); il server accetta solo i tipi di un elenco fisso |
+| `pagina` | VARCHAR(255), obbligatoria | Percorso della pagina (es. '/servizi'), senza parametri, per non registrare dati personali |
+| `elemento` | VARCHAR(100), facoltativa | Per i click, quale pulsante o link è stato premuto |
+| `sessione` | VARCHAR(64), obbligatoria | Identificativo anonimo e casuale del visitatore, salvato nella sessione; serve a contare i visitatori unici e a ricostruire il funnel |
+| `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento dell'evento |
+
+Indice: (`tipo`, `creato_il`) per le statistiche per periodo.
+
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  
 ## 6. Struttura del progetto Flask

@@ -36,6 +36,33 @@ Gli utenti sono quattro:
 - Se lavora anche come parrucchiere, riceve prenotazioni come un dipendente; non può prenotare presso i dipendenti.
 
 ## 3. Regole di business
+
+### Prenotazioni
+- Il salone è **chiuso il lunedì**: nessuna prenotazione è possibile in quel giorno. La regola è verificata sul server in fase di calcolo degli slot e di creazione della prenotazione, non solo nell'interfaccia.
+- Solo i **clienti registrati** possono prenotare.
+- **Dipendenti e proprietario non possono prenotare** presso dipendenti o proprietario.
+- Ogni servizio ha una **durata** e un prezzo; la durata di una prenotazione con più servizi è la somma delle durate.
+- Gli slot liberi si calcolano **per singolo dipendente**.
+- Un dipendente non può avere due prenotazioni sovrapposte: il controllo avviene **nella stessa transazione** che crea la prenotazione, per evitare doppie prenotazioni in caso di richieste simultanee.
+#### Orari e disponibilità
+- Orario unico per tutti i dipendenti: **09:00–13:00 e 15:00–23:00**, da martedì a domenica (lunedì chiuso).
+- Gli appuntamenti iniziano a ore piene (slot da 1 ora).
+- Una prenotazione è assegnata a **un solo dipendente**, che esegue tutti i servizi scelti.
+- **Assenze del dipendente** (malattia, ferie): il proprietario registra un periodo (giorni o ore) in cui non riceve prenotazioni; la sua card mostra un segno di indisponibilità.
+- **Chiusure del salone** (ferie): nel periodo nessuno riceve prenotazioni.
+
+### Pagamenti
+- Il pagamento online è obbligatorio, in modalità test.
+- Il cliente sceglie se pagare un **acconto** (percentuale configurabile dal proprietario, resto in sede) oppure l'**importo completo**.
+- Gli importi sono **calcolati sempre dal server**, mai presi dai dati inviati dal browser.
+- Una prenotazione nasce `in_attesa_pagamento` e viene confermata solo dalla notifica del provider di pagamento (webhook con firma verificata, gestito in modo idempotente).
+- Stati del pagamento: `acconto_pagato`, `saldato`. Il saldo in sede lo registra il proprietario.
+- Una prenotazione `in_attesa_pagamento` blocca lo slot per **10 minuti**; se il pagamento non arriva, decade e lo slot torna libero.
+- Il cliente può **annullare fino a 2 ore prima** dell'inizio.
+### Accessi
+- Il cliente vede e annulla **solo le proprie** prenotazioni.
+- Il dipendente vede **solo la propria** agenda e le proprie statistiche.
+- Il primo proprietario si crea da riga di comando, non da una pagina pubblica.
 ## 4. Modello dei dati (tabelle e relazioni)
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
 ## 6. Struttura del progetto Flask

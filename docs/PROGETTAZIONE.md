@@ -139,7 +139,43 @@ Collega ogni prenotazione ai servizi scelti e conserva durata e prezzo applicati
 | `durata_minuti` | INT, obbligatoria | Durata del servizio al momento della prenotazione |
 | `prezzo_centesimi` | INT, obbligatoria | Prezzo al momento della prenotazione; non cambia se il proprietario modifica i prezzi in seguito. Il totale della prenotazione è la somma di questa colonna |
 
+### Tabella `orari_settimanali`
+
+Contiene il calendario settimanale del salone, unico per tutti i dipendenti: una riga per ogni turno. Un giorno senza righe è chiuso.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco del turno |
+| `giorno_settimana` | TINYINT, obbligatoria, da 1 (lunedì) a 7 (domenica) | Giorno della settimana, con la stessa numerazione di `isoweekday()` di Python |
+| `ora_inizio` | TIME, obbligatoria | Inizio del turno, nell'ora locale del salone (non in UTC) |
+| `ora_fine` | TIME, obbligatoria, successiva a `ora_inizio` | Fine del turno, nell'ora locale del salone |
+
+Il codice verifica che i turni dello stesso giorno non si sovrappongano e che inizio e fine cadano sulla griglia di 30 minuti.
+
 Chiave primaria composta (`prenotazione_id`, `servizio_id`): lo stesso servizio non può comparire due volte nella stessa prenotazione.
+
+### Tabella `eccezioni_date`
+
+Contiene le date in cui il calendario settimanale non vale: un giorno normalmente aperto reso chiuso, o un giorno normalmente chiuso reso aperto. Se una data è qui, conta solo l'eccezione.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `data` | DATE, chiave primaria | Il giorno dell'eccezione, nella data locale del salone; chiave primaria perché ogni data può avere una sola eccezione |
+| `aperto` | BOOLEAN, obbligatoria | Se vale no il salone è chiuso quel giorno; se vale sì è aperto con i turni indicati in `eccezioni_turni` |
+| `nota` | VARCHAR(255), facoltativa | Motivo dell'eccezione (es. "Apertura straordinaria per le feste"), utile al proprietario |
+
+### Tabella `eccezioni_turni`
+
+Contiene i turni delle date eccezionali in cui il salone è aperto: una riga per ogni turno.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco del turno |
+| `data` | DATE, obbligatoria, chiave esterna verso `eccezioni_date.data` | La data eccezionale a cui appartiene il turno |
+| `ora_inizio` | TIME, obbligatoria | Inizio del turno, nell'ora locale del salone |
+| `ora_fine` | TIME, obbligatoria, successiva a `ora_inizio` | Fine del turno, nell'ora locale del salone |
+
+Il codice verifica che i turni esistano solo per date con `aperto` = sì, che non si sovrappongano e che cadano sulla griglia di 30 minuti.
 
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  

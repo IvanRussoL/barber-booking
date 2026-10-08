@@ -177,6 +177,20 @@ Contiene i turni delle date eccezionali in cui il salone è aperto: una riga per
 
 Il codice verifica che i turni esistano solo per date con `aperto` = sì, che non si sovrappongano e che cadano sulla griglia di 30 minuti.
 
+### Tabella `indisponibilita`
+
+Contiene i periodi in cui non si ricevono prenotazioni: assenze di un dipendente (malattia, ferie) e chiusure dell'intero salone. Le registra solo il proprietario.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco del periodo |
+| `dipendente_id` | INT, facoltativa, chiave esterna verso `utenti.id` | Il dipendente assente; se è vuota il periodo è una chiusura dell'intero salone |
+| `inizio` | DATETIME, obbligatoria | Inizio del periodo; può essere un giorno intero o solo alcune ore |
+| `fine` | DATETIME, obbligatoria, successiva a `inizio` | Fine del periodo |
+| `nota` | VARCHAR(255), facoltativa | Breve nota per il proprietario (es. "Ferie estive") |
+
+Indice: (`dipendente_id`, `inizio`) per il calcolo degli slot.
+
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  
 ## 6. Struttura del progetto Flask

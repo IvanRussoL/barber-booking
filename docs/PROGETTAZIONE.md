@@ -50,10 +50,10 @@ Gli utenti sono quattro:
 - Il proprietario può inserire **eccezioni per una data precisa**: un giorno normalmente chiuso reso apribile (con i suoi turni) oppure un giorno normalmente aperto reso chiuso.
 - Nei giorni chiusi e fuori dai turni non è possibile prenotare. La regola è verificata sul server in fase di calcolo degli slot e di creazione della prenotazione, non solo nell'interfaccia.
 - Gli appuntamenti possono iniziare ogni **30 minuti**. Un appuntamento deve stare per intero dentro un turno: non può attraversare la pausa tra due turni né finire dopo la chiusura.
-- **Finestra di prenotazione**: le prenotazioni si aprono a **blocchi fissi di 15 giorni consecutivi**, a partire dalla data di apertura del sito (impostata dal proprietario). Il cliente può prenotare solo le date del blocco corrente; terminato il blocco, se ne apre uno nuovo. I blocchi non dipendono dai mesi del calendario.
+- **Finestra di prenotazione**: il cliente può prenotare da oggi fino all'**ultimo giorno del mese corrente**. Il primo giorno di ogni mese si apre il mese nuovo.
 - **Assenze del dipendente** (malattia, ferie): il proprietario registra un periodo (giorni o ore) in cui non riceve prenotazioni; la sua card mostra un segno di indisponibilità.
 - **Chiusure del salone** (ferie): periodo di più giorni consecutivi in cui nessuno riceve prenotazioni.
-- Le chiusure del salone non fanno eccezione alla finestra: le date successive alla riapertura si prenotano quando il blocco che le contiene si apre.
+- Le chiusure del salone non fanno eccezione alla finestra: le date successive alla riapertura si prenotano quando si apre il mese che le contiene.
 - Il proprietario sceglie il **fuso orario** del salone; le regole che dipendono dall'ora (annullamento a 2 ore, scadenza del pagamento, finestra di prenotazione) si calcolano in quel fuso.
 - Il **calendario settimanale** e le **eccezioni per data** non si possono modificare nei giorni che hanno già prenotazioni confermate: il proprietario deve prima contattare i clienti (hanno telefono ed email) e annullare le prenotazioni, con rimborso. Le **assenze** dei dipendenti e le **chiusure per ferie** seguono invece la procedura con elenco e conferma descritta in "Annullamenti".
 ### Pagamenti
@@ -219,7 +219,6 @@ Contiene i dati e le regole configurabili del salone. Ha una sola riga, modifica
 | `latitudine` | DECIMAL(9,6), obbligatoria | Latitudine del salone per la mappa |
 | `longitudine` | DECIMAL(9,6), obbligatoria | Longitudine del salone per la mappa |
 | `percentuale_acconto` | TINYINT, obbligatoria, da 1 a 99 | Percentuale del totale da pagare online se il cliente sceglie l'acconto; l'importo in centesimi lo calcola il server |
-| `data_apertura` | DATE, obbligatoria | Data locale da cui partono i blocchi di 15 giorni della finestra di prenotazione |
 
 ### Tabella `eventi`
 

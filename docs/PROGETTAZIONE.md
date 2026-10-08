@@ -40,6 +40,8 @@ Gli utenti sono quattro:
 - Una prenotazione è assegnata a **un solo dipendente**, che esegue tutti i servizi scelti.
 - Ogni servizio ha una **durata** e un prezzo, configurabili dal proprietario. La durata di una prenotazione con più servizi è la **somma** delle durate dei servizi scelti.
 - Durate di esempio: taglio 30 minuti, barba 30 minuti, colore almeno 90 minuti. Quindi taglio + barba = 1 ora e taglio + barba + colore = 150 minuti.
+- Le durate dei servizi sono **multipli di 30 minuti**, come la griglia degli appuntamenti, così l'agenda non ha buchi non prenotabili.
+- **Tutti i dipendenti eseguono tutti i servizi**: il cliente può scegliere qualsiasi dipendente per qualsiasi combinazione di servizi.
 - Gli slot liberi si calcolano **per singolo dipendente**.
 - Un dipendente non può avere due prenotazioni sovrapposte: il controllo avviene **nella stessa transazione** che crea la prenotazione, per evitare doppie prenotazioni in caso di richieste simultanee.
 ### Orari e disponibilità
@@ -89,6 +91,19 @@ Contiene tutte le persone che accedono al sito: clienti, dipendenti e proprietar
 | `riceve_prenotazioni` | BOOLEAN, obbligatoria, predefinito no | Indica se la persona è un professionista prenotabile con una propria agenda (dipendenti e proprietario che lavora in sala); la modifica solo il proprietario |
 | `attivo` | BOOLEAN, obbligatoria, predefinito sì | Se vale no l'account non può accedere e non è prenotabile; si disattiva invece di cancellare, per conservare lo storico |
 | `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento di creazione dell'account, scritto automaticamente dal database |
+
+### Tabella `servizi`
+
+Contiene i servizi offerti dal salone, con durata e prezzo attuali. Li gestisce solo il proprietario.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco del servizio |
+| `nome` | VARCHAR(100), obbligatoria, univoca | Nome mostrato ai clienti (es. "Taglio"); univoco per evitare due servizi con lo stesso nome |
+| `descrizione` | VARCHAR(255), facoltativa | Breve descrizione mostrata nella pagina dei servizi |
+| `durata_minuti` | INT, obbligatoria, maggiore di 0 e multiplo di 30 | Durata del servizio in minuti; multiplo di 30 per restare allineata alla griglia degli appuntamenti senza lasciare buchi non prenotabili; la durata di una prenotazione è la somma delle durate dei servizi scelti |
+| `prezzo_centesimi` | INT, obbligatoria, maggiore o uguale a 0 | Prezzo attuale in centesimi di euro (2500 = 25,00 €), nell'unità richiesta da Stripe; evita gli errori di arrotondamento dei numeri decimali |
+| `attivo` | BOOLEAN, obbligatoria, predefinito sì | Se vale no il servizio non è più prenotabile; si disattiva invece di cancellare, per conservare lo storico delle prenotazioni |
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
  
 ## 6. Struttura del progetto Flask

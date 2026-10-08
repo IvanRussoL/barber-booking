@@ -10,3 +10,4 @@ Diario delle scelte di sviluppo: cosa è stato fatto, perché e quali alternativ
 - **Email dei commit `noreply` di GitHub**: evita di esporre l'email personale nel repository pubblico.
 - **Repository privata durante lo sviluppo**, pubblica a progetto finito.
 - **Flask + mysql-connector-python, versioni bloccate in `requirements.txt`**: framework leggero e driver visto nel corso; versioni fissate per riprodurre l'ambiente. Alternative scartate: Django (troppo integrato, nasconde ciò che vogliamo mostrare), ORM come SQLAlchemy (fuori dal perimetro del corso).
+- **Progettazione scritta prima del codice (`docs/PROGETTAZIONE.md`)**: i requisiti per ruolo diventano la base di rotte, permessi e test degli accessi, e il documento serve per la presentazione. Alternativa scartata: partire subito dal codice e ricostruire la documentazione a posteriori.

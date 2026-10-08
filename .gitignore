@@ -1,0 +1,14 @@
+# Ambiente virtuale
+venv/
+
+# Segreti e configurazione locale
+.env
+
+# Cache e file generati da Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Editor e sistema operativo
+.vscode/
+Thumbs.db

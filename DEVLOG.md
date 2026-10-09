@@ -97,3 +97,9 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 - **Modelli senza validazione**: contengono solo dati e pochi metodi di calcolo (`durata_totale`, `prezzo_totale`); le regole (durate multiple di 30, date nel futuro, `fine` dopo `inizio`) stanno nei servizi e nei CHECK del database. Alternativa scartata: controlli in `__post_init__` (regole sparse in due posti).
 - **`id` facoltativo e in fondo ai campi**: un oggetto nuovo non ha ancora l'`id`, che assegna MySQL all'INSERT; una dataclass richiede i campi con valore predefinito dopo quelli obbligatori.
 - **Solo la classe base `BarberBookingError` per ora**: le eccezioni specifiche si aggiungono nelle fasi in cui un servizio le solleva. Alternativa scartata: scriverle tutte subito (classi non ancora usate).
+
+
+## 2026-10-09 · Fase 3 – Verifiche su MySQL
+
+- **MySQL 8.0.41**: i vincoli `CHECK` vengono applicati (servono la 8.0.16 o successive).
+- **`creato_il` con predefinito `(UTC_TIMESTAMP())` invece di `CURRENT_TIMESTAMP`**: la connessione usa il fuso orario di sistema (`SYSTEM`, ora italiana), quindi `CURRENT_TIMESTAMP` salverebbe l'ora locale. Il predefinito in UTC è scritto nello schema e vale per ogni connessione. Nelle query l'ora attuale la passa Python in UTC, senza usare `NOW()`. Alternative scartate: fuso orario della connessione impostato a UTC in `db.py` (non vale per Workbench), fuso orario globale del server (modifica anche gli altri database).

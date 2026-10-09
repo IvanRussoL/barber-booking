@@ -421,6 +421,41 @@ Le foto dei prodotti caricate dal proprietario sono escluse da Git: sono dati, n
 - **Rate limiting con Flask-Limiter**: al massimo 5 tentativi di login al minuto per indirizzo IP, e un limite anche sulla registrazione. L'IP serve solo a contare i tentativi e non viene salvato nel database.
 - **Ruoli assegnati solo dal server**: la registrazione pubblica crea sempre un cliente; i dipendenti li crea il proprietario; il primo proprietario si crea con un comando da terminale (`flask crea-proprietario`), non da una pagina del sito.
 - **Cambio password**: richiede la password attuale, così chi trova una sessione aperta su un computer altrui non può cambiarla. I dipendenti ricevono dal proprietario una password iniziale e possono cambiarla al primo accesso.
+
+### Controllo accessi
+
+Il controllo avviene sempre sul server e su due livelli; nascondere link o pulsanti serve solo all'interfaccia.
+
+- **Ruolo**: ogni Blueprint riservato verifica l'utente nel proprio `before_request`. Anonimo → redirect al login; ruolo sbagliato → 403.
+- **Proprietà dei dati**: l'identità dell'utente si prende sempre dalla sessione, mai dall'URL o da un modulo. Le query del cliente includono il suo `id` nella condizione (es. `WHERE id = %s AND cliente_id = %s`), così una prenotazione o un ordine di un altro cliente risulta semplicemente non trovato (404). Allo stesso modo l'agenda e le statistiche di un dipendente si leggono con il suo `id` di sessione. Questo impedisce di accedere ai dati altrui cambiando un numero nell'URL (IDOR).
+- **Grafici e report**: generati in memoria e restituiti da rotte protette, mai salvati in `static/`.
+- **Test degli accessi**: un test pytest scorre tutte le rotte registrate nell'app e verifica che quelle riservate rispondano correttamente ad anonimo, cliente e dipendente. Una rotta nuova finisce nel test automaticamente.
+
+### Protezione delle richieste
+
+- **CSRF**: `CSRFProtect` di Flask-WTF protegge tutti i moduli e le richieste POST. Le chiamate fetch inviano il token in un'intestazione, letto da un tag `<meta>` della pagina. Unica eccezione: il Blueprint `webhook`.
+- **SQL injection**: tutte le query usano parametri (`%s`) passati separatamente al driver, mai stringhe composte con i dati dell'utente.
+- **XSS**: Jinja applica l'escape automatico a tutti i dati nelle pagine; il filtro `|safe` non si usa mai su dati inseriti dagli utenti. In JavaScript i dati ricevuti si inseriscono con `textContent`, non con `innerHTML`.
+- **Validazione sul server**: ogni dato ricevuto è controllato dal server (tipi, lunghezze, valori ammessi), anche quando il modulo HTML ha già i suoi controlli, perché quelli del browser si aggirano facilmente.
+- **Upload delle foto**: dimensione massima della richiesta (`MAX_CONTENT_LENGTH`); solo JPEG, PNG e WebP, riconosciuti aprendo il file con Pillow e non dall'estensione; nome del file generato dal server; immagine risalvata da Pillow per eliminare contenuti nascosti e metadati.
+
+### Segreti e configurazione
+
+- **Segreti solo nel file `.env`**, escluso da Git e letto all'avvio con `python-dotenv`: `SECRET_KEY` di Flask, credenziali del database, chiavi di Stripe e segreto del webhook. Nel repository c'è solo `.env.example`, con i nomi delle variabili e valori finti, per mostrare cosa configurare.
+- **`SECRET_KEY` lunga e casuale**, generata con il modulo `secrets` di Python: firma il cookie di sessione, quindi chi la conosce può falsificare un login.
+- **Utente MySQL dedicato all'app**, con permessi solo sul database del progetto, mai `root`.
+- **Modalità debug solo in sviluppo**: il debugger di Flask permette di eseguire codice dal browser, quindi in produzione è spento e gli errori mostrano una pagina generica, senza dettagli tecnici.
+- **Solo chiavi di test di Stripe**: il progetto non usa mai chiavi reali.
+
+### Pagamenti
+
+- **Importi calcolati dal server**: il browser invia solo cosa si vuole acquistare (servizi, prodotti e quantità, modalità acconto o completo); prezzi, acconto e totale li calcola il server dal database.
+- **Dati della carta mai sul nostro server**: il pagamento avviene sulla pagina di Stripe Checkout, quindi l'app non vede né salva numeri di carta.
+- **Conferma solo dal webhook**: la pagina di ritorno dopo il pagamento mostra un messaggio, ma non conferma nulla. Prenotazioni e ordini diventano confermati solo quando arriva la notifica di Stripe.
+- **Firma del webhook verificata**: ogni notifica viene controllata con il segreto del webhook; una notifica senza firma valida viene scartata.
+- **Importo ricontrollato**: alla conferma, l'importo pagato deve coincidere con quello atteso salvato in `pagamenti`; se è diverso, la prenotazione o l'ordine non viene confermato.
+- **Idempotenza**: il pagamento si ritrova tramite `riferimento_provider`, che è univoco; una notifica ripetuta trova il pagamento già completato e non produce effetti.
+- **Rimborsi decisi dal server**: l'importo rimborsato è sempre quanto risulta pagato nei movimenti, mai un valore inviato dal browser.
  
 ## 8. Statistiche
  

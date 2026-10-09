@@ -73,3 +73,13 @@ Diario delle scelte di sviluppo: cosa è stato fatto, perché e quali alternativ
 - **Validazione di tutti i dati sul server**: i controlli del browser si aggirano, quelli del server no.
 - **Segreti in `.env` con `python-dotenv` e `.env.example` nel repository**: il repository pubblico non contiene segreti e mostra quali variabili configurare. Utente MySQL dedicato, debug spento in produzione, solo chiavi di test di Stripe.
 - **Pagamenti: importi calcolati dal server, conferma solo dal webhook con firma verificata, importo ricontrollato alla conferma**: il browser non decide né prezzi né esito del pagamento. I dati della carta restano su Stripe Checkout. Alternativa scartata: confermare dalla pagina di ritorno (si può aprire senza aver pagato).
+
+## 2026-10-09 · Progettazione – Statistiche (sezione 8)
+
+- **Statistiche con definizioni precise, solo prenotazioni confermate**: ogni numero ha un calcolo dichiarato, così si può spiegare e verificare. Aggiunti i prodotti più venduti.
+- **Ricavi per data del pagamento**: è il momento in cui i soldi entrano e basta la tabella `pagamenti`. Alternativa scartata: data dell'appuntamento (un acconto di settembre per un taglio di dicembre comparirebbe solo a dicembre).
+- **Occupazione rispetto all'orario del salone, senza considerare le assenze**: calcolo semplice dal calendario e dalle eccezioni. Limite accettato: chi è stato assente risulta meno occupato. Alternativa scartata: ore di apertura individuali tolte le assenze (più precisa, ma ricalcola le disponibilità di ogni dipendente).
+- **Visite registrate dal server, click inviati con fetch a una rotta con elenco fisso di nomi e limite di richieste**: dati affidabili senza dipendere da JavaScript per le visite e senza eventi inventati. Alternativa scartata: tracciare tutto da JavaScript (le visite si perdono se JavaScript è disattivato).
+- **Funnel con i primi passaggi da `eventi` e gli ultimi da `prenotazioni`**: le prenotazioni non sono registrate due volte; `eventi` contiene solo `visita_pagina` e `click`. Limite accettato: si confrontano i totali del periodo, non il percorso di ogni visitatore. Alternativa scartata: eventi di prenotazione legati alla sessione (dati duplicati che possono non coincidere).
+- **Grafici matplotlib in stile scuro, generati in memoria con il backend `Agg` e serviti senza cache**: nessun file riservato su disco e nessun errore legato alle finestre grafiche sul server.
+- **Eventi cancellati dopo 12 mesi con un comando da terminale**: si conservano solo i dati utili alle statistiche. Alternativa scartata: cancellazione automatica pianificata (un componente in più).

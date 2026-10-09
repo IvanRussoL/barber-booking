@@ -250,10 +250,10 @@ Contiene le visite alle pagine e i click, per le statistiche e il funnel visite 
 | Colonna | Tipo | Significato |
 |---|---|---|
 | `id` | BIGINT, chiave primaria, auto-incrementale | Identificativo dell'evento; BIGINT perché è la tabella che cresce più in fretta |
-| `tipo` | VARCHAR(50), obbligatoria | Tipo di evento (es. 'visita_pagina', 'click', 'prenotazione_creata'); il server accetta solo i tipi di un elenco fisso |
+| `tipo` | VARCHAR(50), obbligatoria | Tipo di evento: 'visita_pagina' o 'click'; il server accetta solo i tipi di un elenco fisso |
 | `pagina` | VARCHAR(255), obbligatoria | Percorso della pagina (es. '/servizi'), senza parametri, per non registrare dati personali |
 | `elemento` | VARCHAR(100), facoltativa | Per i click, quale pulsante o link è stato premuto |
-| `sessione` | VARCHAR(64), obbligatoria | Identificativo anonimo e casuale del visitatore, salvato nella sessione; serve a contare i visitatori unici e a ricostruire il funnel |
+| `sessione` | VARCHAR(64), obbligatoria | Identificativo casuale del visitatore, salvato nella sessione; serve a contare i visitatori unici |
 | `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento dell'evento |
 
 Indice: (`tipo`, `creato_il`) per le statistiche per periodo.
@@ -458,7 +458,50 @@ Il controllo avviene sempre sul server e su due livelli; nascondere link o pulsa
 - **Rimborsi decisi dal server**: l'importo rimborsato è sempre quanto risulta pagato nei movimenti, mai un valore inviato dal browser.
  
 ## 8. Statistiche
+
+### Quali statistiche
+
+Contano solo le prenotazioni `confermate`. Il periodo da analizzare (es. un mese) lo sceglie chi consulta le statistiche.
+
+**Proprietario**
+
+| Statistica | Calcolo | Grafico |
+|---|---|---|
+| Prenotazioni per dipendente | Prenotazioni confermate nel periodo, per dipendente | Barre |
+| Occupazione | Ore prenotate del dipendente ÷ ore di apertura del salone nel periodo, in percentuale | Barre |
+| Fasce di punta | Prenotazioni confermate per giorno della settimana e ora di inizio | Barre per ora |
+| Ricavi | Movimenti completati meno rimborsi, per mese, separando servizi e prodotti; conta la data del pagamento | Barre affiancate |
+| Prodotti più venduti | Pezzi venduti per prodotto, negli ordini confermati o ritirati | Barre orizzontali |
+| Funnel | Visitatori unici → aperture della pagina di prenotazione → prenotazioni create → prenotazioni pagate | Barre decrescenti |
+
+**Dipendente**
+
+| Statistica | Calcolo | Grafico |
+|---|---|---|
+| Clienti per giorno, settimana e mese | Le proprie prenotazioni confermate nel periodo | Linea dell'andamento |
+
+L'occupazione è calcolata sull'orario del salone e non considera le assenze: un dipendente in ferie per parte del periodo risulta meno occupato. È una semplificazione voluta, che evita di ricalcolare le disponibilità individuali.
  
+### Raccolta dei dati
+
+- **Visite alle pagine**: registrate dal server quando risponde a una delle pagine tracciate (home, servizi, prodotti, pagina di prenotazione). Non servono JavaScript né richieste in più. File statici, chiamate fetch, webhook e aree riservate non vengono registrati.
+- **Click**: i pulsanti da tracciare hanno un attributo `data-traccia` con il loro nome; al click JavaScript invia con fetch una richiesta POST a una rotta pubblica, con il token CSRF. Il server accetta solo nomi di un elenco fisso e la rotta ha un limite di richieste (Flask-Limiter), così la tabella non si riempie di dati inventati.
+- **Visitatori unici**: alla prima visita il server salva nella sessione un identificativo casuale, scritto in ogni evento; i visitatori unici sono gli identificativi diversi nel periodo.
+- **Funnel**: visitatori unici e aperture della pagina di prenotazione vengono da `eventi`; prenotazioni create e pagate si contano direttamente da `prenotazioni`, senza duplicarle negli eventi. Il funnel confronta i totali del periodo, non il percorso del singolo visitatore: è un'approssimazione accettata per semplicità.
+- **Lettura con pandas**: `StatisticheService` carica i dati del periodo in DataFrame con query parametrizzate e calcola raggruppamenti e totali.
+
+### Grafici
+
+- **Stile scuro coerente con il sito**: un'unica funzione imposta per tutti i grafici lo sfondo scuro, il testo chiaro e i colori di accento (verde menta `#2dd4bf`, rosa `#ff6b8b`).
+- **Generati in memoria**: matplotlib disegna il grafico in un buffer PNG, che una rotta protetta restituisce come immagine. Si usa il backend `Agg`, che non apre finestre ed è adatto a un server.
+- **Nessuna cache condivisa**: le risposte con i grafici indicano al browser di non conservarle (`Cache-Control: no-store`), perché contengono dati riservati del salone.
+
+### Privacy delle statistiche
+
+- La tabella `eventi` non contiene IP, identità dell'utente né parametri degli URL.
+- Gli eventi più vecchi di 12 mesi vengono cancellati con un comando da terminale: per le statistiche bastano, e non si conservano dati più a lungo del necessario.
+- L'identificativo dei visitatori sta nel cookie di sessione del sito. Se serva un banner o un'informativa per questo uso va verificato sulle indicazioni del Garante prima della fase 8.
+
 ## 9. Scelte tecniche e alternative scartate
  
 ## 10. Sviluppi futuri

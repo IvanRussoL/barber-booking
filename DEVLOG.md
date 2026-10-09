@@ -1,6 +1,6 @@
 # DEVLOG – Barber Booking
 
-Diario delle scelte di sviluppo: cosa è stato fatto, perché e quali alternative sono state scartate.
+Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho scartato.
 
 ## 2026-10-08 · Fase 1 – Setup
 
@@ -9,7 +9,7 @@ Diario delle scelte di sviluppo: cosa è stato fatto, perché e quali alternativ
 - **`.gitignore` creato prima del primo commit**: il repository diventerà pubblico e la cronologia di Git conserva tutto; così segreti (`.env`) e venv non entrano mai nella storia.
 - **Email dei commit `noreply` di GitHub**: evita di esporre l'email personale nel repository pubblico.
 - **Repository privata durante lo sviluppo**, pubblica a progetto finito.
-- **Flask + mysql-connector-python, versioni bloccate in `requirements.txt`**: framework leggero e driver visto nel corso; versioni fissate per riprodurre l'ambiente. Alternative scartate: Django (troppo integrato, nasconde ciò che vogliamo mostrare), ORM come SQLAlchemy (fuori dal perimetro del corso).
+- **Flask + mysql-connector-python, versioni bloccate in `requirements.txt`**: framework leggero e driver visto nel corso; versioni fissate per riprodurre l'ambiente. Alternative scartate: Django (troppo integrato, nasconde ciò che voglio mostrare), ORM come SQLAlchemy (fuori dal perimetro del corso).
 - **Progettazione scritta prima del codice (`docs/PROGETTAZIONE.md`)**: i requisiti per ruolo diventano la base di rotte, permessi e test degli accessi, e il documento serve per la presentazione. Alternativa scartata: partire subito dal codice e ricostruire la documentazione a posteriori.
 
 ## 2026-10-08 · Progettazione – Modello dei dati (sezione 4)
@@ -18,7 +18,7 @@ Diario delle scelte di sviluppo: cosa è stato fatto, perché e quali alternativ
 - **Griglia di 30 minuti e durate dei servizi multiple di 30**: ogni combinazione di servizi riempie slot interi, quindi l'agenda non ha buchi non prenotabili e il calcolo degli slot resta semplice. Alternativa scartata: griglia di 15 minuti con durate libere (più slot da calcolare e buchi residui).
 - **Tutti i dipendenti eseguono tutti i servizi**: non serve una tabella che colleghi dipendenti e servizi. Alternativa scartata: competenze per dipendente (più complessità senza un requisito che la chieda; possibile sviluppo futuro).
 - **Calendario settimanale unico con eccezioni per data**: poche righe coprono la settimana normale, le eccezioni coprono festività e aperture straordinarie. Alternative scartate: un calendario per dipendente (le assenze bastano a gestire le differenze), una riga per ogni data (andrebbe generata di continuo).
-- **Finestra di prenotazione da oggi alla fine del mese corrente**: scelta per semplicità; il periodo si ricava dalla data di oggi nel fuso del salone, senza date di partenza da configurare, ed è immediato da capire per clienti e proprietario. Limite accettato: a fine mese la finestra si accorcia. Alternative scartate: blocchi fissi di 15 giorni da una data di apertura (prima scelta, abbandonata perché richiedeva l'impostazione `data_apertura` senza vantaggi reali), finestra mobile "oggi + N giorni" (apre un giorno nuovo ogni mezzanotte).
+- **Finestra di prenotazione da oggi alla fine del mese corrente**: l'ho scelta per semplicità; il periodo si ricava dalla data di oggi nel fuso del salone, senza date di partenza da configurare, ed è immediato da capire per clienti e proprietario. Limite accettato: a fine mese la finestra si accorcia. Alternative scartate: blocchi fissi di 15 giorni da una data di apertura (prima scelta, abbandonata perché richiedeva l'impostazione `data_apertura` senza vantaggi reali), finestra mobile "oggi + N giorni" (apre un giorno nuovo ogni mezzanotte).
 - **Prezzi in centesimi interi (`prezzo_centesimi`)**: gli interi non hanno errori di arrotondamento, a differenza dei numeri decimali in virgola mobile, e sono l'unità che chiede Stripe, quindi non serve nessuna conversione. Alternative scartate: FLOAT (arrotondamenti sbagliati), DECIMAL (corretto, ma andrebbe convertito per Stripe).
 - **`fine` salvata in `prenotazioni`**: il controllo anti-sovrapposizione diventa una sola condizione (`inizio < fine_altra AND fine > inizio_altra`) senza ricalcolare le durate dai servizi. Alternativa scartata: calcolare la fine ogni volta dalla somma delle durate (query più complessa e più lenta).
 - **Stato della prenotazione separato dallo stato del pagamento**: la prenotazione ha il suo ciclo di vita (in attesa, confermata, scaduta, annullata), mentre lo stato del pagamento si ricava dai movimenti. Alternativa scartata: un unico campo che mescola i due (combinazioni come "confermata con acconto" moltiplicherebbero gli stati).
@@ -59,7 +59,7 @@ Diario delle scelte di sviluppo: cosa è stato fatto, perché e quali alternativ
 
 ## 2026-10-09 · Progettazione – Sicurezza: autenticazione e sessione (sezione 7)
 
-- **Login gestito a mano con la sessione di Flask**: dopo il login la sessione viene svuotata e riceve solo l'`id` dell'utente, che viene ricaricato dal database a ogni richiesta. Pochi passaggi, tutti spiegabili. Alternativa scartata: Flask-Login (una libreria in più per funzioni che con Blueprint e `before_request` ci servono solo in parte).
+- **Login gestito a mano con la sessione di Flask**: dopo il login la sessione viene svuotata e riceve solo l'`id` dell'utente, che viene ricaricato dal database a ogni richiesta. Pochi passaggi, tutti spiegabili. Alternativa scartata: Flask-Login (una libreria in più per funzioni che con Blueprint e `before_request` mi servono solo in parte).
 - **Rate limiting con Flask-Limiter**: 5 tentativi di login al minuto per IP, più un limite sulla registrazione. L'IP serve solo a contare i tentativi e non viene salvato nel database. Alternativa scartata: contatore dei tentativi scritto a mano (una tabella e più codice per lo stesso risultato).
 - **Registrazione pubblica solo per i clienti**: i dipendenti li crea il proprietario, il primo proprietario si crea da terminale. Nessuno può assegnarsi un ruolo da solo.
 - **Pagina di cambio password, nel nuovo Blueprint `account`**: richiede la password attuale; il Blueprint dedicato mantiene la regola "nega per default" anche per una rotta aperta a tutti i ruoli. Il cambio al primo accesso dei dipendenti è consigliato, non obbligato. Alternative scartate: rotta dentro `auth` con un controllo a parte (unica eccezione alla regola), colonna `deve_cambiare_password` per obbligare il cambio (più sicura, ma un dato e un controllo in più). Recupero via email rimandato agli sviluppi futuri.
@@ -83,3 +83,9 @@ Diario delle scelte di sviluppo: cosa è stato fatto, perché e quali alternativ
 - **Funnel con i primi passaggi da `eventi` e gli ultimi da `prenotazioni`**: le prenotazioni non sono registrate due volte; `eventi` contiene solo `visita_pagina` e `click`. Limite accettato: si confrontano i totali del periodo, non il percorso di ogni visitatore. Alternativa scartata: eventi di prenotazione legati alla sessione (dati duplicati che possono non coincidere).
 - **Grafici matplotlib in stile scuro, generati in memoria con il backend `Agg` e serviti senza cache**: nessun file riservato su disco e nessun errore legato alle finestre grafiche sul server.
 - **Eventi cancellati dopo 12 mesi con un comando da terminale**: si conservano solo i dati utili alle statistiche. Alternativa scartata: cancellazione automatica pianificata (un componente in più).
+
+## 2026-10-09 · Progettazione – Riepilogo delle scelte (sezione 9) e chiusura della progettazione
+
+- **Sezione 9 come riepilogo**: tabella delle scelte principali e delle librerie, con rimando al DEVLOG per date e motivazioni complete. Evita di duplicare ogni decisione in due documenti.
+- **Precisazione sulla Fase 1**: Flask e MySQL sono richiesti dalla consegna del corso; Django, indicato tra le alternative scartate, non l'ho valutato come alternativa reale.
+- **Progettazione completa (sezioni 1-10)**: requisiti, regole, modello dei dati, classi, struttura, sicurezza e statistiche sono definiti prima del codice. Le verifiche tecniche ancora aperte (versione di MySQL, Stripe, tzdata, indicazioni del Garante) le farò all'inizio delle fasi che le riguardano.

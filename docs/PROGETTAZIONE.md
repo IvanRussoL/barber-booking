@@ -325,7 +325,7 @@ Classi definite con `@dataclass` che rappresentano una riga del database (es. `U
 
 La tabella `eventi` non ha un modello: si scrive con un semplice INSERT e si legge solo per le statistiche, caricandola direttamente in un DataFrame di pandas.
 
-Gli utenti sono una sola classe `Utente` con il campo `ruolo`, senza sottoclassi per cliente, dipendente e proprietario: i tre ruoli hanno gli stessi dati, il proprietario può anche ricevere prenotazioni come un dipendente, e i permessi li decide il controllo degli accessi, non la classe. L'ereditarietà è usata dove le classi hanno comportamenti diversi: `PaymentProvider` e le eccezioni.
+Ho scelto una sola classe `Utente` con il campo `ruolo`, senza sottoclassi per cliente, dipendente e proprietario: i tre ruoli hanno gli stessi dati, il proprietario può anche ricevere prenotazioni come un dipendente, e i permessi li decide il controllo degli accessi, non la classe. Ho usato l'ereditarietà solo dove le classi hanno comportamenti diversi: `PaymentProvider` e le eccezioni.
 
 
 ### Repository
@@ -346,7 +346,7 @@ Contengono le regole di business della sezione 3: calcolo degli slot liberi, cre
 | `SaloneService` | Operazioni del proprietario su servizi, prodotti (con il salvataggio sicuro delle foto tramite Pillow), orari, eccezioni, assenze e chiusure, con le regole della sezione 3 |
 | `StatisticheService` | Lettura di eventi e prenotazioni con pandas e creazione dei grafici con matplotlib |
 
-Le operazioni del proprietario stanno in un solo servizio perché sono brevi e simili: dividerle creerebbe classi quasi vuote. Se una diventa complessa, si separa.
+Ho raccolto le operazioni del proprietario in un solo servizio perché sono brevi e simili: dividerle creerebbe classi quasi vuote. Se una diventerà complessa, la sposterò in un servizio a parte.
 
 ### Provider di pagamento
 
@@ -354,7 +354,7 @@ Classe astratta `PaymentProvider` (modulo `abc`) che definisce le operazioni di 
 
 ### Eccezioni personalizzate
 
-Il modulo `eccezioni.py` definisce una classe base, `BarberBookingError`, e le eccezioni specifiche che ne derivano (es. `SlotNonDisponibileError`). I servizi le sollevano quando una regola di business è violata; un gestore centrale registrato con `@app.errorhandler` le trasforma in un messaggio per l'utente o in un codice HTTP. Si crea una nuova eccezione solo se va gestita in modo diverso dalle altre.
+Il modulo `eccezioni.py` definisce una classe base, `BarberBookingError`, e le eccezioni specifiche che ne derivano (es. `SlotNonDisponibileError`). I servizi le sollevano quando una regola di business è violata; un gestore centrale registrato con `@app.errorhandler` le trasforma in un messaggio per l'utente o in un codice HTTP. Creo una nuova eccezione solo se va gestita in modo diverso dalle altre.
  
 ## 6. Struttura del progetto Flask
 ### Cartelle
@@ -414,7 +414,7 @@ Le foto dei prodotti caricate dal proprietario sono escluse da Git: sono dati, n
 ### Autenticazione e sessione
 
 - **Password**: salvate solo come hash con Werkzeug (`generate_password_hash`, `check_password_hash`), lunghezza minima di 8 caratteri.
-- **Login senza librerie esterne**: dopo il controllo della password la sessione viene svuotata e riceve solo l'`id` dell'utente. Svuotarla impedisce di riusare una sessione creata prima del login (session fixation). Il logout svuota la sessione.
+- **Login senza librerie esterne**: ho scelto di gestirlo con la sessione di Flask. Dopo il controllo della password la sessione viene svuotata e riceve solo l'`id` dell'utente. Svuotarla impedisce di riusare una sessione creata prima del login (session fixation). Il logout svuota la sessione.
 - **Utente ricaricato a ogni richiesta**: un `before_request` dell'app legge l'utente dal database tramite l'`id` in sessione. Così un account disattivato o un ruolo cambiato hanno effetto subito, senza aspettare un nuovo login.
 - **Messaggio di errore generico** ("email o password non corretti"): non rivela se un'email è registrata.
 - **Cookie di sessione** con `HttpOnly` (non leggibile da JavaScript), `SameSite=Lax` (non inviato da altri siti nelle richieste POST) e `Secure` in produzione (solo HTTPS).
@@ -480,14 +480,14 @@ Contano solo le prenotazioni `confermate`. Il periodo da analizzare (es. un mese
 |---|---|---|
 | Clienti per giorno, settimana e mese | Le proprie prenotazioni confermate nel periodo | Linea dell'andamento |
 
-L'occupazione è calcolata sull'orario del salone e non considera le assenze: un dipendente in ferie per parte del periodo risulta meno occupato. È una semplificazione voluta, che evita di ricalcolare le disponibilità individuali.
+L'occupazione è calcolata sull'orario del salone e non considera le assenze: un dipendente in ferie per parte del periodo risulta meno occupato. Ho scelto questa semplificazione per non ricalcolare le disponibilità di ogni dipendente.
  
 ### Raccolta dei dati
 
 - **Visite alle pagine**: registrate dal server quando risponde a una delle pagine tracciate (home, servizi, prodotti, pagina di prenotazione). Non servono JavaScript né richieste in più. File statici, chiamate fetch, webhook e aree riservate non vengono registrati.
 - **Click**: i pulsanti da tracciare hanno un attributo `data-traccia` con il loro nome; al click JavaScript invia con fetch una richiesta POST a una rotta pubblica, con il token CSRF. Il server accetta solo nomi di un elenco fisso e la rotta ha un limite di richieste (Flask-Limiter), così la tabella non si riempie di dati inventati.
 - **Visitatori unici**: alla prima visita il server salva nella sessione un identificativo casuale, scritto in ogni evento; i visitatori unici sono gli identificativi diversi nel periodo.
-- **Funnel**: visitatori unici e aperture della pagina di prenotazione vengono da `eventi`; prenotazioni create e pagate si contano direttamente da `prenotazioni`, senza duplicarle negli eventi. Il funnel confronta i totali del periodo, non il percorso del singolo visitatore: è un'approssimazione accettata per semplicità.
+- **Funnel**: visitatori unici e aperture della pagina di prenotazione vengono da `eventi`; prenotazioni create e pagate si contano direttamente da `prenotazioni`, senza duplicarle negli eventi. Il funnel confronta i totali del periodo, non il percorso del singolo visitatore: ho accettato questa approssimazione per semplicità.
 - **Lettura con pandas**: `StatisticheService` carica i dati del periodo in DataFrame con query parametrizzate e calcola raggruppamenti e totali.
 
 ### Grafici
@@ -499,10 +499,47 @@ L'occupazione è calcolata sull'orario del salone e non considera le assenze: un
 ### Privacy delle statistiche
 
 - La tabella `eventi` non contiene IP, identità dell'utente né parametri degli URL.
-- Gli eventi più vecchi di 12 mesi vengono cancellati con un comando da terminale: per le statistiche bastano, e non si conservano dati più a lungo del necessario.
-- L'identificativo dei visitatori sta nel cookie di sessione del sito. Se serva un banner o un'informativa per questo uso va verificato sulle indicazioni del Garante prima della fase 8.
+- Gli eventi più vecchi di 12 mesi vengono cancellati con un comando da terminale. Ho scelto 12 mesi perché bastano per le statistiche, senza conservare dati più a lungo del necessario.
+- L'identificativo dei visitatori sta nel cookie di sessione del sito. Prima della fase 8 verificherò sulle indicazioni del Garante se per questo uso serve un banner o un'informativa.
 
 ## 9. Scelte tecniche e alternative scartate
+Il criterio che ho seguito è la soluzione più semplice che rispetta i requisiti. Il DEVLOG riporta ogni decisione con data e motivazione completa; qui sono riassunte le principali.
+
+| Area | Scelta | Alternativa scartata | Motivo |
+|---|---|---|---|
+| Framework | Flask | — | Richiesto dalla consegna del corso |
+| Database | MySQL con query SQL scritte a mano | ORM (SQLAlchemy) | MySQL richiesto dalla consegna; query scritte a mano perché visibili e parametrizzate, senza strati nascosti |
+| Architettura | Modelli, repository, servizi, provider | Logica e SQL nelle rotte | Responsabilità separate, logica testabile senza Flask |
+| Avvio dell'app | Application factory (`create_app()`) | App globale in un file | Configurazione separata per i test |
+| Controllo accessi | Blueprint con `before_request` | Decoratore su ogni rotta | Nessuna rotta può restare senza controllo |
+| Login | Sessione di Flask gestita a mano | Flask-Login | Pochi passaggi, nessuna libreria in più |
+| Date | DATETIME in UTC, turni in ora locale | Tutto in ora locale | Nessuna ambiguità con l'ora legale |
+| Prezzi | Interi in centesimi | FLOAT o DECIMAL | Nessun arrotondamento, formato richiesto da Stripe |
+| Doppie prenotazioni | Controllo nella transazione con `SELECT ... FOR UPDATE` | Controllo solo prima dell'inserimento | Richieste simultanee servite una alla volta |
+| Pagamenti | Conferma dal webhook firmato, movimenti in `pagamenti` | Conferma dalla pagina di ritorno | Il browser non decide l'esito |
+| Provider | Classe astratta con implementazione reale e finta | Chiamate dirette a Stripe | Test senza servizi esterni, provider sostituibile |
+| Errori | Eccezioni personalizzate e `@app.errorhandler` | Codici di errore restituiti | Regola violata riconoscibile, gestione in un punto |
+| Carrello | Sessione di Flask | Tabella `carrelli` | Nessun dato da ripulire |
+| Statistiche | pandas e matplotlib, grafici in memoria | File su disco | Nessun dato riservato in cartelle pubbliche |
+
+### Librerie
+
+Le versioni sono bloccate in `requirements.txt`.
+
+| Libreria | Uso |
+|---|---|
+| Flask (con Werkzeug e Jinja) | Applicazione web, rotte, template, hash delle password |
+| mysql-connector-python | Connessione a MySQL e query parametrizzate |
+| python-dotenv | Lettura dei segreti dal file `.env` |
+| Flask-WTF | Protezione CSRF (`CSRFProtect`) |
+| Flask-Limiter | Limite di richieste su login, registrazione e tracciamento dei click |
+| stripe | Sessioni di Checkout, verifica dei webhook, rimborsi |
+| pandas | Calcolo delle statistiche |
+| matplotlib | Grafici delle statistiche |
+| Pillow | Controllo e salvataggio delle foto dei prodotti |
+| pytest | Test automatici |
+
+Dalla libreria standard di Python uso inoltre `dataclasses` (modelli), `abc` (classe astratta dei provider), `zoneinfo` (fusi orari), `secrets` (valori casuali per chiavi e identificativi) e `calendar` (ultimo giorno del mese).
  
 ## 10. Sviluppi futuri
 - Interfaccia in più lingue (oggi solo italiano) e valute diverse dall'euro, per saloni in altri Paesi.

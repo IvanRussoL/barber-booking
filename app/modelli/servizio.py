@@ -2,6 +2,9 @@ from dataclasses import dataclass
 
 @dataclass
 class Servizio:
+    """
+    Servizio offerto dal salone, con durata e prezzo attuali.
+    """
     nome:str
     durata_minuti: int
     prezzo_centesimi: int

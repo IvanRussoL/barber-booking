@@ -89,3 +89,8 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 - **Sezione 9 come riepilogo**: tabella delle scelte principali e delle librerie, con rimando al DEVLOG per date e motivazioni complete. Evita di duplicare ogni decisione in due documenti.
 - **Precisazione sulla Fase 1**: Flask e MySQL sono richiesti dalla consegna del corso; Django, indicato tra le alternative scartate, non l'ho valutato come alternativa reale.
 - **Progettazione completa (sezioni 1-10)**: requisiti, regole, modello dei dati, classi, struttura, sicurezza e statistiche sono definiti prima del codice. Le verifiche tecniche ancora aperte (versione di MySQL, Stripe, tzdata, indicazioni del Garante) le farò all'inizio delle fasi che le riguardano.
+
+## 2026-10-09 · Fase 2 – Modello a oggetti
+
+- **Modelli in `app/modelli/`, un file per gruppo** (es. `prenotazione.py` con `Prenotazione` e `ServizioPrenotato`): le classi collegate stanno insieme. Alternative scartate: un file per classe (troppi file minuscoli), un unico `modelli.py` (contrario alla struttura della sezione 6).
+- **Primo test con pytest già in Fase 2, sui metodi di `Prenotazione`** (`durata_totale`, `prezzo_totale`): i modelli non dipendono da database né da Flask, quindi si testano subito. Test nella cartella `tests/` fuori da `app/`, eseguiti con `python -m pytest`. Alternativa scartata: rimandare tutti i test alla fase finale (gli errori si scoprirebbero tardi).

@@ -2,12 +2,12 @@
  
 ## 1. Problema e utenti
  
-Un salone di barbiere/parrucchiere gestisce gli appuntamenti per telefono o di persona: è facile sbagliare gli orari, sovrapporre due clienti dallo stesso dipendente o dimenticare chi ha già versato un acconto. L'applicazione permette ai clienti di prenotare online scegliendo servizio, dipendente e orario, e al salone di gestire agende, pagamenti e statistiche in un unico posto.
+Un salone di barbiere/parrucchiere gestisce gli appuntamenti per telefono o di persona: è facile sbagliare gli orari, sovrapporre due clienti dallo stesso dipendente o dimenticare chi ha già versato un acconto. L'applicazione permette ai clienti di prenotare online scegliendo servizio, dipendente e orario, e di acquistare i prodotti del salone da ritirare in negozio; al salone permette di gestire agende, pagamenti, ordini e statistiche in un unico posto.
  
 Gli utenti sono quattro:
  
 - **Visitatore (non registrato)**: può consultare il sito, ma non prenotare.
-- **Cliente**: persona registrata che prenota e paga online.
+- **Cliente**: persona registrata che prenota servizi e acquista prodotti, pagando online.
 - **Dipendente**: parrucchiere o barbiere del salone, con un'agenda propria.
 - **Proprietario**: gestisce il salone; può essere anche parrucchiere e ricevere prenotazioni.
 ## 2. Requisiti funzionali
@@ -15,16 +15,21 @@ Gli utenti sono quattro:
 ### Visitatore
 - Consulta servizi, prezzi, orari del salone e posizione sulla mappa.
 - Si registra o accede.
+- Consulta il catalogo dei prodotti in vendita (shampoo, balsamo, gel, cera, schiuma da barba, profumi) con i prezzi.
 ### Cliente
 - Prenota scegliendo uno o più servizi (es. taglio + barba), il dipendente e uno slot libero.
 - Sceglie al momento della prenotazione se pagare un acconto o l'importo completo, online.
 - Consulta nella propria area personale lo **storico delle prenotazioni** con il dettaglio dei servizi e lo **storico dei pagamenti**, con il totale speso.
 - Annulla solo le proprie prenotazioni, fino a 2 ore prima, con rimborso.
+- Acquista prodotti con un carrello separato dalle prenotazioni, paga online l'importo completo e li ritira in negozio (nessuna spedizione).
+- Consulta nella propria area personale lo **storico degli ordini** e il loro stato (da ritirare, ritirato, annullato).
+- Il totale speso comprende servizi e prodotti, al netto dei rimborsi; con "Dettagli" vede separatamente la spesa per i servizi e quella per i prodotti.
 ### Dipendente
 - Accede con un profilo personale e vede **solo la propria agenda**.
 - Nella propria pagina consulta le **statistiche del proprio lavoro**: clienti giornalieri, settimanali e mensili, con grafici sull'andamento (se le prenotazioni aumentano o diminuiscono).
 - Non può prenotare presso altri dipendenti o presso il proprietario.
 - Non può annullare prenotazioni né registrare assenze.
+- Non gestisce prodotti e ordini.
 ### Proprietario
 - Gestisce servizi (con durate e prezzi), dipendenti e orari di lavoro.
 - Consulta le statistiche generali: prenotazioni per dipendente, occupazione, fasce di punta, ricavi, funnel visite → prenotazioni.
@@ -32,6 +37,8 @@ Gli utenti sono quattro:
 - Modifica i dati del salone, compresa la posizione sulla mappa (riservato al proprietario).
 - Se lavora anche come parrucchiere, riceve prenotazioni come un dipendente; non può prenotare presso i dipendenti.
 - Registra assenze dei dipendenti e chiusure del salone; annulla prenotazioni con rimborso.
+- Gestisce il catalogo dei prodotti (nome, prezzo, disponibilità).
+- Vede gli ordini da ritirare, registra il ritiro e annulla gli ordini con rimborso (es. prodotto esaurito).
 ## 3. Regole di business
  
 ### Prenotazioni
@@ -50,7 +57,7 @@ Gli utenti sono quattro:
 - Il proprietario può inserire **eccezioni per una data precisa**: un giorno normalmente chiuso reso apribile (con i suoi turni) oppure un giorno normalmente aperto reso chiuso.
 - Nei giorni chiusi e fuori dai turni non è possibile prenotare. La regola è verificata sul server in fase di calcolo degli slot e di creazione della prenotazione, non solo nell'interfaccia.
 - Gli appuntamenti possono iniziare ogni **30 minuti**. Un appuntamento deve stare per intero dentro un turno: non può attraversare la pausa tra due turni né finire dopo la chiusura.
-- **Finestra di prenotazione**: il cliente può prenotare da oggi fino all'**ultimo giorno del mese corrente**. Il primo giorno di ogni mese si apre il mese nuovo.
+- **Finestra di prenotazione**: il cliente può prenotare da oggi fino all'**ultimo giorno del mese che viene N mesi dopo quello corrente**, dove N lo sceglie il proprietario da 0 a 3. Esempio con N = 3: il 1° settembre si può prenotare fino al 31 dicembre. Il primo giorno di ogni mese si aggiunge un mese nuovo.
 - **Assenze del dipendente** (malattia, ferie): il proprietario registra un periodo (giorni o ore) in cui non riceve prenotazioni; la sua card mostra un segno di indisponibilità.
 - **Chiusure del salone** (ferie): periodo di più giorni consecutivi in cui nessuno riceve prenotazioni.
 - Le chiusure del salone non fanno eccezione alla finestra: le date successive alla riapertura si prenotano quando si apre il mese che le contiene.
@@ -65,6 +72,15 @@ Gli utenti sono quattro:
 - Se il cliente **esce dalla procedura di pagamento**, la prenotazione in attesa viene annullata subito, lo slot torna libero e la sessione di pagamento viene chiusa, così non può più essere pagata.
 - Se un pagamento arriva per una prenotazione già decaduta o annullata, viene **rimborsato automaticamente** e la prenotazione non viene confermata.
 - Stati del pagamento: `acconto_pagato`, `saldato`. Il saldo in sede lo registra il proprietario.
+### Prodotti e ordini
+- Solo i **clienti registrati** possono acquistare prodotti.
+- Il carrello dei prodotti è **separato dalle prenotazioni**: ogni pagamento riguarda una prenotazione oppure un ordine, mai entrambi.
+- Un prodotto si può acquistare solo se è **disponibile**; la disponibilità (sì/no) la imposta il proprietario.
+- I prodotti si pagano **solo online e per intero**, senza acconto.
+- Per il pagamento valgono le stesse regole delle prenotazioni: l'ordine nasce `in_attesa_pagamento`, viene confermato solo dal webhook, decade dopo 30 minuti senza pagamento e, se il pagamento arriva tardi, viene rimborsato automaticamente.
+- I prodotti si **ritirano in negozio**; il ritiro lo registra il proprietario.
+- Il cliente non può annullare un ordine. Solo il proprietario lo annulla, rimborsando **esattamente quanto pagato**.
+- Il prezzo di ogni prodotto è fissato nell'ordine al momento dell'acquisto e non cambia se il proprietario modifica il catalogo.
 ### Annullamenti, assenze e chiusure
 - Il cliente annulla **solo le proprie** prenotazioni, fino a **2 ore prima** dell'inizio dell'appuntamento.
 - **Solo il proprietario** annulla prenotazioni per conto del salone e registra le assenze dei dipendenti e le chiusure del salone. I dipendenti non possono farlo.
@@ -72,6 +88,7 @@ Gli utenti sono quattro:
 - Se un'assenza o una chiusura copre prenotazioni già confermate, il sistema mostra al proprietario l'elenco delle prenotazioni coinvolte e le annulla, con rimborso, **solo dopo la sua conferma esplicita**.
 ### Accessi
 - Il cliente vede e annulla **solo le proprie** prenotazioni.
+- Il cliente vede **solo i propri** ordini.
 - Il dipendente vede **solo la propria** agenda e le proprie statistiche.
 - Il primo proprietario si crea da riga di comando, non da una pagina pubblica.
 ## 4. Modello dei dati (tabelle e relazioni)
@@ -139,6 +156,8 @@ Collega ogni prenotazione ai servizi scelti e conserva durata e prezzo applicati
 | `durata_minuti` | INT, obbligatoria | Durata del servizio al momento della prenotazione |
 | `prezzo_centesimi` | INT, obbligatoria | Prezzo al momento della prenotazione; non cambia se il proprietario modifica i prezzi in seguito. Il totale della prenotazione è la somma di questa colonna |
 
+Chiave primaria composta (`prenotazione_id`, `servizio_id`): lo stesso servizio non può comparire due volte nella stessa prenotazione.
+
 ### Tabella `orari_settimanali`
 
 Contiene il calendario settimanale del salone, unico per tutti i dipendenti: una riga per ogni turno. Un giorno senza righe è chiuso.
@@ -151,8 +170,6 @@ Contiene il calendario settimanale del salone, unico per tutti i dipendenti: una
 | `ora_fine` | TIME, obbligatoria, successiva a `ora_inizio` | Fine del turno, nell'ora locale del salone |
 
 Il codice verifica che i turni dello stesso giorno non si sovrappongano e che inizio e fine cadano sulla griglia di 30 minuti.
-
-Chiave primaria composta (`prenotazione_id`, `servizio_id`): lo stesso servizio non può comparire due volte nella stessa prenotazione.
 
 ### Tabella `eccezioni_date`
 
@@ -193,17 +210,20 @@ Indice: (`dipendente_id`, `inizio`) per il calcolo degli slot.
 
 ### Tabella `pagamenti`
 
-Contiene i movimenti di denaro legati alle prenotazioni: pagamenti online, saldi in sede e rimborsi, una riga per movimento. Gli stati `acconto_pagato` e `saldato` non si salvano: si calcolano confrontando la somma dei movimenti completati con il totale della prenotazione.
+Contiene i movimenti di denaro legati alle prenotazioni e agli ordini di prodotti: pagamenti online, saldi in sede e rimborsi, una riga per movimento. Per le prenotazioni, gli stati `acconto_pagato` e `saldato` non si salvano: si calcolano confrontando la somma dei movimenti completati con il totale della prenotazione.
 
 | Colonna | Tipo | Significato |
 |---|---|---|
 | `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco del movimento |
-| `prenotazione_id` | INT, obbligatoria, chiave esterna verso `prenotazioni.id` | La prenotazione a cui si riferisce il movimento |
+| `prenotazione_id` | INT, facoltativa, chiave esterna verso `prenotazioni.id` | La prenotazione a cui si riferisce il movimento; vuota se il movimento riguarda un ordine |
+| `ordine_id` | INT, facoltativa, chiave esterna verso `ordini.id` | L'ordine di prodotti a cui si riferisce il movimento; vuota se il movimento riguarda una prenotazione |
 | `tipo` | ENUM('online', 'in_sede', 'rimborso'), obbligatoria | Pagamento online tramite il provider, saldo registrato dal proprietario in sede, oppure rimborso |
 | `importo_centesimi` | INT, obbligatoria, maggiore di 0 | Importo in centesimi, calcolato sempre dal server; per i rimborsi è l'importo restituito |
 | `stato` | ENUM('in_attesa', 'completato', 'fallito'), obbligatoria, predefinito 'in_attesa' | Un pagamento online diventa 'completato' solo tramite il webhook; un saldo in sede nasce già 'completato' |
 | `riferimento_provider` | VARCHAR(255), facoltativa, univoca | Identificativo della sessione di pagamento o del rimborso presso il provider (Stripe o PayPal); vuoto per i saldi in sede. Essendo univoco, un webhook ripetuto ritrova la stessa riga invece di crearne una nuova |
 | `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento in cui il movimento è stato registrato |
+
+Vincolo: deve essere compilata esattamente una tra `prenotazione_id` e `ordine_id` (CHECK). I saldi in sede (`tipo` = 'in_sede') riguardano solo le prenotazioni, perché i prodotti si pagano solo online.
 
 ### Tabella `impostazioni`
 
@@ -219,6 +239,7 @@ Contiene i dati e le regole configurabili del salone. Ha una sola riga, modifica
 | `latitudine` | DECIMAL(9,6), obbligatoria | Latitudine del salone per la mappa |
 | `longitudine` | DECIMAL(9,6), obbligatoria | Longitudine del salone per la mappa |
 | `percentuale_acconto` | TINYINT, obbligatoria, da 1 a 99 | Percentuale del totale da pagare online se il cliente sceglie l'acconto; l'importo in centesimi lo calcola il server |
+| `mesi_prenotabili` | TINYINT, obbligatoria, da 0 a 3, predefinito 3 | Quanti mesi dopo quello corrente sono prenotabili: con 0 solo il mese corrente, con 3 fino alla fine del terzo mese successivo |
 
 ### Tabella `eventi`
 
@@ -234,6 +255,49 @@ Contiene le visite alle pagine e i click, per le statistiche e il funnel visite 
 | `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento dell'evento |
 
 Indice: (`tipo`, `creato_il`) per le statistiche per periodo.
+
+### Tabella `prodotti`
+
+Contiene i prodotti in vendita nel salone. Li gestisce solo il proprietario.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco del prodotto |
+| `nome` | VARCHAR(100), obbligatoria, univoca | Nome mostrato ai clienti (es. "Cera opaca 100 ml") |
+| `descrizione` | VARCHAR(255), facoltativa | Breve descrizione mostrata nel catalogo |
+| `foto` | VARCHAR(100), facoltativa | Nome del file della foto, generato dal server con un identificativo casuale; vuota se il prodotto non ha foto |
+| `prezzo_centesimi` | INT, obbligatoria, maggiore di 0 | Prezzo attuale in centesimi di euro, come per i servizi |
+| `disponibile` | BOOLEAN, obbligatoria, predefinito sì | Se vale no il prodotto compare nel catalogo come esaurito e non si può aggiungere al carrello |
+| `attivo` | BOOLEAN, obbligatoria, predefinito sì | Se vale no il prodotto non compare più nel catalogo; si disattiva invece di cancellare, per conservare lo storico degli ordini |
+
+### Tabella `ordini`
+
+Contiene gli acquisti di prodotti dei clienti. I prodotti acquistati sono nella tabella di collegamento `ordini_prodotti`.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `id` | INT, chiave primaria, auto-incrementale | Identificativo numerico univoco dell'ordine |
+| `cliente_id` | INT, obbligatoria, chiave esterna verso `utenti.id` | Il cliente che ha acquistato; il codice verifica che abbia ruolo cliente |
+| `stato` | ENUM('in_attesa_pagamento', 'confermato', 'ritirato', 'scaduto', 'annullato'), obbligatoria, predefinito 'in_attesa_pagamento' | Ciclo di vita dell'ordine; diventa 'confermato' (pagato, da ritirare) solo tramite il webhook del pagamento |
+| `scade_il` | DATETIME, obbligatoria | Momento oltre il quale un ordine in attesa di pagamento decade (creazione + 30 minuti) |
+| `ritirato_il` | DATETIME, facoltativa | Momento in cui il proprietario ha registrato il ritiro |
+| `annullato_il` | DATETIME, facoltativa | Momento dell'annullamento; vuota se l'ordine non è annullato |
+| `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento di creazione dell'ordine |
+
+Indici: `cliente_id` per lo storico del cliente; `stato` per l'elenco degli ordini da ritirare.
+
+### Tabella `ordini_prodotti`
+
+Collega ogni ordine ai prodotti acquistati e conserva prezzo e quantità al momento dell'acquisto.
+
+| Colonna | Tipo | Significato |
+|---|---|---|
+| `ordine_id` | INT, obbligatoria, chiave esterna verso `ordini.id` | L'ordine a cui appartiene la riga |
+| `prodotto_id` | INT, obbligatoria, chiave esterna verso `prodotti.id` | Il prodotto acquistato |
+| `quantita` | INT, obbligatoria, da 1 a 10 | Numero di pezzi acquistati |
+| `prezzo_centesimi` | INT, obbligatoria | Prezzo di un pezzo al momento dell'acquisto; non cambia se il proprietario modifica il catalogo |
+
+Chiave primaria composta (`ordine_id`, `prodotto_id`): lo stesso prodotto compare una sola volta nell'ordine, con la sua quantità. Il totale dell'ordine è la somma di `quantita` × `prezzo_centesimi`.
 
 ## 5. Modello a oggetti (classi e ruolo dell'OOP)
 Le classi sono divise in quattro gruppi, ognuno con un solo compito. Le rotte Flask restano sottili: leggono la richiesta, chiamano un servizio e mostrano il risultato.
@@ -253,6 +317,9 @@ Classi definite con `@dataclass` che rappresentano una riga del database (es. `U
 | `Indisponibilita` | `indisponibilita` | Nessuna |
 | `Pagamento` | `pagamenti` | Nessuna |
 | `Impostazioni` | `impostazioni` | Nessuna |
+| `Prodotto` | `prodotti` | Nessuna |
+| `Ordine` | `ordini` | Contiene la lista dei suoi `ProdottoOrdinato`; metodo per il totale (somma di quantità × prezzo) |
+| `ProdottoOrdinato` | `ordini_prodotti` | Include anche il nome del prodotto, letto da `prodotti`, per mostrarlo nello storico |
 
 La tabella `eventi` non ha un modello: si scrive con un semplice INSERT e si legge solo per le statistiche, caricandola direttamente in un DataFrame di pandas.
 
@@ -272,8 +339,9 @@ Contengono le regole di business della sezione 3: calcolo degli slot liberi, cre
 | `AuthService` | Registrazione e login: hash della password, controllo che l'account sia attivo |
 | `DisponibilitaService` | Slot liberi di un dipendente in una data, considerando finestra del mese, turni, indisponibilità e prenotazioni esistenti (comprese quelle in attesa di pagamento non scadute) |
 | `PrenotazioneService` | Creazione della prenotazione con controllo anti-sovrapposizione nella stessa transazione, annullamento (regola delle 2 ore per il cliente), decadenza delle prenotazioni scadute |
-| `PagamentoService` | Avvio del pagamento tramite `PaymentProvider`, gestione idempotente del webhook, saldo in sede, calcolo dello stato del pagamento, rimborsi |
-| `SaloneService` | Operazioni del proprietario su servizi, orari, eccezioni, assenze e chiusure, con le regole della sezione 3 |
+| `OrdineService` | Creazione dell'ordine dal carrello con prezzi calcolati dal server e controllo di disponibilità e quantità, registrazione del ritiro, annullamento con rimborso, decadenza degli ordini scaduti |
+| `PagamentoService` | Avvio del pagamento tramite `PaymentProvider` per prenotazioni e ordini, gestione idempotente del webhook, saldo in sede, calcolo dello stato del pagamento, rimborsi |
+| `SaloneService` | Operazioni del proprietario su servizi, prodotti (con il salvataggio sicuro delle foto tramite Pillow), orari, eccezioni, assenze e chiusure, con le regole della sezione 3 |
 | `StatisticheService` | Lettura di eventi e prenotazioni con pandas e creazione dei grafici con matplotlib |
 
 Le operazioni del proprietario stanno in un solo servizio perché sono brevi e simili: dividerle creerebbe classi quasi vuote. Se una diventa complessa, si separa.
@@ -298,3 +366,5 @@ Il modulo `eccezioni.py` definisce una classe base, `BarberBookingError`, e le e
 - Interfaccia in più lingue (oggi solo italiano) e valute diverse dall'euro, per saloni in altri Paesi.
 - Conferma dell'indirizzo email con un messaggio di verifica.
 - Hash delle password con argon2, al posto di Werkzeug.
+- Giacenza numerica dei prodotti (pezzi in magazzino) al posto della disponibilità sì/no.
+- Termine per il ritiro degli ordini, con annullamento e rimborso automatici alla scadenza.

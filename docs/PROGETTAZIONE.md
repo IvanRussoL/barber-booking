@@ -355,6 +355,56 @@ Classe astratta `PaymentProvider` (modulo `abc`) che definisce le operazioni di 
 Il modulo `eccezioni.py` definisce una classe base, `BarberBookingError`, e le eccezioni specifiche che ne derivano (es. `SlotNonDisponibileError`). I servizi le sollevano quando una regola di business è violata; un gestore centrale registrato con `@app.errorhandler` le trasforma in un messaggio per l'utente o in un codice HTTP. Si crea una nuova eccezione solo se va gestita in modo diverso dalle altre.
  
 ## 6. Struttura del progetto Flask
+### Cartelle
+
+```
+barber-booking/
+├── app/
+│   ├── __init__.py        # create_app(): crea e configura l'applicazione
+│   ├── modelli/           # classi @dataclass
+│   ├── repository/        # query SQL
+│   ├── servizi/           # regole di business
+│   ├── pagamenti/         # PaymentProvider e implementazioni
+│   ├── rotte/             # Blueprint, uno per area
+│   ├── templates/         # pagine Jinja
+│   ├── static/            # CSS, JavaScript, immagini del sito, foto dei prodotti
+│   ├── eccezioni.py
+│   └── db.py              # connessione a MySQL
+├── database/
+│   └── schema.sql         # creazione delle tabelle
+├── tests/
+├── docs/
+├── DEVLOG.md
+├── README.md
+├── requirements.txt
+├── .env                   # segreti, escluso da Git
+└── run.py                 # avvio in sviluppo
+```
+
+Le cartelle dentro `app/` seguono i gruppi di classi della sezione 5.
+
+### Blueprint
+
+Le rotte sono divise in Blueprint, uno per area. Ogni Blueprint ha un prefisso nell'URL e, se è riservato, un controllo in `before_request` che Flask esegue prima di ogni sua rotta: così ogni rotta aggiunta in seguito è protetta senza doverlo ricordare (regola "nega per default").
+
+| Blueprint | Prefisso | Accesso | Contenuto |
+|---|---|---|---|
+| `pubblico` | `/` | Tutti | Home, servizi, catalogo prodotti, mappa |
+| `auth` | `/auth` | Tutti | Login, registrazione, logout |
+| `cliente` | `/cliente` | Clienti loggati | Prenotazione, carrello, area personale, storico |
+| `dipendente` | `/dipendente` | Dipendenti, e proprietario con `riceve_prenotazioni` attivo | Agenda e statistiche personali |
+| `proprietario` | `/proprietario` | Solo il proprietario | Gestione del salone, ordini, statistiche generali |
+| `webhook` | `/webhook` | Provider di pagamento | Notifiche di pagamento |
+
+Gli endpoint chiamati da JavaScript con fetch stanno nel Blueprint della loro area e ne ereditano il controllo. Un visitatore non loggato che apre una rotta riservata viene mandato al login; un utente con il ruolo sbagliato riceve 403.
+
+Il Blueprint `webhook` non usa login né protezione CSRF, perché le richieste arrivano dal provider e non da un modulo del sito: la protezione è la verifica della firma di ogni notifica.
+
+### Application factory
+
+L'applicazione Flask non è creata a livello di modulo, ma dalla funzione `create_app()` in `app/__init__.py`, che riceve la configurazione, registra i Blueprint e il gestore delle eccezioni e restituisce l'app. Così i test creano un'app separata con un database di prova e il `FakeProvider`, senza toccare la configurazione reale.
+
+Le foto dei prodotti caricate dal proprietario sono escluse da Git: sono dati, non codice.
  
 ## 7. Sicurezza e controllo accessi
  

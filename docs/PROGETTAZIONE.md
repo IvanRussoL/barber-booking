@@ -16,6 +16,8 @@ Gli utenti sono quattro:
 - Consulta servizi, prezzi, orari del salone e posizione sulla mappa.
 - Si registra o accede.
 - Consulta il catalogo dei prodotti in vendita (shampoo, balsamo, gel, cera, schiuma da barba, profumi) con i prezzi.
+### Tutti gli utenti registrati
+- Cambiano la propria password inserendo quella attuale e la nuova.
 ### Cliente
 - Prenota scegliendo uno o più servizi (es. taglio + barba), il dipendente e uno slot libero.
 - Sceglie al momento della prenotazione se pagare un acconto o l'importo completo, online.
@@ -391,6 +393,7 @@ Le rotte sono divise in Blueprint, uno per area. Ogni Blueprint ha un prefisso n
 |---|---|---|---|
 | `pubblico` | `/` | Tutti | Home, servizi, catalogo prodotti, mappa |
 | `auth` | `/auth` | Tutti | Login, registrazione, logout |
+| `account` | `/account` | Tutti gli utenti loggati | Cambio password |
 | `cliente` | `/cliente` | Clienti loggati | Prenotazione, carrello, area personale, storico |
 | `dipendente` | `/dipendente` | Dipendenti, e proprietario con `riceve_prenotazioni` attivo | Agenda e statistiche personali |
 | `proprietario` | `/proprietario` | Solo il proprietario | Gestione del salone, ordini, statistiche generali |
@@ -407,6 +410,17 @@ L'applicazione Flask non è creata a livello di modulo, ma dalla funzione `creat
 Le foto dei prodotti caricate dal proprietario sono escluse da Git: sono dati, non codice.
  
 ## 7. Sicurezza e controllo accessi
+
+### Autenticazione e sessione
+
+- **Password**: salvate solo come hash con Werkzeug (`generate_password_hash`, `check_password_hash`), lunghezza minima di 8 caratteri.
+- **Login senza librerie esterne**: dopo il controllo della password la sessione viene svuotata e riceve solo l'`id` dell'utente. Svuotarla impedisce di riusare una sessione creata prima del login (session fixation). Il logout svuota la sessione.
+- **Utente ricaricato a ogni richiesta**: un `before_request` dell'app legge l'utente dal database tramite l'`id` in sessione. Così un account disattivato o un ruolo cambiato hanno effetto subito, senza aspettare un nuovo login.
+- **Messaggio di errore generico** ("email o password non corretti"): non rivela se un'email è registrata.
+- **Cookie di sessione** con `HttpOnly` (non leggibile da JavaScript), `SameSite=Lax` (non inviato da altri siti nelle richieste POST) e `Secure` in produzione (solo HTTPS).
+- **Rate limiting con Flask-Limiter**: al massimo 5 tentativi di login al minuto per indirizzo IP, e un limite anche sulla registrazione. L'IP serve solo a contare i tentativi e non viene salvato nel database.
+- **Ruoli assegnati solo dal server**: la registrazione pubblica crea sempre un cliente; i dipendenti li crea il proprietario; il primo proprietario si crea con un comando da terminale (`flask crea-proprietario`), non da una pagina del sito.
+- **Cambio password**: richiede la password attuale, così chi trova una sessione aperta su un computer altrui non può cambiarla. I dipendenti ricevono dal proprietario una password iniziale e possono cambiarla al primo accesso.
  
 ## 8. Statistiche
  
@@ -418,3 +432,4 @@ Le foto dei prodotti caricate dal proprietario sono escluse da Git: sono dati, n
 - Hash delle password con argon2, al posto di Werkzeug.
 - Giacenza numerica dei prodotti (pezzi in magazzino) al posto della disponibilità sì/no.
 - Termine per il ritiro degli ordini, con annullamento e rimborso automatici alla scadenza.
+- Recupero della password dimenticata tramite email.

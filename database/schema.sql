@@ -85,3 +85,14 @@ CREATE TABLE eccezioni_turni (
     CONSTRAINT fk_eccezioni_turni_data FOREIGN KEY (data) REFERENCES eccezioni_date (data) ON DELETE CASCADE,
     CONSTRAINT chk_eccezioni_turni_turno CHECK (ora_fine > ora_inizio)
 ) ENGINE = InnoDB;
+
+CREATE TABLE indisponibilita (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    dipendente_id INT          NULL,
+    inizio        DATETIME     NOT NULL,
+    fine          DATETIME     NOT NULL,
+    nota          VARCHAR(255) NULL,
+    CONSTRAINT fk_indisponibilita_dipendente FOREIGN KEY (dipendente_id) REFERENCES utenti (id),
+    CONSTRAINT chk_indisponibilita_periodo   CHECK (fine > inizio),
+    INDEX idx_indisponibilita_dipendente_inizio (dipendente_id, inizio)
+) ENGINE = InnoDB;

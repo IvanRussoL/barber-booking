@@ -111,3 +111,17 @@ CREATE TABLE impostazioni (
     CONSTRAINT chk_impostazioni_acconto    CHECK (percentuale_acconto BETWEEN 1 AND 99),
     CONSTRAINT chk_impostazioni_mesi       CHECK (mesi_prenotabili BETWEEN 0 AND 3)
 ) ENGINE = InnoDB;
+
+-- Dati iniziali necessari al funzionamento, modificabili dal proprietario.
+
+INSERT INTO impostazioni (id, nome_salone, indirizzo, telefono, latitudine, longitudine, percentuale_acconto)
+VALUES (1, 'Barber Booking', 'Indirizzo da impostare', '+390000000000', 0, 0, 30);
+
+-- Calendario di partenza: lunedì chiuso, dal martedì alla domenica 09:00-13:00 e 15:00-23:00.
+INSERT INTO orari_settimanali (giorno_settimana, ora_inizio, ora_fine) VALUES
+    (2, '09:00', '13:00'), (2, '15:00', '23:00'),
+    (3, '09:00', '13:00'), (3, '15:00', '23:00'),
+    (4, '09:00', '13:00'), (4, '15:00', '23:00'),
+    (5, '09:00', '13:00'), (5, '15:00', '23:00'),
+    (6, '09:00', '13:00'), (6, '15:00', '23:00'),
+    (7, '09:00', '13:00'), (7, '15:00', '23:00');

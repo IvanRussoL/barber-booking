@@ -19,3 +19,14 @@ CREATE TABLE utenti (
     attivo              BOOLEAN      NOT NULL DEFAULT TRUE,
     creato_il           DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP())
 ) ENGINE = InnoDB;
+
+CREATE TABLE servizi (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    nome             VARCHAR(100) NOT NULL UNIQUE,
+    descrizione      VARCHAR(255) NULL,
+    durata_minuti    INT          NOT NULL,
+    prezzo_centesimi INT          NOT NULL,
+    attivo           BOOLEAN      NOT NULL DEFAULT TRUE,
+    CONSTRAINT chk_servizi_durata CHECK (durata_minuti > 0 AND durata_minuti % 30 = 0),
+    CONSTRAINT chk_servizi_prezzo CHECK (prezzo_centesimi >= 0)
+) ENGINE = InnoDB;

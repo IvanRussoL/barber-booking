@@ -103,3 +103,6 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 
 - **MySQL 8.0.41**: i vincoli `CHECK` vengono applicati (servono la 8.0.16 o successive).
 - **`creato_il` con predefinito `(UTC_TIMESTAMP())` invece di `CURRENT_TIMESTAMP`**: la connessione usa il fuso orario di sistema (`SYSTEM`, ora italiana), quindi `CURRENT_TIMESTAMP` salverebbe l'ora locale. Il predefinito in UTC è scritto nello schema e vale per ogni connessione. Nelle query l'ora attuale la passa Python in UTC, senza usare `NOW()`. Alternative scartate: fuso orario della connessione impostato a UTC in `db.py` (non vale per Workbench), fuso orario globale del server (modifica anche gli altri database).
+
+## 2026-10-12 · Fase 3 – Verifiche su MySQL
+- **`schema.sql` ricrea il database da zero (`DROP DATABASE IF EXISTS`)**: si esegue sempre per intero, senza preoccuparsi dell'ordine delle chiavi esterne; i dati di prova li ricrea `seed.py`. Alternative scartate: `DROP TABLE IF EXISTS` per ogni tabella (ordine inverso delle chiavi esterne da mantenere), strumenti di migrazione come Alembic (utili con dati reali da conservare, una libreria in più).

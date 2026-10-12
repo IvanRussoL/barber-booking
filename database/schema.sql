@@ -1,6 +1,6 @@
 -- Schema del database di Barber Booking.
 -- Tutte le colonne DATETIME sono in UTC.
-DROP DATABASE IF EXISTS barber_booking
+DROP DATABASE IF EXISTS barber_booking;
 
 CREATE DATABASE barber_booking
     CHARACTER SET utf8mb4
@@ -50,4 +50,14 @@ CREATE TABLE prenotazioni (
     CONSTRAINT chk_prenotazioni_orario    CHECK (fine > inizio),
     INDEX idx_prenotazioni_dipendente_inizio (dipendente_id, inizio),
     INDEX idx_prenotazioni_cliente (cliente_id)
+) ENGINE = InnoDB;
+
+CREATE TABLE prenotazioni_servizi (
+    prenotazione_id  INT NOT NULL,
+    servizio_id      INT NOT NULL,
+    durata_minuti    INT NOT NULL,
+    prezzo_centesimi INT NOT NULL,
+    PRIMARY KEY (prenotazione_id, servizio_id),
+    CONSTRAINT fk_prenotazioni_servizi_prenotazione FOREIGN KEY (prenotazione_id) REFERENCES prenotazioni (id),
+    CONSTRAINT fk_prenotazioni_servizi_servizio     FOREIGN KEY (servizio_id)     REFERENCES servizi (id)
 ) ENGINE = InnoDB;

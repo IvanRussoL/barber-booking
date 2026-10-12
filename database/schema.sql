@@ -158,6 +158,25 @@ CREATE TABLE ordini_prodotti (
     CONSTRAINT chk_ordini_prodotti_quantita CHECK (quantita BETWEEN 1 AND 10)
 ) ENGINE = InnoDB;
 
+CREATE TABLE pagamenti (
+    id                   INT AUTO_INCREMENT PRIMARY KEY,
+    prenotazione_id      INT          NULL,
+    ordine_id            INT          NULL,
+    tipo                 ENUM('online', 'in_sede', 'rimborso') NOT NULL,
+    importo_centesimi    INT          NOT NULL,
+    stato                ENUM('in_attesa', 'completato', 'fallito') NOT NULL DEFAULT 'in_attesa',
+    riferimento_provider VARCHAR(255) NULL UNIQUE,
+    creato_il            DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    CONSTRAINT fk_pagamenti_prenotazione FOREIGN KEY (prenotazione_id) REFERENCES prenotazioni (id),
+    CONSTRAINT fk_pagamenti_ordine       FOREIGN KEY (ordine_id)       REFERENCES ordini (id),
+    CONSTRAINT chk_pagamenti_importo     CHECK (importo_centesimi > 0),
+    CONSTRAINT chk_pagamenti_riferimento CHECK (
+        (prenotazione_id IS NOT NULL AND ordine_id IS NULL)
+        OR (prenotazione_id IS NULL AND ordine_id IS NOT NULL)
+    ),
+    CONSTRAINT chk_pagamenti_in_sede     CHECK (tipo <> 'in_sede' OR prenotazione_id IS NOT NULL)
+) ENGINE = InnoDB;
+
 -- Dati iniziali necessari al funzionamento, modificabili dal proprietario.
 
 INSERT INTO impostazioni (id, nome_salone, indirizzo, telefono, latitudine, longitudine, percentuale_acconto)

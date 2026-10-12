@@ -1,7 +1,8 @@
 -- Schema del database di Barber Booking.
 -- Tutte le colonne DATETIME sono in UTC.
+DROP DATABASE IF EXISTS barber_booking
 
-CREATE DATABASE IF NOT EXISTS barber_booking
+CREATE DATABASE barber_booking
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_0900_ai_ci;
 
@@ -29,4 +30,24 @@ CREATE TABLE servizi (
     attivo           BOOLEAN      NOT NULL DEFAULT TRUE,
     CONSTRAINT chk_servizi_durata CHECK (durata_minuti > 0 AND durata_minuti % 30 = 0),
     CONSTRAINT chk_servizi_prezzo CHECK (prezzo_centesimi >= 0)
+) ENGINE = InnoDB;
+
+CREATE TABLE prenotazioni (
+    id                 INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_id         INT      NOT NULL,
+    dipendente_id      INT      NOT NULL,
+    inizio             DATETIME NOT NULL,
+    fine               DATETIME NOT NULL,
+    stato              ENUM('in_attesa_pagamento', 'confermata', 'scaduta', 'annullata')
+                                NOT NULL DEFAULT 'in_attesa_pagamento',
+    modalita_pagamento ENUM('acconto', 'completo') NOT NULL,
+    scade_il           DATETIME NOT NULL,
+    annullata_il       DATETIME NULL,
+    annullata_da       ENUM('cliente', 'salone') NULL,
+    creato_il          DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    CONSTRAINT fk_prenotazioni_cliente    FOREIGN KEY (cliente_id)    REFERENCES utenti (id),
+    CONSTRAINT fk_prenotazioni_dipendente FOREIGN KEY (dipendente_id) REFERENCES utenti (id),
+    CONSTRAINT chk_prenotazioni_orario    CHECK (fine > inizio),
+    INDEX idx_prenotazioni_dipendente_inizio (dipendente_id, inizio),
+    INDEX idx_prenotazioni_cliente (cliente_id)
 ) ENGINE = InnoDB;

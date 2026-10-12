@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from app.db import chiudi_connessione
 
 def create_app(config: dict | None = None) -> Flask:
     """
@@ -18,4 +19,5 @@ def create_app(config: dict | None = None) -> Flask:
     )
     if config:
         app.config.update(config)
+    app.teardown_appcontext(chiudi_connessione)
     return app

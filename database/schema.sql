@@ -76,3 +76,12 @@ CREATE TABLE eccezioni_date (
     aperto BOOLEAN      NOT NULL,
     nota   VARCHAR(255) NULL
 ) ENGINE = InnoDB;
+
+CREATE TABLE eccezioni_turni (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    data       DATE NOT NULL,
+    ora_inizio TIME NOT NULL,
+    ora_fine   TIME NOT NULL,
+    CONSTRAINT fk_eccezioni_turni_data FOREIGN KEY (data) REFERENCES eccezioni_date (data) ON DELETE CASCADE,
+    CONSTRAINT chk_eccezioni_turni_turno CHECK (ora_fine > ora_inizio)
+) ENGINE = InnoDB;

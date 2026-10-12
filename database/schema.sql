@@ -70,3 +70,9 @@ CREATE TABLE orari_settimanali (
     CONSTRAINT chk_orari_settimanali_giorno CHECK (giorno_settimana BETWEEN 1 AND 7),
     CONSTRAINT chk_orari_settimanali_turno  CHECK (ora_fine > ora_inizio)
 ) ENGINE = InnoDB;
+
+CREATE TABLE eccezioni_date (
+    data   DATE         PRIMARY KEY,
+    aperto BOOLEAN      NOT NULL,
+    nota   VARCHAR(255) NULL
+) ENGINE = InnoDB;

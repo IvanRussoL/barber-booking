@@ -61,3 +61,12 @@ CREATE TABLE prenotazioni_servizi (
     CONSTRAINT fk_prenotazioni_servizi_prenotazione FOREIGN KEY (prenotazione_id) REFERENCES prenotazioni (id),
     CONSTRAINT fk_prenotazioni_servizi_servizio     FOREIGN KEY (servizio_id)     REFERENCES servizi (id)
 ) ENGINE = InnoDB;
+
+CREATE TABLE orari_settimanali (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    giorno_settimana TINYINT NOT NULL,
+    ora_inizio       TIME    NOT NULL,
+    ora_fine         TIME    NOT NULL,
+    CONSTRAINT chk_orari_settimanali_giorno CHECK (giorno_settimana BETWEEN 1 AND 7),
+    CONSTRAINT chk_orari_settimanali_turno  CHECK (ora_fine > ora_inizio)
+) ENGINE = InnoDB;

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titolo %}Barber Booking{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('pubblico.home') }}">Barber Booking</a>
+    </header>
+    <main>
+        {% block contenuto %}{% endblock %}
+    </main>
+</body>
+</html>

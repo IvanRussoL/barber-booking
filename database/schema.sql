@@ -147,6 +147,17 @@ CREATE TABLE ordini (
     INDEX idx_ordini_stato (stato)
 ) ENGINE = InnoDB;
 
+CREATE TABLE ordini_prodotti (
+    ordine_id        INT NOT NULL,
+    prodotto_id      INT NOT NULL,
+    quantita         INT NOT NULL,
+    prezzo_centesimi INT NOT NULL,
+    PRIMARY KEY (ordine_id, prodotto_id),
+    CONSTRAINT fk_ordini_prodotti_ordine   FOREIGN KEY (ordine_id)   REFERENCES ordini (id),
+    CONSTRAINT fk_ordini_prodotti_prodotto FOREIGN KEY (prodotto_id) REFERENCES prodotti (id),
+    CONSTRAINT chk_ordini_prodotti_quantita CHECK (quantita BETWEEN 1 AND 10)
+) ENGINE = InnoDB;
+
 -- Dati iniziali necessari al funzionamento, modificabili dal proprietario.
 
 INSERT INTO impostazioni (id, nome_salone, indirizzo, telefono, latitudine, longitudine, percentuale_acconto)

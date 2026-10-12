@@ -2,6 +2,7 @@ import os
 
 from flask import Flask
 from app.db import chiudi_connessione
+from app.rotte import pubblico
 
 def create_app(config: dict | None = None) -> Flask:
     """
@@ -20,4 +21,5 @@ def create_app(config: dict | None = None) -> Flask:
     if config:
         app.config.update(config)
     app.teardown_appcontext(chiudi_connessione)
+    app.register_blueprint(pubblico.bp)
     return app

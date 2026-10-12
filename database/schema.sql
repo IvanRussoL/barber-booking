@@ -96,3 +96,18 @@ CREATE TABLE indisponibilita (
     CONSTRAINT chk_indisponibilita_periodo   CHECK (fine > inizio),
     INDEX idx_indisponibilita_dipendente_inizio (dipendente_id, inizio)
 ) ENGINE = InnoDB;
+
+CREATE TABLE impostazioni (
+    id                  TINYINT      PRIMARY KEY,
+    nome_salone         VARCHAR(100) NOT NULL,
+    indirizzo           VARCHAR(255) NOT NULL,
+    telefono            VARCHAR(20)  NOT NULL,
+    fuso_orario         VARCHAR(64)  NOT NULL DEFAULT 'Europe/Rome',
+    latitudine          DECIMAL(9,6) NOT NULL,
+    longitudine         DECIMAL(9,6) NOT NULL,
+    percentuale_acconto TINYINT      NOT NULL,
+    mesi_prenotabili    TINYINT      NOT NULL DEFAULT 3,
+    CONSTRAINT chk_impostazioni_riga_unica CHECK (id = 1),
+    CONSTRAINT chk_impostazioni_acconto    CHECK (percentuale_acconto BETWEEN 1 AND 99),
+    CONSTRAINT chk_impostazioni_mesi       CHECK (mesi_prenotabili BETWEEN 0 AND 3)
+) ENGINE = InnoDB;

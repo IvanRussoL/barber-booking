@@ -122,6 +122,17 @@ CREATE TABLE eventi (
     INDEX idx_eventi_tipo_creato_il (tipo, creato_il)
 ) ENGINE = InnoDB;
 
+CREATE TABLE prodotti (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    nome             VARCHAR(100) NOT NULL UNIQUE,
+    descrizione      VARCHAR(255) NULL,
+    foto             VARCHAR(100) NULL,
+    prezzo_centesimi INT          NOT NULL,
+    disponibile      BOOLEAN      NOT NULL DEFAULT TRUE,
+    attivo           BOOLEAN      NOT NULL DEFAULT TRUE,
+    CONSTRAINT chk_prodotti_prezzo CHECK (prezzo_centesimi > 0)
+) ENGINE = InnoDB;
+
 -- Dati iniziali necessari al funzionamento, modificabili dal proprietario.
 
 INSERT INTO impostazioni (id, nome_salone, indirizzo, telefono, latitudine, longitudine, percentuale_acconto)

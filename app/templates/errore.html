@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block titolo %}Errore – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Operazione non riuscita</h1>
+    <p>{{ messaggio }}</p>
+    <p><a href="{{ url_for('pubblico.home') }}">Torna alla home</a></p>
+{% endblock %}

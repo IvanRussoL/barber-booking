@@ -95,7 +95,7 @@ Gli utenti sono quattro:
 - Il primo proprietario si crea da riga di comando, non da una pagina pubblica.
 ## 4. Modello dei dati (tabelle e relazioni)
 
-Convenzione: tutte le colonne DATETIME sono salvate in **UTC**. Il server le converte nel fuso orario del salone solo per mostrarle e per i calcoli su turni, griglia e finestra di prenotazione.
+Convenzione: tutte le colonne DATETIME sono salvate in **UTC**. Il server le converte nel fuso orario del salone solo per mostrarle e per i calcoli su turni, griglia e finestra di prenotazione. I valori predefiniti di `creato_il` li scrive MySQL con `UTC_TIMESTAMP()`, quindi sono in UTC qualunque sia il fuso orario della connessione.
 
 ### Tabella `utenti`
 
@@ -195,6 +195,7 @@ Contiene i turni delle date eccezionali in cui il salone è aperto: una riga per
 | `ora_fine` | TIME, obbligatoria, successiva a `ora_inizio` | Fine del turno, nell'ora locale del salone |
 
 Il codice verifica che i turni esistano solo per date con `aperto` = sì, che non si sovrappongano e che cadano sulla griglia di 30 minuti.
+Se una data viene eliminata da `eccezioni_date`, i suoi turni vengono cancellati automaticamente dal database (`ON DELETE CASCADE`).
 
 ### Tabella `indisponibilita`
 
@@ -225,11 +226,12 @@ Contiene i movimenti di denaro legati alle prenotazioni e agli ordini di prodott
 | `riferimento_provider` | VARCHAR(255), facoltativa, univoca | Identificativo della sessione di pagamento o del rimborso presso il provider (Stripe o PayPal); vuoto per i saldi in sede. Essendo univoco, un webhook ripetuto ritrova la stessa riga invece di crearne una nuova |
 | `creato_il` | DATETIME, obbligatoria, predefinito data e ora attuali | Momento in cui il movimento è stato registrato |
 
-Vincolo: deve essere compilata esattamente una tra `prenotazione_id` e `ordine_id` (CHECK). I saldi in sede (`tipo` = 'in_sede') riguardano solo le prenotazioni, perché i prodotti si pagano solo online.
+Vincoli (CHECK): deve essere compilata esattamente una tra `prenotazione_id` e `ordine_id`; i saldi in sede (`tipo` = 'in_sede') riguardano solo le prenotazioni, perché i prodotti si pagano solo online.
 
 ### Tabella `impostazioni`
 
 Contiene i dati e le regole configurabili del salone. Ha una sola riga, modificabile solo dal proprietario.
+La riga viene creata da `schema.sql` con valori di partenza che il proprietario modifica dal sito; lo stesso script inserisce il calendario settimanale di partenza descritto nella sezione 3.
 
 | Colonna | Tipo | Significato |
 |---|---|---|

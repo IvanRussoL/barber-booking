@@ -133,6 +133,20 @@ CREATE TABLE prodotti (
     CONSTRAINT chk_prodotti_prezzo CHECK (prezzo_centesimi > 0)
 ) ENGINE = InnoDB;
 
+CREATE TABLE ordini (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_id   INT      NOT NULL,
+    stato        ENUM('in_attesa_pagamento', 'confermato', 'ritirato', 'scaduto', 'annullato')
+                          NOT NULL DEFAULT 'in_attesa_pagamento',
+    scade_il     DATETIME NOT NULL,
+    ritirato_il  DATETIME NULL,
+    annullato_il DATETIME NULL,
+    creato_il    DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    CONSTRAINT fk_ordini_cliente FOREIGN KEY (cliente_id) REFERENCES utenti (id),
+    INDEX idx_ordini_cliente (cliente_id),
+    INDEX idx_ordini_stato (stato)
+) ENGINE = InnoDB;
+
 -- Dati iniziali necessari al funzionamento, modificabili dal proprietario.
 
 INSERT INTO impostazioni (id, nome_salone, indirizzo, telefono, latitudine, longitudine, percentuale_acconto)

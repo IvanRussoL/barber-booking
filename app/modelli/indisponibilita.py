@@ -4,7 +4,7 @@ from datetime import datetime
 @dataclass
 class Indisponibilita:
     """
-    Periodo senza prenotazioni: assenza di un dipendente o chiusura dell'intero magazzino.
+    Periodo senza prenotazioni: assenza di un dipendente o chiusura dell'intero salone.
     """
     inizio: datetime
     fine: datetime

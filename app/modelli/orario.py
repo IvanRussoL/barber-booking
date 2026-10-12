@@ -6,8 +6,8 @@ class Turno:
     """
     Fascia oraria di apertura, nell'ora locale del salone.
     """
-    ora_inizio = time
-    ora_fine = time
+    ora_inizio: time
+    ora_fine: time
 
 @dataclass
 class EccezioneData:

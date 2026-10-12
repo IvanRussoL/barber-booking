@@ -112,6 +112,16 @@ CREATE TABLE impostazioni (
     CONSTRAINT chk_impostazioni_mesi       CHECK (mesi_prenotabili BETWEEN 0 AND 3)
 ) ENGINE = InnoDB;
 
+CREATE TABLE eventi (
+    id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tipo      VARCHAR(50)  NOT NULL,
+    pagina    VARCHAR(255) NOT NULL,
+    elemento  VARCHAR(100) NULL,
+    sessione  VARCHAR(64)  NOT NULL,
+    creato_il DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    INDEX idx_eventi_tipo_creato_il (tipo, creato_il)
+) ENGINE = InnoDB;
+
 -- Dati iniziali necessari al funzionamento, modificabili dal proprietario.
 
 INSERT INTO impostazioni (id, nome_salone, indirizzo, telefono, latitudine, longitudine, percentuale_acconto)

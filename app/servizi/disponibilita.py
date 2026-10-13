@@ -10,6 +10,7 @@ from app.repository.orario import OrarioRepository
 from app.repository.prenotazione import PrenotazioneRepository
 
 PASSO_GRIGLIA = timedelta(minutes=30)
+GIORNI_BREVI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"]
 
 
 def in_utc(momento: datetime) -> datetime:
@@ -105,3 +106,35 @@ class DisponibilitaService:
                     liberi.append(inizio)
                 inizio += PASSO_GRIGLIA
         return liberi
+
+    def orario_settimanale(self) -> list[tuple[int, list[Turno]]]:
+        """
+        Calendario settimanale del salone, per la pagina pubblica.
+        Returns: sette coppie (giorno da 1 a 7, turni), con la lista vuota nei giorni di chiusura.
+        """
+        return [(giorno, self._orari.turni_settimanali(giorno)) for giorno in range(1, 8)]
+
+    def stato_apertura(self, adesso: datetime) -> tuple[bool, str]:
+        """
+        Dice se il salone è aperto in questo momento (eccezioni per data comprese) e quando chiude o riapre.
+        Args: adesso con fuso orario.
+        Returns: (aperto, testo da mostrare), es. (True, "Aperto ora · chiude alle 13:00").
+        """
+        locale = adesso.astimezone(self._fuso_orario)
+        for giorni_dopo in range(8):
+            giorno = locale.date() + timedelta(days=giorni_dopo)
+            for turno in self.turni_del_giorno(giorno):
+                inizio = datetime.combine(giorno, turno.ora_inizio, self._fuso_orario)
+                fine = datetime.combine(giorno, turno.ora_fine, self._fuso_orario)
+                if inizio <= locale < fine:
+                    return True, f"Aperto ora · chiude alle {fine:%H:%M}"
+                if locale < inizio:
+                    if giorni_dopo == 0:
+                        quando = "oggi"
+                    elif giorni_dopo == 1:
+                        quando = "domani"
+                    else:
+                        quando = GIORNI_BREVI[giorno.weekday()]
+                    return False, f"Chiuso ora · riapre {quando} alle {inizio:%H:%M}"
+        return False, "Chiuso"
+

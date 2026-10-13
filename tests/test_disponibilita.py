@@ -121,3 +121,27 @@ def test_assenza_e_chiusura_del_salone(conn, salone):
     mattina_assente = _orari(disponibilita.slot_liberi(salone["dipendente_id"], MERCOLEDI, 30, ADESSO))
     assert mattina_assente[0] == "15:00"
     assert disponibilita.slot_liberi(salone["altro_dipendente_id"], date(2026, 10, 15), 30, ADESSO) == []
+
+
+# --- Orari per la pagina pubblica ---
+
+@pytest.mark.parametrize("adesso_utc, aperto, testo", [
+    (datetime(2026, 10, 13, 8, 0, tzinfo=UTC), True, "Aperto ora · chiude alle 13:00"),          # mar 10:00
+    (datetime(2026, 10, 13, 11, 30, tzinfo=UTC), False, "Chiuso ora · riapre oggi alle 15:00"),  # mar 13:30
+    (datetime(2026, 10, 13, 21, 30, tzinfo=UTC), False, "Chiuso ora · riapre domani alle 09:00"),  # mar 23:30
+    (datetime(2026, 10, 18, 21, 30, tzinfo=UTC), False, "Chiuso ora · riapre mar alle 09:00"),   # dom 23:30, lun chiuso
+])
+def test_stato_apertura(conn, adesso_utc, aperto, testo):
+    assert DisponibilitaService(conn).stato_apertura(adesso_utc) == (aperto, testo)
+
+
+def test_stato_apertura_con_eccezione_chiusa(conn):
+    _esegui(conn, "INSERT INTO eccezioni_date (data, aperto) VALUES (%s, FALSE)", (date(2026, 10, 13),))
+    adesso = datetime(2026, 10, 13, 8, 0, tzinfo=UTC)  # martedì 10:00, ma oggi è chiuso per eccezione
+    assert DisponibilitaService(conn).stato_apertura(adesso) == (False, "Chiuso ora · riapre domani alle 09:00")
+
+
+def test_orario_settimanale(conn):
+    orario = dict(DisponibilitaService(conn).orario_settimanale())
+    assert orario[1] == []
+    assert [(t.ora_inizio, t.ora_fine) for t in orario[2]] == [(time(9, 0), time(13, 0)), (time(15, 0), time(23, 0))]

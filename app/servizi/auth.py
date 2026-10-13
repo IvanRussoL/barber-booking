@@ -1,12 +1,14 @@
-from werkzeug.security import check_password_hash , generate_password_hash
 import re
 
-from app.eccezioni import CredenzialiNonValideError , DatiNonValidiError, EmailGiaRegistrataError
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from app.eccezioni import CredenzialiNonValideError, DatiNonValidiError, EmailGiaRegistrataError
 from app.modelli.utente import Utente
 from app.repository.utente import UtenteRepository
 
 LUNGHEZZA_MINIMA_PASSWORD = 8
 CARATTERI_AMMESSI_NOME = " '’-"
+RUOLI_STAFF = ("dipendente", "proprietario")
 
 
 def _testo_obbligatorio(valore: str, campo: str, lunghezza_massima: int) -> str:
@@ -47,10 +49,30 @@ class AuthService:
         self._conn = connessione
         self._utenti = UtenteRepository(connessione)
 
-
     def registra(self, email: str, password: str, nome: str, cognome: str, telefono: str) -> int:
         """
-        Registra un nuovo cliente e conferma con commit.
+        Registra un nuovo cliente: è l'unico ruolo che si può ottenere dalla pagina pubblica.
+        Returns: l'id del nuovo utente.
+        Raises: DatiNonValidiError se un dato non è valido; EmailGiaRegistrataError se l'email è già usata.
+        """
+        return self._crea_utente(email, password, nome, cognome, telefono, "cliente", False)
+
+    def crea_staff(self, email: str, password: str, nome: str, cognome: str, telefono: str,
+                   ruolo: str, riceve_prenotazioni: bool) -> int:
+        """
+        Crea un dipendente o un proprietario; usato dal comando crea-proprietario e da seed.py.
+        Returns: l'id del nuovo utente.
+        Raises: DatiNonValidiError se il ruolo non è dipendente o proprietario o un dato non è valido;
+            EmailGiaRegistrataError se l'email è già usata.
+        """
+        if ruolo not in RUOLI_STAFF:
+            raise DatiNonValidiError("Il ruolo deve essere dipendente o proprietario.")
+        return self._crea_utente(email, password, nome, cognome, telefono, ruolo, riceve_prenotazioni)
+
+    def _crea_utente(self, email: str, password: str, nome: str, cognome: str, telefono: str,
+                     ruolo: str, riceve_prenotazioni: bool) -> int:
+        """
+        Controlla i dati, salva l'utente con la password trasformata in hash e conferma con commit.
         Returns: l'id del nuovo utente.
         Raises: DatiNonValidiError se un dato non è valido; EmailGiaRegistrataError se l'email è già usata.
         """
@@ -78,12 +100,12 @@ class AuthService:
             nome=nome,
             cognome=cognome,
             telefono=telefono,
-            ruolo="cliente",
+            ruolo=ruolo,
+            riceve_prenotazioni=riceve_prenotazioni,
         )
         utente_id = self._utenti.inserisci(utente)
         self._conn.commit()
         return utente_id
-
 
     def autentica(self, email: str, password: str) -> Utente:
         """

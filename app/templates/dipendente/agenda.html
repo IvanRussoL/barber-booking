@@ -4,5 +4,14 @@
 
 {% block contenuto %}
     <h1>La mia agenda</h1>
-    <p>Qui troverai i tuoi appuntamenti.</p>
+    {% for appuntamento in appuntamenti %}
+        {% set prenotazione = appuntamento.prenotazione %}
+        <article>
+            <h3>{{ prenotazione.inizio | data_ora(fuso_orario) }} · {{ prenotazione.durata_totale() | durata }}</h3>
+            <p>{% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+            <p>{{ appuntamento.cliente.nome }} {{ appuntamento.cliente.cognome }} · {{ appuntamento.cliente.telefono }}</p>
+        </article>
+    {% else %}
+        <p>Nessun appuntamento in programma.</p>
+    {% endfor %}
 {% endblock %}

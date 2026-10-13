@@ -1,8 +1,41 @@
 {% extends "base.html" %}
 
+{% set STATI = {
+    "in_attesa_pagamento": "In attesa di pagamento",
+    "confermata": "Confermata",
+    "annullata": "Annullata",
+    "scaduta": "Scaduta",
+} %}
+
 {% block titolo %}Area personale – Barber Booking{% endblock %}
 
 {% block contenuto %}
     <h1>Area personale</h1>
     <p><a href="{{ url_for('cliente.prenota') }}">Prenota un appuntamento</a></p>
+
+    <h2>Le mie prenotazioni</h2>
+    {% for riga in storico %}
+        {% set prenotazione = riga.prenotazione %}
+        <article>
+            <h3>{{ prenotazione.inizio | data_ora(fuso_orario) }} · {{ riga.professionista }}</h3>
+            <p>
+                {% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}
+                · {{ prenotazione.durata_totale() | durata }}
+            </p>
+            <p>Totale {{ prenotazione.prezzo_totale() | euro }} · pagato {{ riga.pagato_centesimi | euro }}
+               {% if prenotazione.modalita_pagamento == 'acconto' and prenotazione.stato == 'confermata' %}
+                   (acconto, il resto in salone)
+               {% endif %}</p>
+            <p>Stato: {{ STATI[prenotazione.stato] }}</p>
+            {% if riga.annullabile %}
+                <p><a href="{{ url_for('cliente.annulla_prenotazione', prenotazione_id=prenotazione.id) }}">Annulla</a></p>
+            {% endif %}
+        </article>
+    {% else %}
+        <p>Non hai ancora prenotazioni.</p>
+    {% endfor %}
+
+    {% if storico %}
+        <p><strong>Totale speso: {{ totale_speso | euro }}</strong> (al netto dei rimborsi)</p>
+    {% endif %}
 {% endblock %}

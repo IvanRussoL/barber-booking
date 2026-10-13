@@ -5,7 +5,8 @@ from flask import (Blueprint, current_app, flash, g, jsonify, redirect, render_t
 
 from app.accessi import controlla_accesso
 from app.db import ottieni_connessione
-from app.eccezioni import DatiNonValidiError, SlotNonDisponibileError
+from app.eccezioni import AnnullamentoNonConsentitoError, DatiNonValidiError, SlotNonDisponibileError
+from app.formato import formatta_euro
 from app.repository.impostazioni import ImpostazioniRepository
 from app.repository.utente import UtenteRepository
 from app.servizi.prenotazione import PrenotazioneService
@@ -32,9 +33,36 @@ def controlla_cliente():
 @bp.route("/")
 def area():
     """
-    Area personale del cliente.
+    Area personale: storico delle prenotazioni del cliente e totale speso.
+    L'id del cliente viene dalla sessione (g.utente), mai dall'URL.
     """
-    return render_template("cliente/area.html")
+    servizio = _prenotazioni()
+    storico = servizio.storico_cliente(g.utente.id)
+    return render_template(
+        "cliente/area.html", storico=storico, totale_speso=sum(r.pagato_centesimi for r in storico),
+        fuso_orario=servizio.disponibilita.fuso_orario,
+    )
+
+
+@bp.route("/prenotazioni/<int:prenotazione_id>/annulla", methods=["GET", "POST"])
+def annulla_prenotazione(prenotazione_id: int):
+    """
+    GET: pagina di conferma. POST: annullamento con rimborso.
+    Una prenotazione di un altro cliente risulta non trovata (404), come una inesistente.
+    """
+    servizio = _prenotazioni()
+    prenotazione = servizio.prenotazione_del_cliente(prenotazione_id, g.utente.id)
+    if request.method == "GET":
+        return render_template(
+            "cliente/annulla.html", prenotazione=prenotazione, fuso_orario=servizio.disponibilita.fuso_orario,
+        )
+    try:
+        rimborsato = servizio.annulla_dal_cliente(prenotazione_id, g.utente.id)
+    except AnnullamentoNonConsentitoError as errore:
+        flash(str(errore))
+        return redirect(url_for("cliente.area"))
+    flash(f"Prenotazione annullata. Rimborso di {formatta_euro(rimborsato)}.")
+    return redirect(url_for("cliente.area"))
 
 
 # --- Prenotazione ---

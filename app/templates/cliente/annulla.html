@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block titolo %}Annulla prenotazione – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Annullare la prenotazione?</h1>
+    <p>{{ prenotazione.inizio | data_ora(fuso_orario) }} ·
+        {% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    <p>Ti verrà rimborsato tutto quello che hai pagato online.</p>
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Sì, annulla</button>
+    </form>
+    <p><a href="{{ url_for('cliente.area') }}">No, torna all'area personale</a></p>
+{% endblock %}

@@ -5,7 +5,8 @@ from flask_wtf.csrf import CSRFError, CSRFProtect
 
 from app.comandi import crea_proprietario
 from app.db import chiudi_connessione, ottieni_connessione
-from app.eccezioni import BarberBookingError
+from app.eccezioni import BarberBookingError, RisorsaNonTrovataError
+from app.formato import formatta_durata, formatta_euro
 from app.repository.utente import UtenteRepository
 from app.rotte import auth, cliente, dipendente, proprietario, pubblico
 
@@ -23,6 +24,14 @@ def gestisci_errore(errore: BarberBookingError):
     Returns: la pagina errore.html con codice HTTP 400.
     """
     return render_template("errore.html", messaggio=str(errore)), 400
+
+
+def gestisci_non_trovato(errore: RisorsaNonTrovataError):
+    """
+    Dato inesistente o di un altro utente: stessa risposta in entrambi i casi, per non rivelare nulla.
+    Returns: la pagina errore.html con codice HTTP 404.
+    """
+    return render_template("errore.html", messaggio=str(errore)), 404
 
 
 def gestisci_errore_http(errore):
@@ -86,9 +95,12 @@ def create_app(config: dict | None = None) -> Flask:
     app.register_blueprint(proprietario.bp)
 
     app.register_error_handler(BarberBookingError, gestisci_errore)
+    app.register_error_handler(RisorsaNonTrovataError, gestisci_non_trovato)
     app.register_error_handler(CSRFError, gestisci_errore_csrf)
     for codice in MESSAGGI_HTTP:
         app.register_error_handler(codice, gestisci_errore_http)
 
+    app.add_template_filter(formatta_euro, "euro")
+    app.add_template_filter(formatta_durata, "durata")
     app.cli.add_command(crea_proprietario)
     return app

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block titolo %}Servizi e prezzi – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Servizi e prezzi</h1>
+    {% for servizio in servizi %}
+        <article>
+            <h2>{{ servizio.nome }}</h2>
+            {% if servizio.descrizione %}<p>{{ servizio.descrizione }}</p>{% endif %}
+            <p>{{ servizio.durata_minuti | durata }} · {{ servizio.prezzo_centesimi | euro }}</p>
+        </article>
+    {% else %}
+        <p>Il listino sarà disponibile a breve.</p>
+    {% endfor %}
+{% endblock %}

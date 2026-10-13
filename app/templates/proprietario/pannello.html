@@ -4,5 +4,7 @@
 
 {% block contenuto %}
     <h1>Gestione del salone</h1>
-    <p>Qui troverai servizi, dipendenti e prenotazioni.</p>
+    <ul>
+        <li><a href="{{ url_for('proprietario.servizi') }}">Servizi</a>: listino, durate e prezzi</li>
+    </ul>
 {% endblock %}

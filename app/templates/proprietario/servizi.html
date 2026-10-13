@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block titolo %}Servizi – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Servizi</h1>
+    <p><a href="{{ url_for('proprietario.nuovo_servizio') }}">Nuovo servizio</a></p>
+    {% if servizi %}
+        <table>
+            <thead>
+                <tr><th>Nome</th><th>Durata</th><th>Prezzo</th><th>Stato</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for servizio in servizi %}
+                    <tr>
+                        <td>
+                            {{ servizio.nome }}
+                            {% if servizio.descrizione %}<br><small>{{ servizio.descrizione }}</small>{% endif %}
+                        </td>
+                        <td>{{ servizio.durata_minuti | durata }}</td>
+                        <td>{{ servizio.prezzo_centesimi | euro }}</td>
+                        <td>{{ "Attivo" if servizio.attivo else "Disattivato" }}</td>
+                        <td>
+                            <a href="{{ url_for('proprietario.modifica_servizio', servizio_id=servizio.id) }}">Modifica</a>
+                            <form method="post" action="{{ url_for('proprietario.imposta_attivo_servizio', servizio_id=servizio.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="attivo" value="{{ '0' if servizio.attivo else '1' }}">
+                                <button type="submit">{{ "Disattiva" if servizio.attivo else "Riattiva" }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Nessun servizio inserito.</p>
+    {% endif %}
+{% endblock %}

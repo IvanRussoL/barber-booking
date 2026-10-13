@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block titolo %}{{ "Modifica servizio" if servizio_id else "Nuovo servizio" }} – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>{{ "Modifica servizio" if servizio_id else "Nuovo servizio" }}</h1>
+    {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+    <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Nome <input name="nome" value="{{ dati.get('nome', '') }}" maxlength="100" required></label>
+        <label>Descrizione (facoltativa) <input name="descrizione" value="{{ dati.get('descrizione', '') }}" maxlength="255"></label>
+        <label>Durata in minuti (multiplo di 30)
+            <input type="number" name="durata_minuti" value="{{ dati.get('durata_minuti', 30) }}" min="30" max="480" step="30" required>
+        </label>
+        <label>Prezzo in euro <input name="prezzo_euro" value="{{ dati.get('prezzo_euro', '') }}" placeholder="25,00" inputmode="decimal" required></label>
+        <button type="submit">Salva</button>
+    </form>
+    <p><a href="{{ url_for('proprietario.servizi') }}">Torna ai servizi</a></p>
+{% endblock %}

@@ -7,7 +7,7 @@
     <p>{{ prenotazione.inizio | data_ora(fuso_orario) }} ·
         {% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
     <p>Ti verrà rimborsato tutto quello che hai pagato online.</p>
-    <form method="post">
+    <form method="post" class="secondario">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit">Sì, annulla</button>
     </form>

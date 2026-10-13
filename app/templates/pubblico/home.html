@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 
 {% block contenuto %}
-    <h1>Barber Booking</h1>
-    <p>Prenota il tuo appuntamento online.</p>
+    <section class="copertina">
+        <h1>Il tuo taglio, quando vuoi tu.</h1>
+        <p>Scegli i servizi, il professionista e l'orario: prenoti in un minuto e paghi online l'acconto o l'intero importo.</p>
+        <p>
+            <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
+            <a href="{{ url_for('pubblico.servizi') }}">Guarda servizi e prezzi</a>
+        </p>
+    </section>
 {% endblock %}

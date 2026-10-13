@@ -23,7 +23,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit">Paga {{ pagamento.importo_centesimi | euro }}</button>
         </form>
-        <form method="post" action="{{ url_for('cliente.annulla_pagamento', riferimento=pagamento.riferimento_provider) }}">
+        <form method="post" class="secondario" action="{{ url_for('cliente.annulla_pagamento', riferimento=pagamento.riferimento_provider) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit">Annulla</button>
         </form>

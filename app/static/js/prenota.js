@@ -2,6 +2,7 @@
 // chiede al server gli orari liberi con fetch e li mostra come scelte.
 const modulo = document.getElementById("modulo-prenotazione");
 const contenitoreSlot = document.getElementById("slot");
+let ultimaRichiesta = 0;  // numero dell'ultima richiesta: le risposte più vecchie si ignorano
 
 async function aggiornaSlot() {
     const dati = new FormData(modulo);
@@ -18,8 +19,12 @@ async function aggiornaSlot() {
     servizi.forEach((id) => parametri.append("servizi", id));
     contenitoreSlot.textContent = "Ricerca degli orari liberi...";
 
+    const numero = ++ultimaRichiesta;
     const risposta = await fetch(modulo.dataset.urlSlot + "?" + parametri);
     const risultato = await risposta.json();
+    if (numero !== ultimaRichiesta) {
+        return;  // nel frattempo è partita una richiesta più recente
+    }
     contenitoreSlot.textContent = "";
 
     if (!risposta.ok) {
@@ -43,11 +48,11 @@ async function aggiornaSlot() {
 }
 
 modulo.addEventListener("change", (evento) => {
-    if (evento.target.name === "ora" || evento.target.name === "modalita") {
-        return;
+    if (evento.target.name === "ora") {
+        modulo.dataset.oraScelta = evento.target.value;  // resta scelto se è ancora libero
+    } else if (evento.target.name !== "modalita") {
+        aggiornaSlot();
     }
-    modulo.dataset.oraScelta = "";
-    aggiornaSlot();
 });
 
 aggiornaSlot();

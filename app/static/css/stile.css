@@ -1,0 +1,337 @@
+/* Tema scuro di Barber Booking: verde menta per le azioni, rosa per errori e annullamenti. */
+
+:root {
+    --sfondo: #0f1115;
+    --superficie: #181b22;
+    --bordo: #2a2f3a;
+    --testo: #e8eaed;
+    --testo-tenue: #9aa3b2;
+    --menta: #2dd4bf;
+    --menta-scuro: #14b8a6;
+    --rosa: #ff6b8b;
+    --raggio: 10px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--sfondo);
+    color: var(--testo);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+}
+
+a {
+    color: var(--menta);
+}
+
+/* --- Intestazione e menu --- */
+
+header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 24px;
+    background: var(--superficie);
+    border-bottom: 1px solid var(--bordo);
+}
+
+.marchio {
+    color: var(--testo);
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.marchio span {
+    color: var(--menta);
+}
+
+nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+}
+
+nav a {
+    color: var(--testo-tenue);
+    text-decoration: none;
+}
+
+nav a:hover {
+    color: var(--menta);
+}
+
+nav form {
+    margin: 0;
+}
+
+.saluto {
+    color: var(--testo-tenue);
+}
+
+/* --- Contenuto --- */
+
+main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+}
+
+h1 {
+    margin-top: 0;
+}
+
+h2, h3 {
+    margin-bottom: 8px;
+}
+
+article,
+fieldset,
+table {
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+}
+
+article {
+    padding: 16px 20px;
+    margin-bottom: 16px;
+}
+
+article h2,
+article h3 {
+    margin-top: 0;
+}
+
+article p {
+    margin: 4px 0;
+}
+
+/* --- Messaggi --- */
+
+.messaggio,
+.errore,
+.avviso {
+    padding: 12px 16px;
+    border-radius: var(--raggio);
+    border-left: 4px solid;
+}
+
+.messaggio {
+    background: rgba(45, 212, 191, 0.1);
+    border-color: var(--menta);
+}
+
+.errore {
+    background: rgba(255, 107, 139, 0.1);
+    border-color: var(--rosa);
+}
+
+.avviso {
+    background: rgba(154, 163, 178, 0.1);
+    border-color: var(--testo-tenue);
+}
+
+/* --- Moduli --- */
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 560px;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+input,
+button {
+    font: inherit;
+}
+
+input:not([type="checkbox"]):not([type="radio"]) {
+    padding: 10px 12px;
+    background: var(--sfondo);
+    color: var(--testo);
+    border: 1px solid var(--bordo);
+    border-radius: 8px;
+}
+
+input:focus {
+    outline: 2px solid var(--menta);
+    outline-offset: 1px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--menta);
+}
+
+fieldset {
+    padding: 16px 20px;
+}
+
+legend {
+    padding: 0 6px;
+    color: var(--menta);
+    font-weight: 600;
+}
+
+/* Scelte (servizi, professionisti, orari): etichette in riga. */
+fieldset label {
+    flex-direction: row;
+    align-items: center;
+    margin: 6px 0;
+}
+
+button {
+    align-self: flex-start;
+    padding: 10px 18px;
+    background: var(--menta);
+    color: #062a25;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--menta-scuro);
+}
+
+/* Pulsanti secondari: esci, disattiva, annulla. */
+nav button,
+td button,
+.secondario button {
+    background: transparent;
+    color: var(--rosa);
+    border: 1px solid var(--rosa);
+    padding: 6px 12px;
+}
+
+nav button:hover,
+td button:hover,
+.secondario button:hover {
+    background: rgba(255, 107, 139, 0.12);
+}
+
+/* --- Orari liberi --- */
+
+#slot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--testo-tenue);
+}
+
+#slot label {
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    color: var(--testo);
+    cursor: pointer;
+}
+
+#slot label:has(input:checked) {
+    border-color: var(--menta);
+    background: rgba(45, 212, 191, 0.12);
+}
+
+/* --- Tabelle --- */
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+}
+
+th,
+td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--bordo);
+}
+
+th {
+    color: var(--testo-tenue);
+    font-weight: 600;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+td form {
+    display: inline-flex;
+    margin-left: 8px;
+}
+
+small {
+    color: var(--testo-tenue);
+}
+
+/* --- Home --- */
+
+.copertina {
+    padding: 48px 0 24px;
+}
+
+.copertina h1 {
+    font-size: 2.4rem;
+    margin-bottom: 8px;
+}
+
+.copertina p {
+    color: var(--testo-tenue);
+    font-size: 1.15rem;
+}
+
+.pulsante {
+    display: inline-block;
+    padding: 12px 22px;
+    background: var(--menta);
+    color: #062a25;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.pulsante:hover {
+    background: var(--menta-scuro);
+}
+
+.stato-annullata,
+.stato-scaduta {
+    color: var(--rosa);
+}
+
+.stato-confermata {
+    color: var(--menta);
+}
+
+.copertina .pulsante {
+    margin-right: 16px;
+}
+
+/* Riattivare un servizio non è un'azione distruttiva: verde invece di rosa. */
+td button.riattiva {
+    color: var(--menta);
+    border-color: var(--menta);
+}
+
+td button.riattiva:hover {
+    background: rgba(45, 212, 191, 0.12);
+}

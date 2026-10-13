@@ -4,10 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block titolo %}Barber Booking{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stile.css') }}">
 </head>
 <body>
     <header>
-        <a href="{{ url_for('pubblico.home') }}">Barber Booking</a>
+        <a class="marchio" href="{{ url_for('pubblico.home') }}">Barber <span>Booking</span></a>
         <nav>
             <a href="{{ url_for('pubblico.servizi') }}">Servizi</a>
             {% if g.utente %}
@@ -21,7 +22,7 @@
                 {% if g.utente.ruolo == 'proprietario' %}
                     <a href="{{ url_for('proprietario.pannello') }}">Gestione</a>
                 {% endif %}
-                <span>Ciao, {{ g.utente.nome }}</span>
+                <span class="saluto">Ciao, {{ g.utente.nome }}</span>
                 <form method="post" action="{{ url_for('auth.logout') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit">Esci</button>

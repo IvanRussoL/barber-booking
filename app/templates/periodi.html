@@ -1,0 +1,6 @@
+{# Scelta del periodo delle statistiche: link normali con il parametro giorni, nessun JavaScript. #}
+<nav class="periodi" aria-label="Periodo">
+    {% for valore, etichetta in [(7, "Ultima settimana"), (30, "Ultimo mese"), (365, "Ultimo anno")] %}
+        <a href="?giorni={{ valore }}" {% if valore == giorni %}aria-current="page"{% endif %}>{{ etichetta }}</a>
+    {% endfor %}
+</nav>

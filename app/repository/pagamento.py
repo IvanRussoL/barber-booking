@@ -16,16 +16,18 @@ class PagamentoRepository:
 
     def inserisci(self, pagamento: Pagamento) -> int:
         """
-        Inserisce un movimento, senza fare commit.
+        Inserisce un movimento, senza fare commit. Se creato_il è vuoto vale l'ora attuale in UTC
+        (lo indica solo seed.py, per creare uno storico con date passate).
         Returns: l'id assegnato da MySQL.
         Raises: mysql.connector.IntegrityError se riferimento_provider è già presente.
         """
         with self._conn.cursor() as cur:
             cur.execute(
                 "INSERT INTO pagamenti (prenotazione_id, ordine_id, tipo, importo_centesimi, stato, "
-                "riferimento_provider) VALUES (%s, %s, %s, %s, %s, %s)",
+                "riferimento_provider, creato_il) VALUES (%s, %s, %s, %s, %s, %s, COALESCE(%s, UTC_TIMESTAMP()))",
                 (pagamento.prenotazione_id, pagamento.ordine_id, pagamento.tipo,
-                 pagamento.importo_centesimi, pagamento.stato, pagamento.riferimento_provider),
+                 pagamento.importo_centesimi, pagamento.stato, pagamento.riferimento_provider,
+                 pagamento.creato_il),
             )
             return cur.lastrowid
 

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block titolo %}Le mie statistiche – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Le mie statistiche</h1>
+    {% include "periodi.html" %}
+
+    <section class="numeri">
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.prenotazioni }}</p>
+            <p class="numero-etichetta">appuntamenti confermati</p>
+        </div>
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.clienti_unici }}</p>
+            <p class="numero-etichetta">clienti diversi</p>
+        </div>
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.valore_servizi_centesimi | euro }}</p>
+            <p class="numero-etichetta">valore dei servizi eseguiti</p>
+        </div>
+    </section>
+
+    <section class="grafico">
+        <h2>I miei appuntamenti nel tempo</h2>
+        <p><small>{{ "Per settimana: le etichette indicano il lunedì." if giorni > 31 else "Per giorno." }}</small></p>
+        <img src="{{ url_for('dipendente.grafico_andamento', giorni=giorni) }}"
+             alt="Grafico a barre dei propri appuntamenti per settimana" width="880" height="374">
+    </section>
+{% endblock %}

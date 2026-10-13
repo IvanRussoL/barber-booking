@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block titolo %}Statistiche – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Statistiche del salone</h1>
+    {% include "periodi.html" %}
+
+    <section class="numeri">
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.prenotazioni }}</p>
+            <p class="numero-etichetta">prenotazioni confermate</p>
+        </div>
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.incasso_netto_centesimi | euro }}</p>
+            <p class="numero-etichetta">incassato, al netto dei rimborsi</p>
+        </div>
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.valore_medio_centesimi | euro }}</p>
+            <p class="numero-etichetta">valore medio di una prenotazione</p>
+        </div>
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.clienti_unici }}</p>
+            <p class="numero-etichetta">clienti diversi</p>
+        </div>
+    </section>
+
+    <section class="grafico">
+        <h2>Prenotazioni per professionista</h2>
+        <img src="{{ url_for('proprietario.grafico', nome='professionisti', giorni=giorni) }}"
+             alt="Grafico a barre delle prenotazioni per professionista; i valori sono nella tabella qui sotto"
+             width="880" height="374">
+        <table>
+            <thead><tr><th>Professionista</th><th>Prenotazioni</th><th>Valore dei servizi</th></tr></thead>
+            <tbody>
+                {% for riga in professionisti %}
+                    <tr><td>{{ riga.professionista }}</td><td>{{ riga.prenotazioni }}</td><td>{{ riga.valore_centesimi | euro }}</td></tr>
+                {% else %}
+                    <tr><td colspan="3">Nessuna prenotazione nel periodo.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="grafico">
+        <h2>Andamento</h2>
+        <p><small>Prenotazioni confermate {{ "per settimana (le etichette indicano il lunedì)" if giorni > 31 else "per giorno" }}.</small></p>
+        <img src="{{ url_for('proprietario.grafico', nome='andamento', giorni=giorni) }}"
+             alt="Grafico a barre dell'andamento delle prenotazioni" width="880" height="374">
+    </section>
+
+    <section class="grafico">
+        <h2>Fasce di punta</h2>
+        <p><small>Prenotazioni per ora di inizio dell'appuntamento.</small></p>
+        <img src="{{ url_for('proprietario.grafico', nome='fasce', giorni=giorni) }}"
+             alt="Grafico a barre delle prenotazioni per ora di inizio" width="880" height="374">
+    </section>
+{% endblock %}

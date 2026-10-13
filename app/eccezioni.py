@@ -32,3 +32,9 @@ class RisorsaNonTrovataError(BarberBookingError):
     """
     Dato richiesto inesistente, o di un altro utente: viene mostrato come pagina non trovata (404).
     """
+
+
+class SlotNonDisponibileError(BarberBookingError):
+    """
+    Orario scelto non prenotabile: fuori dai turni, già occupato o nel frattempo preso da un altro cliente.
+    """

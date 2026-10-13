@@ -60,3 +60,24 @@ class UtenteRepository:
             cur.execute(_SELECT + "WHERE email = %s", (email,))
             riga = cur.fetchone()
         return _da_riga(riga) if riga else None
+
+    def elenca_professionisti(self) -> list[Utente]:
+        """
+        Elenca le persone prenotabili: attive e con riceve_prenotazioni, in ordine di nome.
+        Returns: la lista degli Utenti, vuota se non ce ne sono.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(_SELECT + "WHERE attivo = TRUE AND riceve_prenotazioni = TRUE ORDER BY nome, cognome")
+            righe = cur.fetchall()
+        return [_da_riga(riga) for riga in righe]
+
+    def blocca(self, utente_id: int) -> None:
+        """
+        Blocca la riga dell'utente con SELECT ... FOR UPDATE fino al commit o al rollback.
+        Usato sul dipendente durante una prenotazione: le richieste per lo stesso dipendente
+        aspettano il loro turno, quelle per altri dipendenti proseguono.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute("SELECT id FROM utenti WHERE id = %s FOR UPDATE", (utente_id,))
+            cur.fetchall()
+

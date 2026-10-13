@@ -1,9 +1,21 @@
 import os
 
-from flask import Flask, render_template
-from app.db import chiudi_connessione
+from flask import Flask, g, render_template, session
+from flask_wtf.csrf import CSRFError, CSRFProtect
+
+from app.comandi import crea_proprietario
+from app.db import chiudi_connessione, ottieni_connessione
 from app.eccezioni import BarberBookingError
-from app.rotte import pubblico
+from app.repository.utente import UtenteRepository
+from app.rotte import auth, cliente, dipendente, proprietario, pubblico
+
+csrf = CSRFProtect()
+
+MESSAGGI_HTTP = {
+    403: "Non hai i permessi per aprire questa pagina.",
+    404: "Pagina non trovata.",
+}
+
 
 def gestisci_errore(errore: BarberBookingError):
     """
@@ -13,6 +25,40 @@ def gestisci_errore(errore: BarberBookingError):
     return render_template("errore.html", messaggio=str(errore)), 400
 
 
+def gestisci_errore_http(errore):
+    """
+    Mostra la pagina di errore in italiano per i codici 403 e 404.
+    Returns: la pagina errore.html con lo stesso codice dell'errore.
+    """
+    return render_template("errore.html", messaggio=MESSAGGI_HTTP[errore.code]), errore.code
+
+
+def gestisci_errore_csrf(errore: CSRFError):
+    """
+    Modulo inviato senza token CSRF valido (es. pagina rimasta aperta troppo a lungo).
+    Returns: la pagina errore.html con codice HTTP 400.
+    """
+    return render_template(
+        "errore.html", messaggio="Modulo scaduto o non valido: ricarica la pagina e riprova."
+    ), 400
+
+
+def carica_utente() -> None:
+    """
+    Prima di ogni richiesta ricarica dal database l'utente della sessione e lo salva in g.utente.
+    Un utente cancellato o disattivato viene fatto uscire subito.
+    """
+    g.utente = None
+    utente_id = session.get("utente_id")
+    if utente_id is None:
+        return
+    utente = UtenteRepository(ottieni_connessione()).leggi_per_id(utente_id)
+    if utente is None or not utente.attivo:
+        session.clear()
+        return
+    g.utente = utente
+
+
 def create_app(config: dict | None = None) -> Flask:
     """
     Crea e configura l'applicazione Flask.
@@ -20,7 +66,6 @@ def create_app(config: dict | None = None) -> Flask:
     Returns: l'applicazione configurata.
     Raises: KeyError se SECRET_KEY manca dalle variabili d'ambiente.
     """
-
     app = Flask(__name__)
     app.config.update(
         SECRET_KEY=os.environ["SECRET_KEY"],
@@ -29,7 +74,21 @@ def create_app(config: dict | None = None) -> Flask:
     )
     if config:
         app.config.update(config)
+
+    csrf.init_app(app)
+    app.before_request(carica_utente)
     app.teardown_appcontext(chiudi_connessione)
+
     app.register_blueprint(pubblico.bp)
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(cliente.bp)
+    app.register_blueprint(dipendente.bp)
+    app.register_blueprint(proprietario.bp)
+
     app.register_error_handler(BarberBookingError, gestisci_errore)
+    app.register_error_handler(CSRFError, gestisci_errore_csrf)
+    for codice in MESSAGGI_HTTP:
+        app.register_error_handler(codice, gestisci_errore_http)
+
+    app.cli.add_command(crea_proprietario)
     return app

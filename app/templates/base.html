@@ -8,8 +8,32 @@
 <body>
     <header>
         <a href="{{ url_for('pubblico.home') }}">Barber Booking</a>
+        <nav>
+            {% if g.utente %}
+                {% if g.utente.ruolo == 'cliente' %}
+                    <a href="{{ url_for('cliente.area') }}">Area personale</a>
+                {% endif %}
+                {% if g.utente.riceve_prenotazioni %}
+                    <a href="{{ url_for('dipendente.agenda') }}">Agenda</a>
+                {% endif %}
+                {% if g.utente.ruolo == 'proprietario' %}
+                    <a href="{{ url_for('proprietario.pannello') }}">Gestione</a>
+                {% endif %}
+                <span>Ciao, {{ g.utente.nome }}</span>
+                <form method="post" action="{{ url_for('auth.logout') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Esci</button>
+                </form>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">Accedi</a>
+                <a href="{{ url_for('auth.registrazione') }}">Registrati</a>
+            {% endif %}
+        </nav>
     </header>
     <main>
+        {% for messaggio in get_flashed_messages() %}
+            <p class="messaggio">{{ messaggio }}</p>
+        {% endfor %}
         {% block contenuto %}{% endblock %}
     </main>
 </body>

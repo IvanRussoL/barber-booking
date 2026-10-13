@@ -13,7 +13,7 @@ Applicazione web per un salone di barbiere/parrucchiere: i clienti prenotano onl
 | Dipendente | Consulta la propria agenda con i recapiti dei clienti |
 | Proprietario | Crea, modifica, disattiva e riattiva i servizi; se lavora in sala riceve prenotazioni e ha la sua agenda |
 
-Regole principali: slot di 30 minuti dentro i turni del salone, nessuna sovrapposizione per lo stesso professionista (anche con richieste simultanee), prenotazione bloccata per 30 minuti in attesa del pagamento, prezzi e importi calcolati sempre dal server.
+Regole principali: slot di 30 minuti dentro i turni del salone, nessuna sovrapposizione per lo stesso professionista né per lo stesso cliente (anche con richieste simultanee), prenotazione bloccata per 30 minuti in attesa del pagamento, prezzi e importi calcolati sempre dal server.
 
 ## Tecnologie
 
@@ -120,4 +120,3 @@ Le motivazioni complete e le alternative scartate sono in `DEVLOG.md` e `docs/PR
 - Gestione dal sito di orari, eccezioni per data, assenze e chiusure; creazione dei dipendenti da parte del proprietario.
 - Saldo in sede registrato dal proprietario, annullamenti da parte del salone.
 - Limite ai tentativi di login (Flask-Limiter), cambio e recupero della password.
-- Impedire a un cliente di avere due appuntamenti sovrapposti con professionisti diversi.

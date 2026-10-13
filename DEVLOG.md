@@ -204,3 +204,8 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 - **CSS in un unico file `static/css/stile.css`, con variabili CSS per i colori del tema** (sfondo scuro, verde menta `#2dd4bf` per le azioni, rosa `#ff6b8b` per errori, uscita e annullamenti). Nessun framework CSS. Alternativa scartata: Bootstrap (una dipendenza in più e un aspetto meno personale).
 - **Orari liberi: la scelta resta anche se la lista si aggiorna, e una risposta superata da una richiesta più recente viene ignorata**: emerso provando la pagina con un browser automatico (due eventi `change` ravvicinati cancellavano l'orario scelto).
 - **README con installazione completa** (venv, database, utente MySQL, `.env`, proprietario, dati di prova), profili di prova, test, scelte principali e sviluppi futuri.
+
+## 2026-10-13 · Regola: un cliente non ha due appuntamenti sovrapposti
+
+- **Gli orari in cui il cliente ha già un appuntamento, con qualsiasi professionista, non vengono proposti e sono rifiutati alla conferma**: completa la voce precedente sul limite emerso da `seed.py`. Il controllo usa la stessa condizione di sovrapposizione degli slot, sulle prenotazioni confermate o in attesa non scadute del cliente.
+- **`SELECT ... FOR UPDATE` anche sulla riga del cliente, prima di quella del dipendente**: due richieste simultanee dello stesso cliente per professionisti diversi passano una alla volta. L'ordine è sempre cliente → dipendente, quindi due transazioni non possono aspettarsi a vicenda (stallo, *deadlock*). Alternativa scartata: controllare il cliente senza blocco (due richieste simultanee dello stesso cliente passerebbero entrambe).

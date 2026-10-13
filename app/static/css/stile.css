@@ -1,15 +1,21 @@
-/* Tema scuro di Barber Booking: verde menta per le azioni, rosa per errori e annullamenti. */
+/* Tema chiaro e caldo di Barber Booking: osso, espresso e corallo, con dettagli in ottone. */
 
 :root {
-    --sfondo: #0f1115;
-    --superficie: #181b22;
-    --bordo: #2a2f3a;
-    --testo: #e8eaed;
-    --testo-tenue: #9aa3b2;
-    --menta: #2dd4bf;
-    --menta-scuro: #14b8a6;
-    --rosa: #ff6b8b;
-    --raggio: 10px;
+    --sfondo: #f4efe6;          /* osso */
+    --superficie: #fbf8f3;      /* crema */
+    --bordo: #e2d9cb;
+    --testo: #2a211c;           /* espresso */
+    --testo-tenue: #6b5f55;     /* tortora */
+    --corallo: #b4472f;         /* pulsanti e link: bianco sopra ha contrasto 5,4 */
+    --corallo-scuro: #96391f;
+    --corallo-chiaro: #e2725b;  /* solo decorativo: insegna, bordi */
+    --ottone: #b08d57;          /* solo decorativo: linee */
+    --ottone-testo: #7a5c30;    /* ottone leggibile per i testi */
+    --mattone: #9e2b25;         /* errori e annullamenti */
+    --notte: #1e2a3a;           /* blu dell'insegna */
+    --raggio: 14px;
+    --ombra: 0 1px 2px rgba(42, 33, 28, 0.06), 0 8px 24px rgba(42, 33, 28, 0.06);
+    --serif: "Playfair Display", Georgia, "Times New Roman", serif;
 }
 
 * {
@@ -25,51 +31,71 @@ body {
     background: var(--sfondo);
     color: var(--testo);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.5;
+    line-height: 1.55;
+}
+
+h1, h2, h3 {
+    font-family: var(--serif);
+    font-weight: 600;
+    line-height: 1.15;
 }
 
 a {
-    color: var(--menta);
+    color: var(--corallo);
+}
+
+img {
+    display: block;
+    max-width: 100%;
 }
 
 /* --- Intestazione e menu --- */
 
 header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 24px;
-    background: var(--superficie);
+    padding: 14px 32px;
+    background: rgba(251, 248, 243, 0.92);
+    backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--bordo);
 }
 
 .marchio {
     color: var(--testo);
-    font-size: 1.25rem;
+    font-family: var(--serif);
+    font-size: 1.4rem;
     font-weight: 700;
     text-decoration: none;
 }
 
 .marchio span {
-    color: var(--menta);
+    color: var(--corallo);
+    font-style: italic;
 }
 
 nav {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
+    gap: 22px;
 }
 
 nav a {
-    color: var(--testo-tenue);
+    color: var(--testo);
+    font-weight: 500;
     text-decoration: none;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 2px;
 }
 
 nav a:hover {
-    color: var(--menta);
+    border-bottom-color: var(--corallo-chiaro);
 }
 
 nav form {
@@ -85,13 +111,14 @@ nav form {
 main {
     flex: 1;
     width: 100%;
-    max-width: 920px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: 32px 24px 64px;
+    padding: 40px 24px 72px;
 }
 
 h1 {
     margin-top: 0;
+    font-size: 2.3rem;
 }
 
 h2, h3 {
@@ -104,10 +131,11 @@ table {
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio);
+    box-shadow: var(--ombra);
 }
 
 article {
-    padding: 16px 20px;
+    padding: 18px 22px;
     margin-bottom: 16px;
 }
 
@@ -131,18 +159,19 @@ article p {
 }
 
 .messaggio {
-    background: rgba(45, 212, 191, 0.1);
-    border-color: var(--menta);
+    background: #f6e7df;
+    border-color: var(--corallo-chiaro);
 }
 
 .errore {
-    background: rgba(255, 107, 139, 0.1);
-    border-color: var(--rosa);
+    background: #f6dfdc;
+    border-color: var(--mattone);
+    color: var(--mattone);
 }
 
 .avviso {
-    background: rgba(154, 163, 178, 0.1);
-    border-color: var(--testo-tenue);
+    background: var(--superficie);
+    border-color: var(--ottone);
 }
 
 /* --- Moduli --- */
@@ -158,6 +187,7 @@ label {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    font-weight: 500;
 }
 
 input,
@@ -166,31 +196,34 @@ button {
 }
 
 input:not([type="checkbox"]):not([type="radio"]) {
-    padding: 10px 12px;
-    background: var(--sfondo);
+    padding: 11px 14px;
+    background: #fff;
     color: var(--testo);
     border: 1px solid var(--bordo);
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 input:focus {
-    outline: 2px solid var(--menta);
+    outline: 2px solid var(--corallo-chiaro);
     outline-offset: 1px;
 }
 
 input[type="checkbox"],
 input[type="radio"] {
-    accent-color: var(--menta);
+    accent-color: var(--corallo);
 }
 
 fieldset {
-    padding: 16px 20px;
+    padding: 18px 22px;
 }
 
 legend {
-    padding: 0 6px;
-    color: var(--menta);
-    font-weight: 600;
+    padding: 0 8px;
+    color: var(--ottone-testo);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 /* Scelte (servizi, professionisti, orari): etichette in riga. */
@@ -198,21 +231,27 @@ fieldset label {
     flex-direction: row;
     align-items: center;
     margin: 6px 0;
+    font-weight: 400;
 }
 
 button {
     align-self: flex-start;
-    padding: 10px 18px;
-    background: var(--menta);
-    color: #062a25;
+    padding: 12px 24px;
+    background: var(--corallo);
+    color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 999px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
 }
 
 button:hover {
-    background: var(--menta-scuro);
+    background: var(--corallo-scuro);
+}
+
+button:active {
+    transform: scale(0.97);
 }
 
 /* Pulsanti secondari: esci, disattiva, annulla. */
@@ -220,15 +259,25 @@ nav button,
 td button,
 .secondario button {
     background: transparent;
-    color: var(--rosa);
-    border: 1px solid var(--rosa);
-    padding: 6px 12px;
+    color: var(--mattone);
+    border: 1px solid var(--mattone);
+    padding: 6px 14px;
 }
 
 nav button:hover,
 td button:hover,
 .secondario button:hover {
-    background: rgba(255, 107, 139, 0.12);
+    background: #f6dfdc;
+}
+
+/* Riattivare un servizio non è un'azione distruttiva: corallo invece di mattone. */
+td button.riattiva {
+    color: var(--corallo);
+    border-color: var(--corallo);
+}
+
+td button.riattiva:hover {
+    background: #f6e7df;
 }
 
 /* --- Orari liberi --- */
@@ -243,7 +292,8 @@ td button:hover,
 
 #slot label {
     margin: 0;
-    padding: 6px 12px;
+    padding: 6px 14px;
+    background: #fff;
     border: 1px solid var(--bordo);
     border-radius: 999px;
     color: var(--testo);
@@ -251,8 +301,8 @@ td button:hover,
 }
 
 #slot label:has(input:checked) {
-    border-color: var(--menta);
-    background: rgba(45, 212, 191, 0.12);
+    border-color: var(--corallo);
+    background: #f6e7df;
 }
 
 /* --- Tabelle --- */
@@ -266,7 +316,7 @@ table {
 
 th,
 td {
-    padding: 10px 14px;
+    padding: 11px 16px;
     text-align: left;
     border-bottom: 1px solid var(--bordo);
 }
@@ -276,7 +326,9 @@ th {
     font-weight: 600;
 }
 
-tr:last-child td {
+/* Niente bordo sotto l'ultima riga del corpo (tbody), ma sì sotto l'intestazione (thead). */
+tbody tr:last-child th,
+tbody tr:last-child td {
     border-bottom: none;
 }
 
@@ -291,31 +343,22 @@ small {
 
 .stato-annullata,
 .stato-scaduta {
-    color: var(--rosa);
+    color: var(--mattone);
 }
 
 .stato-confermata {
-    color: var(--menta);
-}
-
-/* Riattivare un servizio non è un'azione distruttiva: verde invece di rosa. */
-td button.riattiva {
-    color: var(--menta);
-    border-color: var(--menta);
-}
-
-td button.riattiva:hover {
-    background: rgba(45, 212, 191, 0.12);
+    color: var(--corallo);
+    font-weight: 600;
 }
 
 /* --- Pulsanti a link --- */
 
 .pulsante {
     display: inline-block;
-    padding: 12px 24px;
-    background: var(--menta);
-    color: #062a25;
-    border: 2px solid var(--menta);
+    padding: 13px 26px;
+    background: var(--corallo);
+    color: #fff;
+    border: 2px solid var(--corallo);
     border-radius: 999px;
     font-weight: 600;
     text-decoration: none;
@@ -323,8 +366,8 @@ td button.riattiva:hover {
 }
 
 .pulsante:hover {
-    background: var(--menta-scuro);
-    border-color: var(--menta-scuro);
+    background: var(--corallo-scuro);
+    border-color: var(--corallo-scuro);
 }
 
 .pulsante:active {
@@ -334,19 +377,85 @@ td button.riattiva:hover {
 .pulsante-contorno {
     background: transparent;
     color: var(--testo);
-    border-color: var(--bordo);
+    border-color: var(--testo);
 }
 
 .pulsante-contorno:hover {
-    background: transparent;
-    border-color: var(--menta);
-    color: var(--menta);
+    background: var(--testo);
+    border-color: var(--testo);
+    color: var(--sfondo);
 }
 
-/* --- Home: pagina più larga --- */
+/* --- Pagine larghe (home) --- */
 
 main.larga {
     max-width: 1280px;
+}
+
+/* --- Banner fotografico in cima alle pagine --- */
+
+.banner {
+    position: relative;
+    height: 260px;
+    margin: 0 0 32px;
+    overflow: hidden;
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+}
+
+.banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.banner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(30, 20, 15, 0.75), rgba(30, 20, 15, 0.05) 65%);
+}
+
+.banner figcaption {
+    position: absolute;
+    z-index: 1;
+    left: 28px;
+    right: 28px;
+    bottom: 22px;
+    color: #fff;
+}
+
+.banner h1 {
+    margin: 0;
+    color: #fff;
+}
+
+.banner p {
+    margin: 4px 0 0;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* --- Accedi e registrati: modulo e foto affiancati --- */
+
+.pagina-divisa {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+    gap: 48px;
+}
+
+.pagina-divisa .foto-laterale {
+    min-height: 520px;
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+}
+
+.pagina-divisa .foto-laterale img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 /* --- Home: sezione in alto con l'insegna --- */
@@ -356,14 +465,18 @@ main.larga {
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 48px;
-    padding: 24px 0 56px;
+    padding: 16px 0 56px;
 }
 
 .copertina h1 {
-    margin: 12px 0;
-    font-size: clamp(2.4rem, 6vw, 4.2rem);
-    line-height: 1.05;
-    letter-spacing: -0.02em;
+    margin: 14px 0;
+    font-size: clamp(2.6rem, 6.5vw, 4.8rem);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+}
+
+.copertina h1 em {
+    color: var(--corallo);
 }
 
 .sottotitolo {
@@ -376,7 +489,7 @@ main.larga {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 26px;
 }
 
 .stato-apertura {
@@ -385,6 +498,7 @@ main.larga {
     gap: 8px;
     margin: 0;
     padding: 6px 14px;
+    background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: 999px;
     color: var(--testo-tenue);
@@ -396,12 +510,12 @@ main.larga {
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    background: var(--rosa);
+    background: var(--mattone);
 }
 
 .stato-apertura.aperto::before {
-    background: var(--menta);
-    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.2);
+    background: #3f8f5a;
+    box-shadow: 0 0 0 4px rgba(63, 143, 90, 0.18);
 }
 
 /* L'insegna del barbiere: un cilindro di vetro con strisce diagonali che scorrono verso l'alto. */
@@ -410,13 +524,14 @@ main.larga {
     flex-direction: column;
     align-items: center;
     margin-right: 40px;
+    filter: drop-shadow(0 16px 24px rgba(42, 33, 28, 0.18));
 }
 
 .insegna-cappello {
     width: 92px;
     height: 26px;
     border-radius: 13px;
-    background: linear-gradient(90deg, #5b616e, #e4e7ec 45%, #8b919c);
+    background: linear-gradient(90deg, #8a6a3b, #f1dfb8 45%, #a8854d);
 }
 
 .insegna-vetro {
@@ -436,7 +551,7 @@ main.larga {
     height: calc(100% + 114px);
     /* 4 strisce da 20px misurate in diagonale: lo schema si ripete ogni 80px, cioè ogni 113,14px in verticale. */
     background: repeating-linear-gradient(45deg,
-        var(--menta) 0 20px, #ffffff 20px 40px, var(--rosa) 40px 60px, #ffffff 60px 80px);
+        var(--corallo-chiaro) 0 20px, #ffffff 20px 40px, var(--notte) 40px 60px, #ffffff 60px 80px);
     animation: scorri 2.4s linear infinite;
 }
 
@@ -445,8 +560,8 @@ main.larga {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.35) 40%,
-        rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.4));
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.3), rgba(255, 255, 255, 0.4) 40%,
+        rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.35));
 }
 
 @keyframes scorri {
@@ -477,13 +592,14 @@ main.larga {
     border-radius: var(--raggio);
     color: #fff;
     text-decoration: none;
+    box-shadow: var(--ombra);
 }
 
 .card-foto img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s ease;
+    transition: transform 0.6s ease;
 }
 
 /* Sfumatura scura in basso: il testo resta leggibile su qualsiasi foto. */
@@ -491,7 +607,7 @@ main.larga {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0) 55%);
+    background: linear-gradient(to top, rgba(30, 20, 15, 0.78), rgba(30, 20, 15, 0) 55%);
 }
 
 .card-testo {
@@ -504,20 +620,22 @@ main.larga {
 
 .card-etichetta {
     margin: 0;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 .card-testo h2 {
-    margin: 4px 0 18px;
-    font-size: clamp(1.4rem, 2.6vw, 2rem);
-    line-height: 1.15;
+    margin: 6px 0 18px;
+    font-size: clamp(1.5rem, 2.8vw, 2.2rem);
 }
 
 .pillola {
     display: inline-block;
     padding: 10px 22px;
-    background: #fff;
-    color: #111;
+    background: var(--superficie);
+    color: var(--testo);
     border-radius: 999px;
     font-weight: 600;
     transition: background 0.2s, color 0.2s;
@@ -530,12 +648,12 @@ main.larga {
 
 .card-foto:hover .pillola,
 .card-foto:focus-visible .pillola {
-    background: var(--menta);
-    color: #062a25;
+    background: var(--corallo);
+    color: #fff;
 }
 
 .card-foto:focus-visible {
-    outline: 3px solid var(--menta);
+    outline: 3px solid var(--corallo);
     outline-offset: 3px;
 }
 
@@ -545,7 +663,7 @@ main.larga {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 32px;
-    margin-top: 56px;
+    margin-top: 64px;
 }
 
 .orari table {
@@ -554,8 +672,8 @@ main.larga {
 
 .orari tr.oggi th,
 .orari tr.oggi td {
-    color: var(--menta);
-    font-weight: 600;
+    color: var(--corallo);
+    font-weight: 700;
 }
 
 .contatti p {
@@ -569,28 +687,31 @@ main.larga {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 
 .griglia-servizi article {
     margin: 0;
+    border-top: 3px solid var(--ottone);
 }
 
 .griglia-servizi h2 {
     margin-top: 0;
-    font-size: 1.2rem;
+    font-size: 1.35rem;
 }
 
 .prezzo {
-    color: var(--menta);
-    font-size: 1.4rem;
+    color: var(--corallo);
+    font-family: var(--serif);
+    font-size: 1.6rem;
     font-weight: 700;
 }
 
 /* --- Piè di pagina --- */
 
 footer {
-    padding: 24px;
+    padding: 28px 24px;
+    background: var(--superficie);
     border-top: 1px solid var(--bordo);
     color: var(--testo-tenue);
     font-size: 0.9rem;
@@ -601,7 +722,7 @@ footer p {
     margin: 4px 0;
 }
 
-/* --- Menu su telefono --- */
+/* --- Telefono e tablet stretto --- */
 
 .apri-menu {
     display: none;
@@ -616,13 +737,17 @@ footer p {
         padding: 24px 16px 48px;
     }
 
+    h1 {
+        font-size: 1.9rem;
+    }
+
     /* Solo con JavaScript attivo il menu si chiude: senza, i link restano sempre visibili. */
     .js .apri-menu {
         display: block;
-        padding: 6px 14px;
+        padding: 6px 16px;
         background: transparent;
         color: var(--testo);
-        border: 1px solid var(--bordo);
+        border: 1px solid var(--testo);
     }
 
     .js nav {
@@ -630,7 +755,8 @@ footer p {
         width: 100%;
         flex-direction: column;
         align-items: flex-start;
-        padding-top: 8px;
+        gap: 14px;
+        padding-top: 10px;
     }
 
     .js nav.aperto {
@@ -659,8 +785,18 @@ footer p {
     }
 
     .card-grandi,
-    .orari {
+    .orari,
+    .pagina-divisa {
         grid-template-columns: 1fr;
+    }
+
+    /* La foto accanto ai moduli di accesso su telefono occuperebbe solo spazio. */
+    .pagina-divisa .foto-laterale {
+        display: none;
+    }
+
+    .banner {
+        height: 190px;
     }
 
     .card-testo {
@@ -669,4 +805,3 @@ footer p {
         bottom: 20px;
     }
 }
-

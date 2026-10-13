@@ -3,7 +3,14 @@
 {% block titolo %}Prenota – Barber Booking{% endblock %}
 
 {% block contenuto %}
-    <h1>Prenota un appuntamento</h1>
+    <figure class="banner">
+        <img src="{{ url_for('static', filename='img/prenota.jpg') }}"
+             alt="Poltrona da barbiere in pelle rossa in un salone" width="1600" height="900">
+        <figcaption>
+            <h1>Prenota un appuntamento</h1>
+            <p>Servizi, professionista e orario: il resto lo pensiamo noi.</p>
+        </figcaption>
+    </figure>
     {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
 
     {% if not servizi or not professionisti %}

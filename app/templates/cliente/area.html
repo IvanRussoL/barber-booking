@@ -10,8 +10,15 @@
 {% block titolo %}Area personale – Barber Booking{% endblock %}
 
 {% block contenuto %}
-    <h1>Area personale</h1>
-    <p><a href="{{ url_for('cliente.prenota') }}">Prenota un appuntamento</a></p>
+    <figure class="banner">
+        <img src="{{ url_for('static', filename='img/area.jpg') }}"
+             alt="Rasatura con il pennello in bianco e nero" width="1600" height="1067">
+        <figcaption>
+            <h1>Ciao, {{ g.utente.nome }}</h1>
+            <p>Le tue prenotazioni e i tuoi pagamenti</p>
+        </figcaption>
+    </figure>
+    <p><a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota un appuntamento</a></p>
 
     <h2>Le mie prenotazioni</h2>
     {% for riga in storico %}

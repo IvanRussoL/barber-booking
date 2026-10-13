@@ -3,15 +3,24 @@
 {% block titolo %}Registrati – Barber Booking{% endblock %}
 
 {% block contenuto %}
-    <h1>Registrati</h1>
-    {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
-    <form method="post" novalidate>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label>Nome <input name="nome" value="{{ dati.get('nome', '') }}" maxlength="100" required></label>
-        <label>Cognome <input name="cognome" value="{{ dati.get('cognome', '') }}" maxlength="100" required></label>
-        <label>Email <input type="email" name="email" value="{{ dati.get('email', '') }}" maxlength="255" required></label>
-        <label>Telefono <input type="tel" name="telefono" value="{{ dati.get('telefono', '') }}" maxlength="20" required></label>
-        <label>Password (almeno 8 caratteri) <input type="password" name="password" minlength="8" required></label>
-        <button type="submit">Registrati</button>
-    </form>
+    <div class="pagina-divisa">
+        <section>
+            <h1>Crea il tuo account</h1>
+            <p><small>Ti servirà per prenotare e pagare online.</small></p>
+            {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+            <form method="post" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label>Nome <input name="nome" value="{{ dati.get('nome', '') }}" maxlength="100" required></label>
+                <label>Cognome <input name="cognome" value="{{ dati.get('cognome', '') }}" maxlength="100" required></label>
+                <label>Email <input type="email" name="email" value="{{ dati.get('email', '') }}" maxlength="255" required></label>
+                <label>Telefono <input type="tel" name="telefono" value="{{ dati.get('telefono', '') }}" maxlength="20" required></label>
+                <label>Password (almeno 8 caratteri) <input type="password" name="password" minlength="8" required></label>
+                <button type="submit">Registrati</button>
+            </form>
+        </section>
+        <figure class="foto-laterale">
+            <img src="{{ url_for('static', filename='img/registrati.jpg') }}"
+                 alt="Salone da barbiere con poltrone d'epoca e luci calde" width="900" height="1345">
+        </figure>
+    </div>
 {% endblock %}

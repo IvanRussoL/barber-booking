@@ -66,7 +66,7 @@ class ServizioRepository:
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                "UPDATE Servizi SET nome = %s, descrizione = %s, durata_minuti = %s, "
+                "UPDATE servizi SET nome = %s, descrizione = %s, durata_minuti = %s, "
                 "prezzo_centesimi = %s, attivo = %s WHERE id = %s",
                 (servizio.nome, servizio.descrizione, servizio.durata_minuti,
                  servizio.prezzo_centesimi, servizio.attivo, servizio.id),

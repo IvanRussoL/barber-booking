@@ -11,19 +11,24 @@
             <p>Durata e prezzo di ogni servizio, senza sorprese.</p>
         </figcaption>
     </figure>
-    <div class="griglia-servizi">
+    <section class="listino">
         {% for servizio in servizi %}
-            <article>
-                <h2>{{ servizio.nome }}</h2>
-                {% if servizio.descrizione %}<p>{{ servizio.descrizione }}</p>{% endif %}
-                <p class="prezzo">{{ servizio.prezzo_centesimi | euro }}</p>
-                <p><small>{{ servizio.durata_minuti | durata }}</small></p>
-            </article>
+            <div class="voce">
+                <div class="voce-riga">
+                    <h2>{{ servizio.nome }}</h2>
+                    <span class="puntini" aria-hidden="true"></span>
+                    <span class="voce-prezzo">{{ servizio.prezzo_centesimi | euro }}</span>
+                </div>
+                <p class="voce-dettaglio">
+                    {% if servizio.descrizione %}{{ servizio.descrizione }} · {% endif %}{{ servizio.durata_minuti | durata }}
+                </p>
+            </div>
         {% else %}
             <p>Il listino sarà disponibile a breve.</p>
         {% endfor %}
-    </div>
-    {% if servizi %}
+    </section>
+    {% if servizi and puo_prenotare %}
+        <p class="nota-listino">Puoi combinare più servizi nella stessa prenotazione: la durata si somma.</p>
         <p><a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota</a></p>
     {% endif %}
 {% endblock %}

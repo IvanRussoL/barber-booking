@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from flask import Flask, g, render_template, session
 from flask_wtf.csrf import CSRFError, CSRFProtect
@@ -8,6 +9,7 @@ from app.db import chiudi_connessione, ottieni_connessione
 from app.eccezioni import BarberBookingError, RisorsaNonTrovataError
 from app.formato import formatta_data_ora, formatta_durata, formatta_euro
 from app.pagamenti.finto import FakeProvider
+from app.repository.impostazioni import ImpostazioniRepository
 from app.repository.utente import UtenteRepository
 from app.rotte import auth, cliente, dipendente, proprietario, pubblico
 
@@ -69,6 +71,19 @@ def carica_utente() -> None:
     g.utente = utente
 
 
+def dati_piede_pagina() -> dict:
+    """
+    Dati comuni a tutte le pagine: il salone e l'anno per il piè di pagina, e puo_prenotare,
+    vero per visitatori e clienti, che decide se mostrare i pulsanti "Prenota".
+    Returns: dizionario con salone (Impostazioni), anno e puo_prenotare.
+    """
+    return {
+        "salone": ImpostazioniRepository(ottieni_connessione()).leggi(),
+        "anno": datetime.now().year,
+        "puo_prenotare": g.get("utente") is None or g.utente.ruolo == "cliente",
+    }
+
+
 def create_app(config: dict | None = None) -> Flask:
     """
     Crea e configura l'applicazione Flask.
@@ -103,6 +118,7 @@ def create_app(config: dict | None = None) -> Flask:
     for codice in MESSAGGI_HTTP:
         app.register_error_handler(codice, gestisci_errore_http)
 
+    app.context_processor(dati_piede_pagina)
     app.add_template_filter(formatta_euro, "euro")
     app.add_template_filter(formatta_durata, "durata")
     app.add_template_filter(formatta_data_ora, "data_ora")

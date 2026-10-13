@@ -38,7 +38,7 @@ barber-booking/
 │   ├── pagamenti/         # PaymentProvider (classe astratta) e FakeProvider
 │   ├── rotte/             # Blueprint: pubblico, auth, cliente, dipendente, proprietario
 │   ├── templates/         # pagine Jinja, una cartella per Blueprint
-│   ├── static/            # CSS, JavaScript e foto ridotte (img/)
+│   ├── static/            # CSS, JavaScript, foto ridotte (img/) e video della home (video/)
 │   ├── accessi.py         # controllo comune dei Blueprint riservati
 │   ├── comandi.py         # flask crea-proprietario
 │   ├── eccezioni.py       # BarberBookingError e sottoclassi
@@ -127,7 +127,7 @@ Le motivazioni complete e le alternative scartate sono in `DEVLOG.md` e `docs/PR
 
 ## Crediti
 
-Foto da Unsplash, ridotte per il web:
+Foto da Unsplash e video da Pexels, ridotti per il web:
 
 | File | Autore |
 |---|---|
@@ -140,5 +140,8 @@ Foto da Unsplash, ridotte per il web:
 | `img/registrati.jpg` | [T (@tanyabarrow)](https://unsplash.com/photos/fa0DqQ91dWU) |
 | `img/agenda.jpg` | [Ta Focando](https://unsplash.com/photos/1VTQaaI0HP8) |
 | `img/gestione.jpg` | [Haberdoedas](https://unsplash.com/photos/zj2CkHpoDPQ) |
+| `img/salone.jpg` | [T (@tanyabarrow)](https://unsplash.com/photos/fa0DqQ91dWU) |
+| `img/barba.jpg` | [Reza Ghaemi](https://unsplash.com/photos/5P-eClxMg1s) |
+| `video/copertina.mp4` | Pexels, video 4177956 |
 
 Carattere dei titoli: [Playfair Display](https://fonts.google.com/specimen/Playfair+Display) da Google Fonts (senza connessione il browser usa Georgia).

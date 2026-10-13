@@ -567,7 +567,7 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 - Agenda del professionista con lo storico (svolte e annullate); annullamento con rimborso da parte del salone: il proprietario per tutti, il dipendente per la propria agenda.
 - Pagina Dipendenti del proprietario con recapiti, lavoro nel periodo, agenda di ciascuno e totale del salone.
 - Orari delle singole date (chiusure, orari ridotti, aperture) decisi dal proprietario; festività e vigilie italiane segnate "da definire" e prenotabili con un avviso finché non decide.
-- Home con stato di apertura, orari e contatti; `seed.py` con dati di prova e uno storico di 4 mesi.
+- Home con carosello (video e foto), stato di apertura, orari e contatti; `seed.py` con dati di prova e uno storico di 4 mesi.
 - Statistiche (fase 8, in parte): per il proprietario prenotazioni per professionista, andamento, fasce di punta, incasso netto e valore medio; per il professionista l'andamento dei propri appuntamenti. Periodo di 7, 30 o 365 giorni; grafici matplotlib generati in memoria e serviti da rotte protette con `Cache-Control: no-store`.
 
 ### Rimandato agli sviluppi futuri

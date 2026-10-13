@@ -39,21 +39,66 @@ class PrenotazioneRepository:
             )
         return prenotazione_id
 
-    def leggi_per_id(self, prenotazione_id: int) -> Prenotazione | None:
+    def leggi_per_id(self, prenotazione_id: int, cliente_id: int | None = None,
+                     per_aggiornamento: bool = False) -> Prenotazione | None:
         """
         Legge una prenotazione con i suoi servizi (nome letto da servizi, durata e prezzo dalla copia).
-        Returns: la Prenotazione, oppure None se non esiste.
+        Args: cliente_id, se indicato la prenotazione deve essere sua (controllo dentro la query);
+            per_aggiornamento, True per bloccare la riga (FOR UPDATE) fino alla fine della transazione.
+        Returns: la Prenotazione, oppure None se non esiste o è di un altro cliente.
+        """
+        sql = _SELECT + "WHERE id = %s"
+        parametri = [prenotazione_id]
+        if cliente_id is not None:
+            sql += " AND cliente_id = %s"
+            parametri.append(cliente_id)
+        if per_aggiornamento:
+            sql += " FOR UPDATE"
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(sql, parametri)
+            riga = cur.fetchone()
+        return self._con_servizi(riga) if riga else None
+
+    def elenca_per_cliente(self, cliente_id: int) -> list[Prenotazione]:
+        """
+        Storico delle prenotazioni di un cliente, dalla più recente: quelle in attesa di pagamento
+        e quelle con un pagamento online riuscito (non quelle abbandonate durante il pagamento).
+        Returns: la lista delle Prenotazioni con i loro servizi.
         """
         with self._conn.cursor(dictionary=True) as cur:
-            cur.execute(_SELECT + "WHERE id = %s", (prenotazione_id,))
-            riga = cur.fetchone()
-            if riga is None:
-                return None
+            cur.execute(
+                _SELECT + "WHERE cliente_id = %s AND (stato = 'in_attesa_pagamento' OR EXISTS ("
+                "SELECT 1 FROM pagamenti WHERE pagamenti.prenotazione_id = prenotazioni.id "
+                "AND tipo = 'online' AND stato = 'completato')) ORDER BY inizio DESC",
+                (cliente_id,),
+            )
+            righe = cur.fetchall()
+        return [self._con_servizi(riga) for riga in righe]
+
+    def elenca_per_dipendente(self, dipendente_id: int, da: datetime) -> list[Prenotazione]:
+        """
+        Agenda di un professionista: prenotazioni confermate che finiscono dopo il momento indicato.
+        Args: da, in UTC.
+        Returns: la lista delle Prenotazioni in ordine di inizio.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                _SELECT + "WHERE dipendente_id = %s AND stato = 'confermata' AND fine > %s ORDER BY inizio",
+                (dipendente_id, da),
+            )
+            righe = cur.fetchall()
+        return [self._con_servizi(riga) for riga in righe]
+
+    def _con_servizi(self, riga: dict) -> Prenotazione:
+        """
+        Trasforma una riga di prenotazioni in Prenotazione, leggendo anche i suoi servizi.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
             cur.execute(
                 "SELECT ps.prenotazione_id, ps.servizio_id, s.nome, ps.durata_minuti, ps.prezzo_centesimi "
                 "FROM prenotazioni_servizi ps JOIN servizi s ON s.id = ps.servizio_id "
                 "WHERE ps.prenotazione_id = %s ORDER BY s.nome",
-                (prenotazione_id,),
+                (riga["id"],),
             )
             servizi = [ServizioPrenotato(**r) for r in cur.fetchall()]
         return Prenotazione(**riga, servizi=servizi)

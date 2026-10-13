@@ -2,7 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.eccezioni import DatiNonValidiError, RisorsaNonTrovataError, SlotNonDisponibileError
+from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, RisorsaNonTrovataError,
+                           SlotNonDisponibileError)
 from app.pagamenti.finto import FakeProvider
 from app.repository.prenotazione import PrenotazioneRepository
 from app.repository.servizio import ServizioRepository
@@ -162,3 +163,78 @@ def test_pagamento_di_un_altro_cliente_non_trovato(conn, salone, provider):
     _, url = _crea(conn, salone, provider)
     with pytest.raises(RisorsaNonTrovataError):
         PrenotazioneService(conn, provider).pagamento_del_cliente(_riferimento(url), salone["dipendente_id"])
+
+
+# --- Area cliente: storico e annullamento ---
+
+def _confermata(conn, salone, provider, ora="10:00", modalita="acconto"):
+    """
+    Crea e paga una prenotazione di mercoledì (inizio alle 10:00 italiane = 08:00 UTC).
+    """
+    prenotazione_id, url = _crea(conn, salone, provider, ora=ora, modalita=modalita)
+    PrenotazioneService(conn, provider).conferma_pagamento(_riferimento(url), ADESSO)
+    return prenotazione_id, _riferimento(url)
+
+
+def test_annullamento_rimborsa_quanto_pagato(conn, salone, provider):
+    prenotazione_id, riferimento = _confermata(conn, salone, provider)
+    rimborsato = PrenotazioneService(conn, provider).annulla_dal_cliente(
+        prenotazione_id, salone["cliente"].id, ADESSO
+    )
+    prenotazione = PrenotazioneRepository(conn).leggi_per_id(prenotazione_id)
+    assert rimborsato == 1065
+    assert (prenotazione.stato, prenotazione.annullata_da) == ("annullata", "cliente")
+    assert provider.rimborsi == [(riferimento, 1065)]
+    assert _pagamenti(conn, prenotazione_id)[-1] == ("rimborso", 1065, "completato")
+
+
+@pytest.mark.parametrize("minuti_prima, permesso", [(121, True), (120, True), (119, False)])
+def test_regola_delle_due_ore(conn, salone, provider, minuti_prima, permesso):
+    prenotazione_id, _ = _confermata(conn, salone, provider)
+    adesso = datetime(2026, 10, 14, 8, 0, tzinfo=UTC) - timedelta(minutes=minuti_prima)
+    servizio = PrenotazioneService(conn, provider)
+    if permesso:
+        servizio.annulla_dal_cliente(prenotazione_id, salone["cliente"].id, adesso)
+    else:
+        with pytest.raises(AnnullamentoNonConsentitoError):
+            servizio.annulla_dal_cliente(prenotazione_id, salone["cliente"].id, adesso)
+
+
+def test_non_si_annulla_due_volte(conn, salone, provider):
+    prenotazione_id, _ = _confermata(conn, salone, provider)
+    servizio = PrenotazioneService(conn, provider)
+    servizio.annulla_dal_cliente(prenotazione_id, salone["cliente"].id, ADESSO)
+    with pytest.raises(AnnullamentoNonConsentitoError):
+        servizio.annulla_dal_cliente(prenotazione_id, salone["cliente"].id, ADESSO)
+    assert len(provider.rimborsi) == 1
+
+
+def test_prenotazione_di_un_altro_cliente_non_trovata(conn, salone, provider):
+    prenotazione_id, _ = _confermata(conn, salone, provider)
+    servizio = PrenotazioneService(conn, provider)
+    with pytest.raises(RisorsaNonTrovataError):
+        servizio.prenotazione_del_cliente(prenotazione_id, salone["dipendente_id"])
+    with pytest.raises(RisorsaNonTrovataError):
+        servizio.annulla_dal_cliente(prenotazione_id, salone["dipendente_id"], ADESSO)
+    assert PrenotazioneRepository(conn).leggi_per_id(prenotazione_id).stato == "confermata"
+
+
+def test_storico_con_pagato_e_senza_pagamenti_abbandonati(conn, salone, provider):
+    confermata_id, _ = _confermata(conn, salone, provider, ora="10:00", modalita="completo")
+    _, url = _crea(conn, salone, provider, ora="15:00")
+    PrenotazioneService(conn, provider).annulla_pagamento(_riferimento(url), ADESSO)
+    storico = PrenotazioneService(conn, provider).storico_cliente(salone["cliente"].id, ADESSO)
+    assert [r.prenotazione.id for r in storico] == [confermata_id]
+    assert storico[0].pagato_centesimi == 3550
+    assert storico[0].professionista == "Dario Dipendente"
+    assert storico[0].annullabile is True
+
+
+def test_agenda_solo_del_professionista_e_confermate(conn, salone, provider):
+    confermata_id, _ = _confermata(conn, salone, provider, ora="10:00")
+    _crea(conn, salone, provider, ora="15:00")  # in attesa di pagamento: non in agenda
+    servizio = PrenotazioneService(conn, provider)
+    agenda = servizio.agenda(salone["dipendente_id"], ADESSO)
+    assert [a.prenotazione.id for a in agenda] == [confermata_id]
+    assert agenda[0].cliente.nome == "Carla"
+    assert servizio.agenda(salone["altro_dipendente_id"], ADESSO) == []

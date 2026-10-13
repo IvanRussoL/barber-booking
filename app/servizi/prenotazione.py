@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 
-from app.eccezioni import DatiNonValidiError, RisorsaNonTrovataError, SlotNonDisponibileError
+from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, RisorsaNonTrovataError,
+                           SlotNonDisponibileError)
 from app.modelli.pagamento import Pagamento
 from app.modelli.prenotazione import Prenotazione, ServizioPrenotato
 from app.modelli.servizio import Servizio
@@ -14,7 +16,28 @@ from app.repository.utente import UtenteRepository
 from app.servizi.disponibilita import DisponibilitaService, in_utc
 
 MINUTI_PER_PAGARE = 30
+ORE_MINIME_PER_ANNULLARE = 2
 MODALITA_PAGAMENTO = ("acconto", "completo")
+
+
+@dataclass
+class RigaStorico:
+    """
+    Una prenotazione come la vede il cliente nella sua area: con professionista, pagato e annullabilità.
+    """
+    prenotazione: Prenotazione
+    professionista: str
+    pagato_centesimi: int
+    annullabile: bool
+
+
+@dataclass
+class Appuntamento:
+    """
+    Una prenotazione nell'agenda del professionista, con i recapiti del cliente.
+    """
+    prenotazione: Prenotazione
+    cliente: Utente
 
 
 def calcola_acconto(totale_centesimi: int, percentuale: int) -> int:
@@ -207,6 +230,86 @@ class PrenotazioneService:
         if prenotazione.stato == "in_attesa_pagamento":
             self._prenotazioni.aggiorna_stato(prenotazione.id, "annullata", in_utc(adesso), "cliente")
         self._conn.commit()
+
+    # --- Area cliente e agenda ---
+
+    def puo_annullare(self, prenotazione: Prenotazione, adesso: datetime) -> bool:
+        """
+        Il cliente annulla solo prenotazioni confermate, fino a 2 ore prima dell'inizio.
+        """
+        mancano = prenotazione.inizio - in_utc(adesso)
+        return prenotazione.stato == "confermata" and mancano >= timedelta(hours=ORE_MINIME_PER_ANNULLARE)
+
+    def storico_cliente(self, cliente_id: int, adesso: datetime | None = None) -> list[RigaStorico]:
+        """
+        Prenotazioni del cliente con professionista, importo pagato e possibilità di annullare.
+        Returns: la lista delle RigaStorico, dalla più recente.
+        """
+        adesso = adesso or datetime.now(UTC)
+        righe = []
+        for prenotazione in self._prenotazioni.elenca_per_cliente(cliente_id):
+            dipendente = self._utenti.leggi_per_id(prenotazione.dipendente_id)
+            righe.append(RigaStorico(
+                prenotazione=prenotazione,
+                professionista=f"{dipendente.nome} {dipendente.cognome}",
+                pagato_centesimi=self._pagamenti.totale_pagato(prenotazione.id),
+                annullabile=self.puo_annullare(prenotazione, adesso),
+            ))
+        return righe
+
+    def prenotazione_del_cliente(self, prenotazione_id: int, cliente_id: int) -> Prenotazione:
+        """
+        Legge una prenotazione solo se appartiene al cliente (controllo dentro la query).
+        Returns: la Prenotazione.
+        Raises: RisorsaNonTrovataError se non esiste o è di un altro cliente (stessa risposta: 404).
+        """
+        prenotazione = self._prenotazioni.leggi_per_id(prenotazione_id, cliente_id=cliente_id)
+        if prenotazione is None:
+            raise RisorsaNonTrovataError("Prenotazione non trovata.")
+        return prenotazione
+
+    def annulla_dal_cliente(self, prenotazione_id: int, cliente_id: int, adesso: datetime | None = None) -> int:
+        """
+        Annulla una prenotazione del cliente e rimborsa esattamente quanto pagato online.
+        La riga è letta con FOR UPDATE: due clic ravvicinati non producono due rimborsi.
+        Returns: l'importo rimborsato in centesimi.
+        Raises: RisorsaNonTrovataError se non è sua; AnnullamentoNonConsentitoError se non è annullabile.
+        """
+        adesso = adesso or datetime.now(UTC)
+        prenotazione = self._prenotazioni.leggi_per_id(prenotazione_id, cliente_id=cliente_id, per_aggiornamento=True)
+        if prenotazione is None:
+            raise RisorsaNonTrovataError("Prenotazione non trovata.")
+        if not self.puo_annullare(prenotazione, adesso):
+            raise AnnullamentoNonConsentitoError(
+                f"Si possono annullare solo le prenotazioni confermate, fino a "
+                f"{ORE_MINIME_PER_ANNULLARE} ore prima dell'appuntamento."
+            )
+        rimborsato = 0
+        for pagamento in self._pagamenti.online_completati(prenotazione.id):
+            riferimento_rimborso = self._provider.rimborsa(pagamento.riferimento_provider, pagamento.importo_centesimi)
+            self._pagamenti.inserisci(Pagamento(
+                tipo="rimborso", importo_centesimi=pagamento.importo_centesimi,
+                prenotazione_id=prenotazione.id, stato="completato",
+                riferimento_provider=riferimento_rimborso,
+            ))
+            rimborsato += pagamento.importo_centesimi
+        self._prenotazioni.aggiorna_stato(prenotazione.id, "annullata", in_utc(adesso), "cliente")
+        self._conn.commit()
+        return rimborsato
+
+    def agenda(self, dipendente_id: int, adesso: datetime | None = None) -> list[Appuntamento]:
+        """
+        Prossimi appuntamenti confermati di un professionista, dall'inizio di oggi (ora locale).
+        Returns: la lista degli Appuntamenti in ordine di inizio.
+        """
+        adesso = adesso or datetime.now(UTC)
+        inizio_oggi = datetime.combine(
+            adesso.astimezone(self._disponibilita.fuso_orario).date(), time(0), self._disponibilita.fuso_orario
+        )
+        return [
+            Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id))
+            for prenotazione in self._prenotazioni.elenca_per_dipendente(dipendente_id, in_utc(inizio_oggi))
+        ]
 
 
 def _data(valore: str) -> date:

@@ -49,3 +49,30 @@ class PagamentoRepository:
         """
         with self._conn.cursor() as cur:
             cur.execute("UPDATE pagamenti SET stato = %s WHERE id = %s", (stato, pagamento_id))
+
+    def online_completati(self, prenotazione_id: int) -> list[Pagamento]:
+        """
+        Pagamenti online riusciti di una prenotazione, da rimborsare in caso di annullamento.
+        Returns: la lista dei Pagamenti.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                _SELECT + "WHERE prenotazione_id = %s AND tipo = 'online' AND stato = 'completato'",
+                (prenotazione_id,),
+            )
+            return [Pagamento(**riga) for riga in cur.fetchall()]
+
+    def totale_pagato(self, prenotazione_id: int) -> int:
+        """
+        Quanto ha pagato il cliente per una prenotazione: movimenti completati, rimborsi sottratti.
+        Returns: l'importo netto in centesimi (0 se non ci sono movimenti).
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "SELECT COALESCE(SUM(CASE WHEN tipo = 'rimborso' THEN -importo_centesimi "
+                "ELSE importo_centesimi END), 0) FROM pagamenti "
+                "WHERE prenotazione_id = %s AND stato = 'completato'",
+                (prenotazione_id,),
+            )
+            return int(cur.fetchone()[0])
+

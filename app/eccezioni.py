@@ -38,3 +38,9 @@ class SlotNonDisponibileError(BarberBookingError):
     """
     Orario scelto non prenotabile: fuori dai turni, già occupato o nel frattempo preso da un altro cliente.
     """
+
+
+class AnnullamentoNonConsentitoError(BarberBookingError):
+    """
+    Annullamento non permesso: prenotazione non confermata o a meno di 2 ore dall'inizio.
+    """

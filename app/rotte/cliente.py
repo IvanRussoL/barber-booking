@@ -120,6 +120,7 @@ def slot():
             request.args.get("dipendente_id", ""),
             request.args.getlist("servizi"),
             request.args.get("data", ""),
+            cliente_id=g.utente.id,
         )
     except DatiNonValidiError as errore:
         return jsonify(errore=str(errore)), 400

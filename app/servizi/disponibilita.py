@@ -67,11 +67,12 @@ class DisponibilitaService:
         return self._orari.turni_settimanali(giorno.isoweekday())
 
     def slot_liberi(self, dipendente_id: int, giorno: date, durata_minuti: int,
-                    adesso: datetime) -> list[datetime]:
+                    adesso: datetime, cliente_id: int | None = None) -> list[datetime]:
         """
         Orari di inizio in cui un appuntamento della durata indicata sta per intero in un turno,
         non è già passato e non si sovrappone a prenotazioni, assenze o chiusure.
-        Args: giorno nella data locale; adesso con fuso orario.
+        Args: giorno nella data locale; adesso con fuso orario; cliente_id, se indicato,
+            esclude anche gli orari in cui il cliente ha già un appuntamento con altri.
         Returns: gli orari di inizio con il fuso orario del salone, in ordine.
         Raises: DatiNonValidiError se il giorno è fuori dalla finestra di prenotazione.
         """
@@ -90,6 +91,10 @@ class DisponibilitaService:
         occupati = self._prenotazioni.intervalli_occupati(
             dipendente_id, in_utc(apertura), in_utc(chiusura), in_utc(adesso)
         ) + self._indisponibilita.periodi_sovrapposti(dipendente_id, in_utc(apertura), in_utc(chiusura))
+        if cliente_id is not None:
+            occupati += self._prenotazioni.intervalli_occupati_cliente(
+                cliente_id, in_utc(apertura), in_utc(chiusura), in_utc(adesso)
+            )
 
         liberi = []
         for turno in turni:

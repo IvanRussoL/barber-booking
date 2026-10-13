@@ -104,9 +104,10 @@ class PrenotazioneService:
         return dipendente
 
     def slot_per_scelta(self, dipendente_id: str, servizi_ids: list[str], giorno: str,
-                        adesso: datetime | None = None) -> list[datetime]:
+                        adesso: datetime | None = None, cliente_id: int | None = None) -> list[datetime]:
         """
-        Orari liberi per la scelta del modulo (usato dalla richiesta fetch della pagina di prenotazione).
+        Orari liberi per la scelta del modulo (usato dalla richiesta fetch della pagina di prenotazione),
+        senza quelli in cui il cliente ha già un altro appuntamento.
         Returns: gli orari di inizio con il fuso orario del salone.
         Raises: DatiNonValidiError se servizi, professionista o data non sono validi.
         """
@@ -114,15 +115,16 @@ class PrenotazioneService:
         servizi = self.servizi_scelti(servizi_ids)
         dipendente = self.professionista(dipendente_id)
         return self._disponibilita.slot_liberi(
-            dipendente.id, _data(giorno), sum(s.durata_minuti for s in servizi), adesso
+            dipendente.id, _data(giorno), sum(s.durata_minuti for s in servizi), adesso, cliente_id
         )
 
     def crea(self, cliente: Utente, dipendente_id: str, servizi_ids: list[str], giorno: str,
              ora: str, modalita: str, adesso: datetime | None = None) -> tuple[int, str]:
         """
         Crea una prenotazione in attesa di pagamento e apre il pagamento, in un'unica transazione.
-        Il SELECT ... FOR UPDATE sul dipendente mette in fila le richieste per lo stesso professionista:
-        lo slot si ricontrolla solo dopo aver ottenuto il blocco, quindi due clienti non possono prenderlo insieme.
+        Il SELECT ... FOR UPDATE sul cliente e poi sul dipendente mette in fila le richieste dello stesso
+        cliente e quelle per lo stesso professionista: lo slot si ricontrolla solo dopo aver ottenuto i blocchi,
+        quindi due richieste non possono prenderlo insieme. L'ordine fisso (prima il cliente) evita stalli.
         Returns: (id della prenotazione, pagina di pagamento).
         Raises: DatiNonValidiError se un dato non è valido; SlotNonDisponibileError se l'orario non è libero.
         """
@@ -137,9 +139,12 @@ class PrenotazioneService:
         inizio = datetime.combine(_data(giorno), _ora(ora), self._disponibilita.fuso_orario)
 
         self._prenotazioni.segna_scadute(in_utc(adesso))
+        self._utenti.blocca(cliente.id)
         self._utenti.blocca(dipendente.id)
-        if inizio not in self._disponibilita.slot_liberi(dipendente.id, inizio.date(), durata, adesso):
-            raise SlotNonDisponibileError("L'orario scelto non è più disponibile: scegline un altro.")
+        if inizio not in self._disponibilita.slot_liberi(dipendente.id, inizio.date(), durata, adesso, cliente.id):
+            raise SlotNonDisponibileError(
+                "L'orario scelto non è più disponibile, oppure hai già un appuntamento a quell'ora: scegline un altro."
+            )
 
         prenotazione = Prenotazione(
             cliente_id=cliente.id,

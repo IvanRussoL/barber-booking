@@ -120,6 +120,23 @@ class PrenotazioneRepository:
             )
             return cur.fetchall()
 
+    def intervalli_occupati_cliente(self, cliente_id: int, da: datetime, a: datetime,
+                                    adesso: datetime) -> list[tuple[datetime, datetime]]:
+        """
+        Come intervalli_occupati, ma per gli appuntamenti del cliente con qualsiasi professionista:
+        un cliente non può essere in due posti nello stesso momento.
+        Args: date e ore in UTC.
+        Returns: lista di coppie (inizio, fine) in UTC.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "SELECT inizio, fine FROM prenotazioni WHERE cliente_id = %s "
+                "AND inizio < %s AND fine > %s "
+                "AND (stato = 'confermata' OR (stato = 'in_attesa_pagamento' AND scade_il > %s))",
+                (cliente_id, a, da, adesso),
+            )
+            return cur.fetchall()
+
     def segna_scadute(self, adesso: datetime) -> None:
         """
         Porta a 'scaduta' le prenotazioni in attesa di pagamento oltre la scadenza, senza fare commit.

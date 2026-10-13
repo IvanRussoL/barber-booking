@@ -238,3 +238,24 @@ def test_agenda_solo_del_professionista_e_confermate(conn, salone, provider):
     assert [a.prenotazione.id for a in agenda] == [confermata_id]
     assert agenda[0].cliente.nome == "Carla"
     assert servizio.agenda(salone["altro_dipendente_id"], ADESSO) == []
+
+
+# --- Un cliente non può avere due appuntamenti sovrapposti ---
+
+def test_cliente_non_prenota_due_appuntamenti_sovrapposti(conn, salone, provider):
+    _confermata(conn, salone, provider, ora="10:00")  # 10:00-11:00 con Dario
+    with pytest.raises(SlotNonDisponibileError):
+        _crea(conn, salone, provider, ora="10:30", dipendente_id=str(salone["altro_dipendente_id"]))
+    _crea(conn, salone, provider, ora="11:00", dipendente_id=str(salone["altro_dipendente_id"]))
+
+
+def test_orari_del_cliente_occupati_non_proposti(conn, salone, provider):
+    _confermata(conn, salone, provider, ora="10:00")
+    servizio = PrenotazioneService(conn, provider)
+    altro = str(salone["altro_dipendente_id"])
+    taglio = [str(salone["taglio_id"])]
+    per_il_cliente = [s.strftime("%H:%M") for s in servizio.slot_per_scelta(
+        altro, taglio, MERCOLEDI, ADESSO, salone["cliente"].id)]
+    per_tutti = [s.strftime("%H:%M") for s in servizio.slot_per_scelta(altro, taglio, MERCOLEDI, ADESSO)]
+    assert "10:00" not in per_il_cliente and "10:30" not in per_il_cliente and "11:00" in per_il_cliente
+    assert "10:00" in per_tutti

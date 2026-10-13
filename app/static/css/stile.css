@@ -67,6 +67,9 @@ header {
 }
 
 .marchio {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
     color: var(--testo);
     font-family: var(--serif);
     font-size: 1.4rem;
@@ -74,7 +77,7 @@ header {
     text-decoration: none;
 }
 
-.marchio span {
+.marchio-testo span {
     color: var(--corallo);
     font-style: italic;
 }
@@ -458,25 +461,147 @@ main.larga {
     object-fit: cover;
 }
 
-/* --- Home: sezione in alto con l'insegna --- */
+/* --- Home: carosello a tutta larghezza con video e foto --- */
 
-.copertina {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 48px;
-    padding: 16px 0 56px;
+.carosello {
+    position: relative;
+    overflow: hidden;
+    height: min(78vh, 720px);
+    min-height: 480px;
+    background: var(--testo);
+    color: #fff;
 }
 
-.copertina h1 {
+/* Le slide stanno in fila: il JavaScript sposta il binario di una larghezza alla volta. */
+.carosello-binario {
+    display: flex;
+    height: 100%;
+    transition: transform 0.8s ease;
+}
+
+.slide {
+    position: relative;
+    flex: 0 0 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.slide-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Su schermi stretti si vede solo una parte della foto: questa la tiene spostata verso il soggetto. */
+.media-destra {
+    object-position: 75% center;
+}
+
+/* Sfumatura scura solo a sinistra e in basso, dove sta il testo: il resto dell'immagine resta luminoso. */
+.slide::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to right, rgba(30, 20, 15, 0.72), rgba(30, 20, 15, 0) 65%),
+        linear-gradient(to top, rgba(30, 20, 15, 0.6), rgba(30, 20, 15, 0) 50%);
+}
+
+/* Il testo è allineato al contenuto della pagina (1280px), non al bordo dello schermo. */
+.slide-testo {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px 84px;
+}
+
+.slide h1,
+.slide h2 {
+    max-width: 680px;
     margin: 14px 0;
+    color: #fff;
     font-size: clamp(2.6rem, 6.5vw, 4.8rem);
     line-height: 1.02;
     letter-spacing: -0.01em;
 }
 
-.copertina h1 em {
-    color: var(--corallo);
+.slide h2 {
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+}
+
+/* Su fondo scuro il corallo chiaro ha contrasto sufficiente per i titoli grandi. */
+.slide h1 em,
+.slide h2 em {
+    color: var(--corallo-chiaro);
+}
+
+.slide .sottotitolo {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.slide .pulsante-contorno {
+    color: #fff;
+    border-color: #fff;
+}
+
+.slide .pulsante-contorno:hover {
+    background: #fff;
+    color: var(--testo);
+}
+
+/* Trattini per scegliere la slide: compaiono solo con JavaScript attivo, che li fa funzionare. */
+.carosello-punti {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    right: 0;
+    bottom: 28px;
+    display: none;
+    justify-content: center;
+    gap: 8px;
+}
+
+.js .carosello-punti {
+    display: flex;
+}
+
+/* Il pulsante è alto 24px per essere facile da toccare; il trattino visibile è il ::before. */
+.carosello-punti button,
+.carosello-punti button:hover {
+    width: 40px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+.carosello-punti button::before {
+    content: "";
+    display: block;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.5);
+    transition: background 0.2s;
+}
+
+.carosello-punti button[aria-current="true"]::before,
+.carosello-punti button:hover::before {
+    background: #fff;
+}
+
+.carosello-punti button:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .carosello-binario {
+        transition: none;
+    }
 }
 
 .sottotitolo {
@@ -518,41 +643,39 @@ main.larga {
     box-shadow: 0 0 0 4px rgba(63, 143, 90, 0.18);
 }
 
-/* L'insegna del barbiere: un cilindro di vetro con strisce diagonali che scorrono verso l'alto. */
+/* L'insegna del barbiere accanto al nome: un cilindro di vetro con strisce diagonali che scorrono. */
 .insegna {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-right: 40px;
-    filter: drop-shadow(0 16px 24px rgba(42, 33, 28, 0.18));
+    filter: drop-shadow(0 2px 3px rgba(42, 33, 28, 0.25));
 }
 
 .insegna-cappello {
-    width: 92px;
-    height: 26px;
-    border-radius: 13px;
+    width: 20px;
+    height: 6px;
+    border-radius: 3px;
     background: linear-gradient(90deg, #8a6a3b, #f1dfb8 45%, #a8854d);
 }
 
 .insegna-vetro {
     position: relative;
-    width: 70px;
-    height: 300px;
+    width: 14px;
+    height: 30px;
     overflow: hidden;
-    border-radius: 6px;
     background: #fff;
 }
 
 .insegna-strisce {
     position: absolute;
-    top: -114px;
+    top: -23px;
     left: 0;
     right: 0;
-    height: calc(100% + 114px);
-    /* 4 strisce da 20px misurate in diagonale: lo schema si ripete ogni 80px, cioè ogni 113,14px in verticale. */
+    height: calc(100% + 23px);
+    /* 4 strisce da 4px misurate in diagonale: lo schema si ripete ogni 16px, cioè ogni 22,63px in verticale. */
     background: repeating-linear-gradient(45deg,
-        var(--corallo-chiaro) 0 20px, #ffffff 20px 40px, var(--notte) 40px 60px, #ffffff 60px 80px);
-    animation: scorri 2.4s linear infinite;
+        var(--corallo-chiaro) 0 4px, #ffffff 4px 8px, var(--notte) 8px 12px, #ffffff 12px 16px);
+    animation: scorri 1.4s linear infinite;
 }
 
 /* Riflesso del vetro: chiaro al centro, scuro ai bordi, dà l'effetto del cilindro. */
@@ -566,7 +689,7 @@ main.larga {
 
 @keyframes scorri {
     to {
-        transform: translateY(113.14px);
+        transform: translateY(22.63px);
     }
 }
 
@@ -1113,25 +1236,23 @@ footer a:hover {
         display: flex;
     }
 
-    .copertina {
-        position: relative;
-        grid-template-columns: 1fr;
-        gap: 24px;
-        padding-bottom: 32px;
+    .carosello {
+        height: 82vh;
+        min-height: 520px;
     }
 
-    /* Su telefono l'insegna diventa piccola e sta in alto a destra del titolo. */
-    .insegna {
-        position: absolute;
-        top: 24px;
-        right: 0;
-        margin: 0;
-        transform: scale(0.45);
-        transform-origin: top right;
+    /* Su telefono il testo occupa tutta la larghezza: la sfumatura scura sale dal basso. */
+    .slide::after {
+        background: linear-gradient(to top, rgba(30, 20, 15, 0.88), rgba(30, 20, 15, 0.62) 55%,
+            rgba(30, 20, 15, 0) 85%);
     }
 
-    .copertina-testo {
-        padding-right: 56px;
+    .slide-testo {
+        padding: 0 16px 64px;
+    }
+
+    .carosello-punti {
+        bottom: 18px;
     }
 
     .card-grandi,

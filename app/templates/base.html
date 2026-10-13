@@ -12,7 +12,14 @@
 </head>
 <body>
     <header>
-        <a class="marchio" href="{{ url_for('pubblico.home') }}">Barber <span>Booking</span></a>
+        <a class="marchio" href="{{ url_for('pubblico.home') }}">
+            <span class="insegna" aria-hidden="true">
+                <span class="insegna-cappello"></span>
+                <span class="insegna-vetro"><span class="insegna-strisce"></span></span>
+                <span class="insegna-cappello"></span>
+            </span>
+            <span class="marchio-testo">Barber <span>Booking</span></span>
+        </a>
         <button type="button" id="apri-menu" class="apri-menu" aria-expanded="false" aria-controls="menu">Menu</button>
         <nav id="menu">
             <a href="{{ url_for('pubblico.servizi') }}">Servizi</a>
@@ -38,6 +45,7 @@
             {% endif %}
         </nav>
     </header>
+    {% block copertina %}{% endblock %}
     <main class="{% block classe_main %}{% endblock %}">
         {% for messaggio in get_flashed_messages() %}
             <p class="messaggio">{{ messaggio }}</p>
@@ -65,5 +73,6 @@
         <p class="piede-copyright">© {{ anno }} {{ salone.nome_salone }}</p>
     </footer>
     <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
+    {% block script %}{% endblock %}
 </body>
 </html>

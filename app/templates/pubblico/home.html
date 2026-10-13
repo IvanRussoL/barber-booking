@@ -5,26 +5,61 @@
 {% block titolo %}{{ impostazioni.nome_salone }} – Prenota online{% endblock %}
 {% block classe_main %}larga{% endblock %}
 
-{% block contenuto %}
-    <section class="copertina">
-        <div class="copertina-testo">
-            <p class="stato-apertura {{ 'aperto' if aperto else 'chiuso' }}">{{ stato_apertura }}</p>
-            <h1>Il tuo taglio,<br><em>quando vuoi tu.</em></h1>
-            <p class="sottotitolo">Scegli i servizi, il professionista e l'orario: prenoti in un minuto
-                e paghi online l'acconto o l'intero importo.</p>
-            <div class="azioni">
-                {% if puo_prenotare %}
-                    <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
-                {% endif %}
-                <a class="pulsante pulsante-contorno" href="{{ url_for('pubblico.servizi') }}">Servizi e prezzi</a>
+{% block copertina %}
+    <section class="carosello" aria-label="In evidenza">
+        <div class="carosello-binario">
+            <div class="slide" role="group" aria-roledescription="slide" aria-label="1 di 3">
+                <video class="slide-media" autoplay muted loop playsinline aria-hidden="true"
+                       poster="{{ url_for('static', filename='img/copertina-poster.jpg') }}">
+                    <source src="{{ url_for('static', filename='video/copertina.mp4') }}" type="video/mp4">
+                </video>
+                <div class="slide-testo">
+                    <p class="stato-apertura {{ 'aperto' if aperto else 'chiuso' }}">{{ stato_apertura }}</p>
+                    <h1>Il tuo taglio,<br><em>quando vuoi tu.</em></h1>
+                    <p class="sottotitolo">Scegli i servizi, il professionista e l'orario: prenoti in un minuto
+                        e paghi online l'acconto o l'intero importo.</p>
+                    <div class="azioni">
+                        {% if puo_prenotare %}
+                            <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
+                        {% endif %}
+                        <a class="pulsante pulsante-contorno" href="{{ url_for('pubblico.servizi') }}">Servizi e prezzi</a>
+                    </div>
+                </div>
+            </div>
+            <div class="slide" role="group" aria-roledescription="slide" aria-label="2 di 3" inert>
+                <img class="slide-media" src="{{ url_for('static', filename='img/salone.jpg') }}"
+                     alt="" width="1920" height="1079">
+                <div class="slide-testo">
+                    <p class="card-etichetta">Il salone</p>
+                    <h2>Poltrone d'epoca,<br><em>mani esperte.</em></h2>
+                    <p class="sottotitolo">Un ambiente caldo e curato, dove prenderti il tuo tempo.</p>
+                    <div class="azioni">
+                        <a class="pulsante" href="#orari">Orari e contatti</a>
+                    </div>
+                </div>
+            </div>
+            <div class="slide" role="group" aria-roledescription="slide" aria-label="3 di 3" inert>
+                <img class="slide-media media-destra" src="{{ url_for('static', filename='img/barba.jpg') }}"
+                     alt="" width="1920" height="1080">
+                <div class="slide-testo">
+                    <p class="card-etichetta">Barba e rasatura</p>
+                    <h2>La barba,<br><em>fatta come si deve.</em></h2>
+                    <p class="sottotitolo">Rifinitura, rasatura e cura: trovi tutti i trattamenti e i prezzi nel listino.</p>
+                    <div class="azioni">
+                        <a class="pulsante" href="{{ url_for('pubblico.servizi') }}">Scopri i servizi</a>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="insegna" aria-hidden="true">
-            <div class="insegna-cappello"></div>
-            <div class="insegna-vetro"><div class="insegna-strisce"></div></div>
-            <div class="insegna-cappello"></div>
+        <div class="carosello-punti">
+            <button type="button" aria-label="Mostra la slide 1" aria-current="true"></button>
+            <button type="button" aria-label="Mostra la slide 2"></button>
+            <button type="button" aria-label="Mostra la slide 3"></button>
         </div>
     </section>
+{% endblock %}
+
+{% block contenuto %}
 
     <section class="card-grandi">
         {% if puo_prenotare %}
@@ -99,4 +134,8 @@
             <p><a href="tel:{{ impostazioni.telefono }}">{{ impostazioni.telefono }}</a></p>
         </div>
     </section>
+{% endblock %}
+
+{% block script %}
+    <script src="{{ url_for('static', filename='js/carosello.js') }}"></script>
 {% endblock %}

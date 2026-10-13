@@ -1,3 +1,9 @@
+from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
+
+GIORNI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"]
+
+
 def formatta_euro(centesimi: int) -> str:
     """
     Filtro Jinja "euro": trasforma i centesimi in un importo all'italiana (2550 -> "25,50 €").
@@ -14,3 +20,12 @@ def formatta_durata(minuti: int) -> str:
     if ore == 0:
         return f"{resto} min"
     return f"{ore} h {resto} min" if resto else f"{ore} h"
+
+
+def formatta_data_ora(momento_utc: datetime, fuso_orario: ZoneInfo) -> str:
+    """
+    Filtro Jinja "data_ora": data e ora salvate in UTC mostrate nel fuso orario del salone
+    (es. "mer 14/10/2026 09:30").
+    """
+    locale = momento_utc.replace(tzinfo=UTC).astimezone(fuso_orario)
+    return f"{GIORNI[locale.weekday()]} {locale:%d/%m/%Y %H:%M}"

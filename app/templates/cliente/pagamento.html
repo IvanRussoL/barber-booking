@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block titolo %}Pagamento – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Pagamento</h1>
+    <p class="avviso">Pagamento simulato per la demo: nessun addebito reale.</p>
+
+    <h2>Riepilogo</h2>
+    <ul>
+        {% for servizio in prenotazione.servizi %}
+            <li>{{ servizio.nome }} · {{ servizio.durata_minuti | durata }} · {{ servizio.prezzo_centesimi | euro }}</li>
+        {% endfor %}
+    </ul>
+    <p>Con {{ dipendente.nome }} {{ dipendente.cognome }}, {{ prenotazione.inizio | data_ora(fuso_orario) }}</p>
+    <p>Totale {{ prenotazione.prezzo_totale() | euro }} ·
+        da pagare ora: <strong>{{ pagamento.importo_centesimi | euro }}</strong>
+        {% if prenotazione.modalita_pagamento == 'acconto' %}(acconto, il resto in salone){% endif %}</p>
+
+    {% if pagamento.stato == 'in_attesa' and prenotazione.stato == 'in_attesa_pagamento' %}
+        <p>L'orario resta bloccato fino alle {{ prenotazione.scade_il | data_ora(fuso_orario) }}.</p>
+        <form method="post" action="{{ url_for('cliente.paga', riferimento=pagamento.riferimento_provider) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Paga {{ pagamento.importo_centesimi | euro }}</button>
+        </form>
+        <form method="post" action="{{ url_for('cliente.annulla_pagamento', riferimento=pagamento.riferimento_provider) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Annulla</button>
+        </form>
+    {% else %}
+        <p>Questo pagamento non è più in attesa.</p>
+        <p><a href="{{ url_for('cliente.area') }}">Vai all'area personale</a></p>
+    {% endif %}
+{% endblock %}

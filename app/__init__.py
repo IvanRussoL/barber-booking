@@ -6,7 +6,8 @@ from flask_wtf.csrf import CSRFError, CSRFProtect
 from app.comandi import crea_proprietario
 from app.db import chiudi_connessione, ottieni_connessione
 from app.eccezioni import BarberBookingError, RisorsaNonTrovataError
-from app.formato import formatta_durata, formatta_euro
+from app.formato import formatta_data_ora, formatta_durata, formatta_euro
+from app.pagamenti.finto import FakeProvider
 from app.repository.utente import UtenteRepository
 from app.rotte import auth, cliente, dipendente, proprietario, pubblico
 
@@ -85,6 +86,8 @@ def create_app(config: dict | None = None) -> Flask:
         app.config.update(config)
 
     csrf.init_app(app)
+    # Provider di pagamento usato dai servizi: per ora solo quello simulato.
+    app.extensions["provider_pagamenti"] = app.config.get("PROVIDER_PAGAMENTI") or FakeProvider()
     app.before_request(carica_utente)
     app.teardown_appcontext(chiudi_connessione)
 
@@ -102,5 +105,6 @@ def create_app(config: dict | None = None) -> Flask:
 
     app.add_template_filter(formatta_euro, "euro")
     app.add_template_filter(formatta_durata, "durata")
+    app.add_template_filter(formatta_data_ora, "data_ora")
     app.cli.add_command(crea_proprietario)
     return app

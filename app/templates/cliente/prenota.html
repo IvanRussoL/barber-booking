@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block titolo %}Prenota – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Prenota un appuntamento</h1>
+    {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+
+    {% if not servizi or not professionisti %}
+        <p>Al momento non è possibile prenotare online: contatta il salone.</p>
+    {% else %}
+    <form method="post" id="modulo-prenotazione" novalidate
+          data-url-slot="{{ url_for('cliente.slot') }}" data-ora-scelta="{{ dati.get('ora', '') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <fieldset>
+            <legend>1. Servizi</legend>
+            {% for servizio in servizi %}
+                <label>
+                    <input type="checkbox" name="servizi" value="{{ servizio.id }}"
+                           {% if servizio.id | string in servizi_scelti %}checked{% endif %}>
+                    {{ servizio.nome }} · {{ servizio.durata_minuti | durata }} · {{ servizio.prezzo_centesimi | euro }}
+                </label>
+            {% endfor %}
+        </fieldset>
+
+        <fieldset>
+            <legend>2. Professionista</legend>
+            {% for professionista in professionisti %}
+                <label>
+                    <input type="radio" name="dipendente_id" value="{{ professionista.id }}"
+                           {% if professionista.id | string == dati.get('dipendente_id') %}checked{% endif %}>
+                    {{ professionista.nome }} {{ professionista.cognome }}
+                </label>
+            {% endfor %}
+        </fieldset>
+
+        <fieldset>
+            <legend>3. Data e orario</legend>
+            <label>Data
+                <input type="date" name="data" value="{{ dati.get('data', '') }}"
+                       min="{{ primo_giorno }}" max="{{ ultimo_giorno }}">
+            </label>
+            <div id="slot">Scegli servizi, professionista e data per vedere gli orari liberi.</div>
+        </fieldset>
+
+        <fieldset>
+            <legend>4. Pagamento online</legend>
+            <label>
+                <input type="radio" name="modalita" value="acconto"
+                       {% if dati.get('modalita', 'acconto') == 'acconto' %}checked{% endif %}>
+                Acconto del {{ percentuale_acconto }}%, il resto in salone
+            </label>
+            <label>
+                <input type="radio" name="modalita" value="completo"
+                       {% if dati.get('modalita') == 'completo' %}checked{% endif %}>
+                Importo completo
+            </label>
+        </fieldset>
+
+        <button type="submit">Prenota e vai al pagamento</button>
+    </form>
+    <script src="{{ url_for('static', filename='js/prenota.js') }}"></script>
+    {% endif %}
+{% endblock %}

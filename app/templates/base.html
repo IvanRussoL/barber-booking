@@ -12,6 +12,7 @@
             <a href="{{ url_for('pubblico.servizi') }}">Servizi</a>
             {% if g.utente %}
                 {% if g.utente.ruolo == 'cliente' %}
+                    <a href="{{ url_for('cliente.prenota') }}">Prenota</a>
                     <a href="{{ url_for('cliente.area') }}">Area personale</a>
                 {% endif %}
                 {% if g.utente.riceve_prenotazioni %}

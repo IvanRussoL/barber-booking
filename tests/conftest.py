@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 
 from app import create_app
 from app.db import crea_connessione
+from app.modelli.servizio import Servizio
 from app.modelli.utente import Utente
+from app.repository.servizio import ServizioRepository
 from app.repository.utente import UtenteRepository
 
 load_dotenv()
@@ -76,3 +78,28 @@ def utenti_accessi():
     yield ids
     _cancella_utenti_accessi(connessione)
     connessione.close()
+
+
+@pytest.fixture
+def salone(conn):
+    """
+    Dati di prova per le prenotazioni (annullati dal rollback): un cliente, due professionisti
+    e due servizi da 30 minuti, Taglio a 20 € e Barba a 15,50 €.
+    Returns: dizionario con gli id e l'Utente cliente.
+    """
+    utenti = UtenteRepository(conn)
+    servizi = ServizioRepository(conn)
+    cliente_id = utenti.inserisci(Utente("cliente@salone.test", "hash-finto", "Carla", "Cliente", "3330000001"))
+    return {
+        "cliente": utenti.leggi_per_id(cliente_id),
+        "dipendente_id": utenti.inserisci(Utente(
+            "dipendente@salone.test", "hash-finto", "Dario", "Dipendente", "3330000002",
+            ruolo="dipendente", riceve_prenotazioni=True,
+        )),
+        "altro_dipendente_id": utenti.inserisci(Utente(
+            "altro@salone.test", "hash-finto", "Alba", "Altra", "3330000003",
+            ruolo="dipendente", riceve_prenotazioni=True,
+        )),
+        "taglio_id": servizi.inserisci(Servizio("Taglio prova", 30, 2000)),
+        "barba_id": servizi.inserisci(Servizio("Barba prova", 30, 1550)),
+    }

@@ -1,0 +1,102 @@
+import calendar
+from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
+
+from app.eccezioni import DatiNonValidiError
+from app.modelli.orario import Turno
+from app.repository.impostazioni import ImpostazioniRepository
+from app.repository.indisponibilita import IndisponibilitaRepository
+from app.repository.orario import OrarioRepository
+from app.repository.prenotazione import PrenotazioneRepository
+
+PASSO_GRIGLIA = timedelta(minutes=30)
+
+
+def in_utc(momento: datetime) -> datetime:
+    """
+    Converte una data e ora con fuso orario nel formato salvato nel database: UTC senza fuso orario.
+    """
+    return momento.astimezone(UTC).replace(tzinfo=None)
+
+
+def _si_sovrappone(inizio: datetime, fine: datetime, intervalli: list[tuple[datetime, datetime]]) -> bool:
+    """
+    Due intervalli si sovrappongono se ognuno inizia prima che l'altro finisca.
+    """
+    return any(inizio < fine_altro and fine > inizio_altro for inizio_altro, fine_altro in intervalli)
+
+
+class DisponibilitaService:
+    """
+    Calcolo degli orari liberi di un professionista in una data.
+    """
+
+    def __init__(self, connessione):
+        self._impostazioni = ImpostazioniRepository(connessione).leggi()
+        self._fuso_orario = ZoneInfo(self._impostazioni.fuso_orario)
+        self._orari = OrarioRepository(connessione)
+        self._indisponibilita = IndisponibilitaRepository(connessione)
+        self._prenotazioni = PrenotazioneRepository(connessione)
+
+    @property
+    def fuso_orario(self) -> ZoneInfo:
+        """
+        Fuso orario del salone, letto dalle impostazioni.
+        """
+        return self._fuso_orario
+
+    def finestra(self, adesso: datetime) -> tuple[date, date]:
+        """
+        Date prenotabili: da oggi all'ultimo giorno del mese che viene mesi_prenotabili mesi dopo il corrente.
+        Args: adesso, data e ora attuali con fuso orario.
+        Returns: (primo giorno, ultimo giorno), nella data locale del salone.
+        """
+        oggi = adesso.astimezone(self._fuso_orario).date()
+        anni, mese_zero = divmod(oggi.month - 1 + self._impostazioni.mesi_prenotabili, 12)
+        anno, mese = oggi.year + anni, mese_zero + 1
+        return oggi, date(anno, mese, calendar.monthrange(anno, mese)[1])
+
+    def turni_del_giorno(self, giorno: date) -> list[Turno]:
+        """
+        Turni di apertura di una data: quelli dell'eccezione se esiste, altrimenti quelli della settimana.
+        Returns: la lista dei Turni, vuota se il salone è chiuso.
+        """
+        eccezione = self._orari.leggi_eccezione(giorno)
+        if eccezione is not None:
+            return eccezione.turni if eccezione.aperto else []
+        return self._orari.turni_settimanali(giorno.isoweekday())
+
+    def slot_liberi(self, dipendente_id: int, giorno: date, durata_minuti: int,
+                    adesso: datetime) -> list[datetime]:
+        """
+        Orari di inizio in cui un appuntamento della durata indicata sta per intero in un turno,
+        non è già passato e non si sovrappone a prenotazioni, assenze o chiusure.
+        Args: giorno nella data locale; adesso con fuso orario.
+        Returns: gli orari di inizio con il fuso orario del salone, in ordine.
+        Raises: DatiNonValidiError se il giorno è fuori dalla finestra di prenotazione.
+        """
+        primo, ultimo = self.finestra(adesso)
+        if not primo <= giorno <= ultimo:
+            raise DatiNonValidiError(
+                f"Si può prenotare dal {primo:%d/%m/%Y} al {ultimo:%d/%m/%Y}."
+            )
+        turni = self.turni_del_giorno(giorno)
+        if not turni:
+            return []
+
+        durata = timedelta(minutes=durata_minuti)
+        apertura = datetime.combine(giorno, turni[0].ora_inizio, self._fuso_orario)
+        chiusura = datetime.combine(giorno, turni[-1].ora_fine, self._fuso_orario)
+        occupati = self._prenotazioni.intervalli_occupati(
+            dipendente_id, in_utc(apertura), in_utc(chiusura), in_utc(adesso)
+        ) + self._indisponibilita.periodi_sovrapposti(dipendente_id, in_utc(apertura), in_utc(chiusura))
+
+        liberi = []
+        for turno in turni:
+            inizio = datetime.combine(giorno, turno.ora_inizio, self._fuso_orario)
+            fine_turno = datetime.combine(giorno, turno.ora_fine, self._fuso_orario)
+            while inizio + durata <= fine_turno:
+                if inizio > adesso and not _si_sovrappone(in_utc(inizio), in_utc(inizio + durata), occupati):
+                    liberi.append(inizio)
+                inizio += PASSO_GRIGLIA
+        return liberi

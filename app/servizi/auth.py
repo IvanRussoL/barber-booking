@@ -5,24 +5,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.eccezioni import CredenzialiNonValideError, DatiNonValidiError, EmailGiaRegistrataError
 from app.modelli.utente import Utente
 from app.repository.utente import UtenteRepository
+from app.servizi.validazione import testo_obbligatorio
 
 LUNGHEZZA_MINIMA_PASSWORD = 8
 CARATTERI_AMMESSI_NOME = " '’-"
 RUOLI_STAFF = ("dipendente", "proprietario")
-
-
-def _testo_obbligatorio(valore: str, campo: str, lunghezza_massima: int) -> str:
-    """
-    Toglie gli spazi iniziali e finali e controlla che il testo non sia vuoto né troppo lungo.
-    Returns: il testo ripulito.
-    Raises: DatiNonValidiError se il testo è vuoto o supera la lunghezza massima.
-    """
-    valore = valore.strip()
-    if not valore:
-        raise DatiNonValidiError(f"Il campo {campo} è obbligatorio.")
-    if len(valore) > lunghezza_massima:
-        raise DatiNonValidiError(f"Il campo {campo} può avere al massimo {lunghezza_massima} caratteri.")
-    return valore
 
 
 def _nome_valido(valore: str, campo: str) -> str:
@@ -31,7 +18,7 @@ def _nome_valido(valore: str, campo: str) -> str:
     Returns: il testo ripulito.
     Raises: DatiNonValidiError se è vuoto, troppo lungo, senza lettere o con cifre e simboli.
     """
-    valore = _testo_obbligatorio(valore, campo, 100)
+    valore = testo_obbligatorio(valore, campo, 100)
     solo_caratteri_ammessi = all(c.isalpha() or c in CARATTERI_AMMESSI_NOME for c in valore)
     if not solo_caratteri_ammessi or not any(c.isalpha() for c in valore):
         raise DatiNonValidiError(
@@ -76,7 +63,7 @@ class AuthService:
         Returns: l'id del nuovo utente.
         Raises: DatiNonValidiError se un dato non è valido; EmailGiaRegistrataError se l'email è già usata.
         """
-        email = _testo_obbligatorio(email, "email", 255).lower()
+        email = testo_obbligatorio(email, "email", 255).lower()
         if "@" not in email:
             raise DatiNonValidiError("L'email non è valida.")
         if len(password) < LUNGHEZZA_MINIMA_PASSWORD:
@@ -85,7 +72,7 @@ class AuthService:
             )
         nome = _nome_valido(nome, "nome")
         cognome = _nome_valido(cognome, "cognome")
-        telefono = _testo_obbligatorio(telefono, "telefono", 20).replace(" ", "")
+        telefono = testo_obbligatorio(telefono, "telefono", 20).replace(" ", "")
         if not re.fullmatch(r"\+?[0-9]{6,15}", telefono):
             raise DatiNonValidiError(
                 "Il telefono deve contenere solo cifre, con il + iniziale facoltativo."

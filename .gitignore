@@ -12,3 +12,7 @@ __pycache__/
 # Editor e sistema operativo
 .vscode/
 Thumbs.db
+
+# Modelli di MySQL Workbench e foto originali (nel repository vanno solo quelle ridotte)
+*.mwb
+*-unsplash.jpg

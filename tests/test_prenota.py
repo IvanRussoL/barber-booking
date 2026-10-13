@@ -4,9 +4,11 @@ import pytest
 
 from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, RisorsaNonTrovataError,
                            SlotNonDisponibileError)
+from app.modelli.utente import Utente
 from app.pagamenti.finto import FakeProvider
 from app.repository.prenotazione import PrenotazioneRepository
 from app.repository.servizio import ServizioRepository
+from app.repository.utente import UtenteRepository
 from app.servizi.prenotazione import PrenotazioneService, calcola_acconto
 
 ADESSO = datetime(2026, 10, 13, 6, 0, tzinfo=UTC)  # martedì, 08:00 ora italiana
@@ -259,3 +261,56 @@ def test_orari_del_cliente_occupati_non_proposti(conn, salone, provider):
     per_tutti = [s.strftime("%H:%M") for s in servizio.slot_per_scelta(altro, taglio, MERCOLEDI, ADESSO)]
     assert "10:00" not in per_il_cliente and "10:30" not in per_il_cliente and "11:00" in per_il_cliente
     assert "10:00" in per_tutti
+
+
+# --- Annullamento da parte del salone ---
+
+def _utente(conn, utente_id):
+    return UtenteRepository(conn).leggi_per_id(utente_id)
+
+
+def _proprietario(conn):
+    return _utente(conn, UtenteRepository(conn).inserisci(Utente(
+        "titolare@salone.test", "hash-finto", "Tina", "Titolare", "3330000004", ruolo="proprietario",
+    )))
+
+
+def test_proprietario_annulla_qualsiasi_prenotazione_con_rimborso(conn, salone, provider):
+    prenotazione_id, riferimento = _confermata(conn, salone, provider)
+    rimborsato = PrenotazioneService(conn, provider).annulla_dal_salone(prenotazione_id, _proprietario(conn), ADESSO)
+    prenotazione = PrenotazioneRepository(conn).leggi_per_id(prenotazione_id)
+    assert rimborsato == 1065
+    assert (prenotazione.stato, prenotazione.annullata_da) == ("annullata", "salone")
+    assert provider.rimborsi == [(riferimento, 1065)]
+
+
+def test_dipendente_annulla_solo_le_proprie(conn, salone, provider):
+    prenotazione_id, _ = _confermata(conn, salone, provider)  # nell'agenda di Dario
+    servizio = PrenotazioneService(conn, provider)
+    with pytest.raises(RisorsaNonTrovataError):
+        servizio.annulla_dal_salone(prenotazione_id, _utente(conn, salone["altro_dipendente_id"]), ADESSO)
+    assert provider.rimborsi == []
+    servizio.annulla_dal_salone(prenotazione_id, _utente(conn, salone["dipendente_id"]), ADESSO)
+
+
+def test_salone_annulla_anche_a_meno_di_due_ore_ma_non_dopo_l_inizio(conn, salone, provider):
+    prenotazione_id, _ = _confermata(conn, salone, provider)  # inizio alle 08:00 UTC di mercoledì
+    servizio = PrenotazioneService(conn, provider)
+    dario = _utente(conn, salone["dipendente_id"])
+    with pytest.raises(AnnullamentoNonConsentitoError):
+        servizio.annulla_dal_salone(prenotazione_id, dario, datetime(2026, 10, 14, 8, 0, tzinfo=UTC))
+    servizio.annulla_dal_salone(prenotazione_id, dario, datetime(2026, 10, 14, 7, 30, tzinfo=UTC))
+
+
+def test_storico_professionista_con_svolte_e_annullate(conn, salone, provider):
+    svolta_id, _ = _confermata(conn, salone, provider, ora="10:00")
+    annullata_id, _ = _confermata(conn, salone, provider, ora="15:00")
+    servizio = PrenotazioneService(conn, provider)
+    servizio.annulla_dal_salone(annullata_id, _utente(conn, salone["dipendente_id"]), ADESSO)
+    dopo = datetime(2026, 10, 15, 6, 0, tzinfo=UTC)  # giovedì: entrambe nel passato
+    storico = servizio.storico_professionista(salone["dipendente_id"], dopo)
+    assert [(a.prenotazione.id, a.prenotazione.stato) for a in storico] == [
+        (annullata_id, "annullata"), (svolta_id, "confermata"),
+    ]
+    assert storico[0].cliente.nome == "Carla"
+    assert servizio.storico_professionista(salone["altro_dipendente_id"], dopo) == []

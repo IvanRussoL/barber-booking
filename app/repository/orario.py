@@ -55,3 +55,37 @@ class OrarioRepository:
             )
             turni = _turni(cur.fetchall())
         return EccezioneData(riga["data"], bool(riga["aperto"]), turni, riga["nota"])
+
+    def elenca_eccezioni(self, da: date, a: date) -> list[EccezioneData]:
+        """
+        Eccezioni con data in [da, a], con i loro turni, in ordine di data.
+        Returns: la lista delle EccezioneData.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute("SELECT data FROM eccezioni_date WHERE data BETWEEN %s AND %s ORDER BY data", (da, a))
+            date_trovate = [riga["data"] for riga in cur.fetchall()]
+        return [self.leggi_eccezione(giorno) for giorno in date_trovate]
+
+    def salva_eccezione(self, eccezione: EccezioneData) -> None:
+        """
+        Salva l'eccezione di una data sostituendo quella precedente, senza fare commit.
+        La DELETE cancella anche i vecchi turni grazie a ON DELETE CASCADE.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute("DELETE FROM eccezioni_date WHERE data = %s", (eccezione.data,))
+            cur.execute(
+                "INSERT INTO eccezioni_date (data, aperto, nota) VALUES (%s, %s, %s)",
+                (eccezione.data, eccezione.aperto, eccezione.nota),
+            )
+            cur.executemany(
+                "INSERT INTO eccezioni_turni (data, ora_inizio, ora_fine) VALUES (%s, %s, %s)",
+                [(eccezione.data, turno.ora_inizio, turno.ora_fine) for turno in eccezione.turni],
+            )
+
+    def elimina_eccezione(self, giorno: date) -> None:
+        """
+        Toglie l'eccezione di una data (torna a valere il calendario settimanale), senza fare commit.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute("DELETE FROM eccezioni_date WHERE data = %s", (giorno,))
+

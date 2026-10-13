@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block titolo %}Agenda di {{ professionista.nome }} – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <p><a href="{{ url_for('proprietario.dipendenti') }}">← Dipendenti</a></p>
+    <h1>Agenda di {{ professionista.nome }} {{ professionista.cognome }}</h1>
+    {% set endpoint_annulla = "proprietario.annulla_prenotazione" %}
+    {% include "agenda_elenco.html" %}
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% set GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"] %}
+{% set GIORNI_BREVI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"] %}
+
+{% block titolo %}Orari – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Orari del salone</h1>
+
+    <h2>Date speciali dei prossimi 12 mesi</h2>
+    <p><small>Festività e vigilie restano "da definire" finché non scegli l'orario: nel frattempo si possono
+        prenotare con l'orario normale e il cliente vede un avviso.</small></p>
+    <div class="elenco-date">
+        {% for giorno in speciali %}
+            <div class="riga-data">
+                <p class="riga-data-quando">{{ GIORNI_BREVI[giorno.data.weekday()] }} {{ giorno.data.strftime('%d/%m/%Y') }}</p>
+                <p>
+                    {% if giorno.stato == 'da_definire' %}
+                        <span class="badge-incerto">Da definire</span>
+                    {% elif giorno.stato == 'chiuso' %}
+                        <span class="badge-chiuso">Chiuso</span>
+                    {% else %}
+                        {% for turno in giorno.turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% endfor %}
+                    {% endif %}
+                    {% if giorno.nota %}<small>{{ giorno.nota }}</small>{% endif %}
+                </p>
+                <a href="{{ url_for('proprietario.orari_data', data=giorno.data.isoformat()) }}">Modifica</a>
+            </div>
+        {% else %}
+            <p>Nessuna data speciale.</p>
+        {% endfor %}
+    </div>
+
+    <h2>Un'altra data</h2>
+    <form method="get" action="{{ url_for('proprietario.orari_data') }}" class="riga-modulo" novalidate>
+        <label>Data <input type="date" name="data" required></label>
+        <button type="submit">Imposta l'orario</button>
+    </form>
+
+    <h2>Calendario settimanale</h2>
+    <table>
+        <tbody>
+            {% for giorno, turni in settimana %}
+                <tr>
+                    <th>{{ GIORNI[giorno - 1] }}</th>
+                    <td>{% for turno in turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% else %}Chiuso{% endfor %}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

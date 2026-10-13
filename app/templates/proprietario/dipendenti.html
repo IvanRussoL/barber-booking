@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block titolo %}Dipendenti – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Dipendenti</h1>
+    {% include "periodi.html" %}
+
+    <section class="numeri">
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.incasso_netto_centesimi | euro }}</p>
+            <p class="numero-etichetta">incassato dal salone, al netto dei rimborsi</p>
+        </div>
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.valore_servizi_centesimi | euro }}</p>
+            <p class="numero-etichetta">valore dei servizi svolti da tutti</p>
+        </div>
+        <div class="numero">
+            <p class="numero-valore">{{ riepilogo.prenotazioni }}</p>
+            <p class="numero-etichetta">appuntamenti confermati</p>
+        </div>
+    </section>
+
+    <div class="elenco-dipendenti">
+        {% for riga in righe %}
+            <div class="scheda-dipendente">
+                <div>
+                    <h2>{{ riga.utente.nome }} {{ riga.utente.cognome }}
+                        {% if riga.utente.ruolo == 'proprietario' %}<small>(tu)</small>{% endif %}</h2>
+                    <p><small><a href="mailto:{{ riga.utente.email }}">{{ riga.utente.email }}</a> ·
+                        <a href="tel:{{ riga.utente.telefono }}">{{ riga.utente.telefono }}</a></small></p>
+                </div>
+                <dl>
+                    <div><dt>Nel periodo</dt><dd>{{ riga.prenotazioni }} appuntamenti</dd></div>
+                    <div><dt>Valore servizi</dt><dd>{{ riga.valore_centesimi | euro }}</dd></div>
+                    <div><dt>In programma</dt><dd>{{ riga.prossimi }}</dd></div>
+                </dl>
+                <a class="pulsante pulsante-contorno" href="{{ url_for('proprietario.agenda_dipendente', dipendente_id=riga.utente.id) }}">Agenda</a>
+            </div>
+        {% else %}
+            <p>Nessun professionista riceve prenotazioni.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

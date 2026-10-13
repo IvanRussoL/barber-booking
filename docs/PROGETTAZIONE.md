@@ -564,15 +564,18 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 - Prenotazione con controllo anti-sovrapposizione per professionista e per cliente, nella stessa transazione.
 - Pagamento simulato con `FakeProvider`: acconto o importo completo, scadenza di 30 minuti, conferma idempotente, rimborso automatico dei pagamenti tardivi, uscita dal pagamento.
 - Area cliente con storico, importo pagato, totale speso e annullamento fino a 2 ore prima con rimborso; protezione dai dati altrui (404).
-- Agenda del professionista.
-- Home con stato di apertura, orari e contatti; `seed.py` con dati di prova.
+- Agenda del professionista con lo storico (svolte e annullate); annullamento con rimborso da parte del salone: il proprietario per tutti, il dipendente per la propria agenda.
+- Pagina Dipendenti del proprietario con recapiti, lavoro nel periodo, agenda di ciascuno e totale del salone.
+- Orari delle singole date (chiusure, orari ridotti, aperture) decisi dal proprietario; festività e vigilie italiane segnate "da definire" e prenotabili con un avviso finché non decide.
+- Home con stato di apertura, orari e contatti; `seed.py` con dati di prova e uno storico di 4 mesi.
+- Statistiche (fase 8, in parte): per il proprietario prenotazioni per professionista, andamento, fasce di punta, incasso netto e valore medio; per il professionista l'andamento dei propri appuntamenti. Periodo di 7, 30 o 365 giorni; grafici matplotlib generati in memoria e serviti da rotte protette con `Cache-Control: no-store`.
 
 ### Rimandato agli sviluppi futuri
 
 - `StripeProvider` (Checkout, Google Pay, PayPal) e Blueprint `webhook` (fase 7 e 7b).
 - Prodotti, carrello e ordini (fase 7c).
-- Tracking e statistiche con pandas e matplotlib (fase 8).
-- Pagine del proprietario per orari, eccezioni, assenze, chiusure, dipendenti, saldo in sede e annullamenti per conto del salone: oggi si modificano solo dal database.
+- Tracciamento di visite e click (tabella `eventi`), funnel e occupazione (resto della fase 8).
+- Pagine del proprietario per il calendario settimanale, assenze, chiusure lunghe, creazione dei dipendenti e saldo in sede: oggi si modificano solo dal database.
 - Blueprint `account` con il cambio password; rate limiting del login con Flask-Limiter.
 
 ### Scelte cambiate o aggiunte durante lo sviluppo
@@ -582,3 +585,5 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 - **Moduli con `novalidate`**: gli errori li mostra sempre il server, con i messaggi in italiano.
 - **Prezzo dei servizi maggiore di zero**: lo schema accetta 0, ma un pagamento di 0 euro sarebbe rifiutato da `pagamenti`.
 - **Tema grafico chiaro e caldo** (osso, espresso, corallo, ottone) al posto del tema scuro con verde menta e rosa: più adatto a un salone. Contrasti dei testi verificati (almeno 4,5:1).
+- **Il dipendente può annullare le prenotazioni della propria agenda**, con rimborso: le sezioni 2 e 3 lo escludevano. Il salone annulla fino all'inizio dell'appuntamento, senza il limite delle 2 ore del cliente.
+- **Festività "da definire"**: date calcolate dal programma, non salvate; diventano normali eccezioni per data quando il proprietario decide.

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from flask import (Blueprint, current_app, flash, g, jsonify, redirect, render_template,
                    request, url_for)
@@ -115,8 +115,9 @@ def slot():
     Orari liberi in formato JSON, chiesti con fetch dalla pagina di prenotazione.
     Parametri: dipendente_id, data (AAAA-MM-GG) e uno o più servizi.
     """
+    servizio = _prenotazioni()
     try:
-        liberi = _prenotazioni().slot_per_scelta(
+        liberi = servizio.slot_per_scelta(
             request.args.get("dipendente_id", ""),
             request.args.getlist("servizi"),
             request.args.get("data", ""),
@@ -124,7 +125,9 @@ def slot():
         )
     except DatiNonValidiError as errore:
         return jsonify(errore=str(errore)), 400
-    return jsonify(slot=[inizio.strftime("%H:%M") for inizio in liberi])
+    # Qui la data è già stata controllata da slot_per_scelta.
+    incerta = servizio.disponibilita.da_definire(date.fromisoformat(request.args["data"]))
+    return jsonify(slot=[inizio.strftime("%H:%M") for inizio in liberi], da_definire=incerta)
 
 
 # --- Pagamento simulato (FakeProvider) ---

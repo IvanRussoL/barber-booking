@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from flask import Blueprint, render_template
 
@@ -18,10 +18,11 @@ def home():
     connessione = ottieni_connessione()
     disponibilita = DisponibilitaService(connessione)
     aperto, stato_apertura = disponibilita.stato_apertura(datetime.now(UTC))
-    oggi = datetime.now(disponibilita.fuso_orario).isoweekday()
+    oggi = datetime.now(disponibilita.fuso_orario).date()
     return render_template(
-        "pubblico/home.html", aperto=aperto, stato_apertura=stato_apertura, oggi=oggi,
+        "pubblico/home.html", aperto=aperto, stato_apertura=stato_apertura, oggi=oggi.isoweekday(),
         orari=disponibilita.orario_settimanale(), impostazioni=ImpostazioniRepository(connessione).leggi(),
+        speciali=disponibilita.giornate_speciali(oggi, oggi + timedelta(days=60)),
     )
 
 

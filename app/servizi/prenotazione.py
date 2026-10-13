@@ -34,10 +34,12 @@ class RigaStorico:
 @dataclass
 class Appuntamento:
     """
-    Una prenotazione nell'agenda del professionista, con i recapiti del cliente.
+    Una prenotazione nell'agenda del professionista, con i recapiti del cliente
+    e l'indicazione se il salone può ancora annullarla.
     """
     prenotazione: Prenotazione
     cliente: Utente
+    annullabile: bool = False
 
 
 def calcola_acconto(totale_centesimi: int, percentuale: int) -> int:
@@ -289,6 +291,14 @@ class PrenotazioneService:
                 f"Si possono annullare solo le prenotazioni confermate, fino a "
                 f"{ORE_MINIME_PER_ANNULLARE} ore prima dell'appuntamento."
             )
+        return self._annulla_con_rimborso(prenotazione, "cliente", adesso)
+
+    def _annulla_con_rimborso(self, prenotazione: Prenotazione, annullata_da: str, adesso: datetime) -> int:
+        """
+        Rimborsa ogni pagamento online riuscito, segna la prenotazione come annullata e conferma con commit.
+        Usato sia dal cliente sia dal salone: la regola "rimborso pari a quanto pagato" è in un punto solo.
+        Returns: l'importo rimborsato in centesimi.
+        """
         rimborsato = 0
         for pagamento in self._pagamenti.online_completati(prenotazione.id):
             riferimento_rimborso = self._provider.rimborsa(pagamento.riferimento_provider, pagamento.importo_centesimi)
@@ -298,9 +308,54 @@ class PrenotazioneService:
                 riferimento_provider=riferimento_rimborso,
             ))
             rimborsato += pagamento.importo_centesimi
-        self._prenotazioni.aggiorna_stato(prenotazione.id, "annullata", in_utc(adesso), "cliente")
+        self._prenotazioni.aggiorna_stato(prenotazione.id, "annullata", in_utc(adesso), annullata_da)
         self._conn.commit()
         return rimborsato
+
+    # --- Annullamenti da parte del salone ---
+
+    def puo_annullare_salone(self, prenotazione: Prenotazione, adesso: datetime) -> bool:
+        """
+        Il salone annulla le prenotazioni confermate non ancora iniziate, senza il limite delle 2 ore.
+        """
+        return prenotazione.stato == "confermata" and prenotazione.inizio > in_utc(adesso)
+
+    def _leggi_per_il_salone(self, prenotazione_id: int, utente: Utente, per_aggiornamento: bool = False):
+        """
+        Il proprietario legge qualsiasi prenotazione; un dipendente solo quelle della propria agenda.
+        Raises: RisorsaNonTrovataError se non esiste o è nell'agenda di un altro professionista.
+        """
+        dipendente_id = None if utente.ruolo == "proprietario" else utente.id
+        prenotazione = self._prenotazioni.leggi_per_id(
+            prenotazione_id, dipendente_id=dipendente_id, per_aggiornamento=per_aggiornamento
+        )
+        if prenotazione is None:
+            raise RisorsaNonTrovataError("Prenotazione non trovata.")
+        return prenotazione
+
+    def prenotazione_per_il_salone(self, prenotazione_id: int, utente: Utente) -> Appuntamento:
+        """
+        Legge una prenotazione per la pagina di conferma dell'annullamento da parte del salone.
+        Returns: l'Appuntamento con il cliente.
+        Raises: RisorsaNonTrovataError come _leggi_per_il_salone.
+        """
+        prenotazione = self._leggi_per_il_salone(prenotazione_id, utente)
+        return Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id))
+
+    def annulla_dal_salone(self, prenotazione_id: int, utente: Utente, adesso: datetime | None = None) -> int:
+        """
+        Annullamento da parte del salone (proprietario per tutti, dipendente per la propria agenda),
+        con rimborso di quanto pagato online.
+        Returns: l'importo rimborsato in centesimi.
+        Raises: RisorsaNonTrovataError; AnnullamentoNonConsentitoError se non è confermata o è già iniziata.
+        """
+        adesso = adesso or datetime.now(UTC)
+        prenotazione = self._leggi_per_il_salone(prenotazione_id, utente, per_aggiornamento=True)
+        if not self.puo_annullare_salone(prenotazione, adesso):
+            raise AnnullamentoNonConsentitoError(
+                "Si possono annullare solo prenotazioni confermate e non ancora iniziate."
+            )
+        return self._annulla_con_rimborso(prenotazione, "salone", adesso)
 
     def agenda(self, dipendente_id: int, adesso: datetime | None = None) -> list[Appuntamento]:
         """
@@ -312,8 +367,20 @@ class PrenotazioneService:
             adesso.astimezone(self._disponibilita.fuso_orario).date(), time(0), self._disponibilita.fuso_orario
         )
         return [
-            Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id))
+            Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id),
+                         self.puo_annullare_salone(prenotazione, adesso))
             for prenotazione in self._prenotazioni.elenca_per_dipendente(dipendente_id, in_utc(inizio_oggi))
+        ]
+
+    def storico_professionista(self, dipendente_id: int, adesso: datetime | None = None) -> list[Appuntamento]:
+        """
+        Appuntamenti passati e prenotazioni annullate di un professionista, dalla più recente.
+        Returns: la lista degli Appuntamenti.
+        """
+        adesso = adesso or datetime.now(UTC)
+        return [
+            Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id))
+            for prenotazione in self._prenotazioni.storico_per_dipendente(dipendente_id, in_utc(adesso))
         ]
 
 

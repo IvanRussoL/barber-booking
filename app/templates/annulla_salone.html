@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block titolo %}Annulla appuntamento – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    {% set prenotazione = appuntamento.prenotazione %}
+    <h1>Annullare l'appuntamento?</h1>
+    <p>{{ prenotazione.inizio | data_ora(fuso_orario) }} ·
+        {% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    <p>Cliente: {{ appuntamento.cliente.nome }} {{ appuntamento.cliente.cognome }} ·
+        <a href="tel:{{ appuntamento.cliente.telefono }}">{{ appuntamento.cliente.telefono }}</a></p>
+    <p class="avviso">Il cliente riceverà il rimborso di tutto quello che ha pagato online.
+        Ti consigliamo di avvisarlo anche per telefono.</p>
+    <form method="post" class="secondario">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Sì, annulla e rimborsa</button>
+    </form>
+    <p><a href="{{ torna_a }}">No, torna indietro</a></p>
+{% endblock %}

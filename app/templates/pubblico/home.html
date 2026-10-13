@@ -13,7 +13,9 @@
             <p class="sottotitolo">Scegli i servizi, il professionista e l'orario: prenoti in un minuto
                 e paghi online l'acconto o l'intero importo.</p>
             <div class="azioni">
-                <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
+                {% if puo_prenotare %}
+                    <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
+                {% endif %}
                 <a class="pulsante pulsante-contorno" href="{{ url_for('pubblico.servizi') }}">Servizi e prezzi</a>
             </div>
         </div>
@@ -25,15 +27,27 @@
     </section>
 
     <section class="card-grandi">
-        <a class="card-foto" href="{{ url_for('cliente.prenota') }}">
-            <img src="{{ url_for('static', filename='img/barbiere.jpg') }}"
-                 alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348">
-            <div class="card-testo">
-                <p class="card-etichetta">Prenotazione online</p>
-                <h2>Scegli orario e professionista</h2>
-                <span class="pillola">Prenota</span>
-            </div>
-        </a>
+        {% if puo_prenotare %}
+            <a class="card-foto" href="{{ url_for('cliente.prenota') }}">
+                <img src="{{ url_for('static', filename='img/barbiere.jpg') }}"
+                     alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348">
+                <div class="card-testo">
+                    <p class="card-etichetta">Prenotazione online</p>
+                    <h2>Scegli orario e professionista</h2>
+                    <span class="pillola">Prenota</span>
+                </div>
+            </a>
+        {% else %}
+            <a class="card-foto" href="{{ url_for('dipendente.agenda') if g.utente.riceve_prenotazioni else url_for('proprietario.pannello') }}">
+                <img src="{{ url_for('static', filename='img/barbiere.jpg') }}"
+                     alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348">
+                <div class="card-testo">
+                    <p class="card-etichetta">Area di lavoro</p>
+                    <h2>{{ "La tua agenda" if g.utente.riceve_prenotazioni else "Gestione del salone" }}</h2>
+                    <span class="pillola">Apri</span>
+                </div>
+            </a>
+        {% endif %}
         <a class="card-foto" href="{{ url_for('pubblico.servizi') }}">
             <img src="{{ url_for('static', filename='img/ritratto.jpg') }}"
                  alt="Ritratto di profilo con taglio corto sfumato" width="900" height="1350" loading="lazy">
@@ -58,6 +72,25 @@
                     </tr>
                 {% endfor %}
             </table>
+            {% if speciali %}
+                <h3>Date particolari</h3>
+                <div class="elenco-date">
+                    {% for giorno in speciali %}
+                        <div class="riga-data">
+                            <p class="riga-data-quando">{{ GIORNI[giorno.data.weekday()] }} {{ giorno.data.strftime('%d/%m') }}</p>
+                            <p>
+                                {% if giorno.stato == 'da_definire' %}
+                                    <span class="badge-incerto">Da definire</span>
+                                {% elif giorno.stato == 'chiuso' %}
+                                    <span class="badge-chiuso">Chiuso</span>
+                                {% else %}
+                                    {% for turno in giorno.turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% endfor %}
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
         <div class="contatti">
             <h2>Dove siamo</h2>

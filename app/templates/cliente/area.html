@@ -33,7 +33,10 @@
                {% if prenotazione.modalita_pagamento == 'acconto' and prenotazione.stato == 'confermata' %}
                    (acconto, il resto in salone)
                {% endif %}</p>
-            <p>Stato: <span class="stato-{{ prenotazione.stato }}">{{ STATI[prenotazione.stato] }}</span></p>
+            <p>Stato: <span class="stato-{{ prenotazione.stato }}">{{ STATI[prenotazione.stato] }}{% if prenotazione.annullata_da == 'salone' %} dal salone{% endif %}</span></p>
+            {% if prenotazione.annullata_da == 'salone' %}
+                <p><small>Il salone ha annullato l'appuntamento e ti ha rimborsato quanto pagato.</small></p>
+            {% endif %}
             {% if riga.annullabile %}
                 <p><a href="{{ url_for('cliente.annulla_prenotazione', prenotazione_id=prenotazione.id) }}">Annulla</a></p>
             {% endif %}

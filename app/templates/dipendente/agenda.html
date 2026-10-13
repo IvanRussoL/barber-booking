@@ -3,15 +3,15 @@
 {% block titolo %}Agenda – Barber Booking{% endblock %}
 
 {% block contenuto %}
-    <h1>La mia agenda</h1>
-    {% for appuntamento in appuntamenti %}
-        {% set prenotazione = appuntamento.prenotazione %}
-        <article>
-            <h3>{{ prenotazione.inizio | data_ora(fuso_orario) }} · {{ prenotazione.durata_totale() | durata }}</h3>
-            <p>{% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
-            <p>{{ appuntamento.cliente.nome }} {{ appuntamento.cliente.cognome }} · {{ appuntamento.cliente.telefono }}</p>
-        </article>
-    {% else %}
-        <p>Nessun appuntamento in programma.</p>
-    {% endfor %}
+    <figure class="banner">
+        <img src="{{ url_for('static', filename='img/agenda.jpg') }}"
+             alt="Barbiere che rifinisce la barba di un cliente con il panno caldo" width="1600" height="900">
+        <figcaption>
+            <h1>La mia agenda</h1>
+            <p>Appuntamenti confermati e storico</p>
+        </figcaption>
+    </figure>
+    <p><a class="pulsante pulsante-contorno" href="{{ url_for('dipendente.statistiche') }}">Le mie statistiche</a></p>
+    {% set endpoint_annulla = "dipendente.annulla_prenotazione" %}
+    {% include "agenda_elenco.html" %}
 {% endblock %}

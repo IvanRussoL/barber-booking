@@ -79,14 +79,14 @@ header {
     font-style: italic;
 }
 
-nav {
+header nav {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 22px;
 }
 
-nav a {
+header nav a {
     color: var(--testo);
     font-weight: 500;
     text-decoration: none;
@@ -94,11 +94,11 @@ nav a {
     padding-bottom: 2px;
 }
 
-nav a:hover {
+header nav a:hover {
     border-bottom-color: var(--corallo-chiaro);
 }
 
-nav form {
+header nav form {
     margin: 0;
 }
 
@@ -255,7 +255,7 @@ button:active {
 }
 
 /* Pulsanti secondari: esci, disattiva, annulla. */
-nav button,
+header nav button,
 td button,
 .secondario button {
     background: transparent;
@@ -264,7 +264,7 @@ td button,
     padding: 6px 14px;
 }
 
-nav button:hover,
+header nav button:hover,
 td button:hover,
 .secondario button:hover {
     background: #f6dfdc;
@@ -676,50 +676,400 @@ main.larga {
     font-weight: 700;
 }
 
+.orari .elenco-date {
+    max-width: 560px;
+}
+
+.orari h3 {
+    margin: 28px 0 4px;
+    font-size: 1.15rem;
+}
+
 .contatti p {
     margin: 4px 0;
     color: var(--testo-tenue);
 }
 
-/* --- Listino pubblico --- */
+/* --- Listino pubblico: come il cartello dei prezzi di un barbiere --- */
 
-.griglia-servizi {
+.listino {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 64px;
+    margin-bottom: 16px;
+}
+
+.voce {
+    padding: 18px 0 16px;
+    border-bottom: 1px solid var(--bordo);
+}
+
+.voce-riga {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.voce h2 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+/* Linea di puntini tra nome e prezzo, che si allunga quanto serve. */
+.puntini {
+    flex: 1;
+    border-bottom: 2px dotted var(--ottone);
+    transform: translateY(-6px);
+}
+
+.voce-prezzo {
+    color: var(--corallo);
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.voce-dettaglio {
+    margin: 6px 0 0;
+    color: var(--testo-tenue);
+}
+
+.nota-listino {
+    color: var(--testo-tenue);
+    font-style: italic;
+}
+
+/* --- Statistiche --- */
+
+/* Periodo: tre link a pillola, quello scelto pieno. */
+.periodi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 28px;
 }
 
-.griglia-servizi article {
+.periodi a {
+    padding: 7px 16px;
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    color: var(--testo);
+    text-decoration: none;
+}
+
+.periodi a[aria-current="page"] {
+    background: var(--testo);
+    border-color: var(--testo);
+    color: var(--sfondo);
+}
+
+/* Numeri principali: cifra grande in serif, etichetta sotto, una linea d'ottone sopra. */
+.numeri {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 28px;
+    margin-bottom: 40px;
+}
+
+.numero {
+    padding-top: 14px;
+    border-top: 2px solid var(--ottone);
+}
+
+.numero p {
     margin: 0;
-    border-top: 3px solid var(--ottone);
 }
 
-.griglia-servizi h2 {
-    margin-top: 0;
-    font-size: 1.35rem;
-}
-
-.prezzo {
-    color: var(--corallo);
+.numero-valore {
     font-family: var(--serif);
-    font-size: 1.6rem;
+    font-size: 2.2rem;
     font-weight: 700;
+    line-height: 1.1;
+}
+
+.numero-etichetta {
+    color: var(--testo-tenue);
+}
+
+.grafico {
+    margin-bottom: 44px;
+}
+
+.grafico h2 {
+    margin-bottom: 4px;
+}
+
+.grafico img {
+    width: 100%;
+    height: auto;
+    margin: 12px 0 16px;
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+}
+
+/* --- Pannello del proprietario: elenco delle sezioni --- */
+
+.voci-gestione {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.voci-gestione li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 16px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--bordo);
+}
+
+.voci-gestione a {
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.voci-gestione span {
+    color: var(--testo-tenue);
+}
+
+/* --- Agenda: prossimi appuntamenti e storico --- */
+
+.riga-agenda {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--bordo);
+}
+
+.riga-agenda p {
+    margin: 2px 0;
+}
+
+.riga-agenda-quando {
+    font-weight: 600;
+}
+
+.link-annulla {
+    flex-shrink: 0;
+    padding: 5px 14px;
+    color: var(--mattone);
+    border: 1px solid var(--mattone);
+    border-radius: 999px;
+    text-decoration: none;
+}
+
+.link-annulla:hover {
+    background: #f6dfdc;
+}
+
+.titolo-storico {
+    margin-top: 44px;
+}
+
+/* Le prenotazioni annullate restano nello storico, ma più tenui. */
+.riga-agenda.annullata {
+    color: var(--testo-tenue);
+}
+
+.etichetta-annullata,
+.etichetta-svolta,
+.badge-incerto,
+.badge-chiuso {
+    flex-shrink: 0;
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.etichetta-annullata {
+    color: var(--mattone);
+    background: #f6dfdc;
+}
+
+.etichetta-svolta {
+    color: var(--testo-tenue);
+    background: var(--bordo);
+}
+
+/* --- Dipendenti --- */
+
+.elenco-dipendenti {
+    display: grid;
+    gap: 18px;
+}
+
+.scheda-dipendente {
+    display: grid;
+    grid-template-columns: 1.4fr 2fr auto;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+}
+
+.scheda-dipendente .pulsante {
+    justify-self: start;
+}
+
+.scheda-dipendente h2 {
+    margin: 0 0 4px;
+    font-size: 1.3rem;
+}
+
+.scheda-dipendente p {
+    margin: 0;
+}
+
+.scheda-dipendente dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 0;
+}
+
+.scheda-dipendente dt {
+    color: var(--testo-tenue);
+    font-size: 0.85rem;
+}
+
+.scheda-dipendente dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+/* --- Orari per data --- */
+
+.elenco-date {
+    margin-bottom: 36px;
+}
+
+.riga-data {
+    display: grid;
+    grid-template-columns: 150px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--bordo);
+}
+
+.riga-data p {
+    margin: 0;
+}
+
+.riga-data small {
+    margin-left: 8px;
+}
+
+.riga-data-quando {
+    font-weight: 600;
+}
+
+/* "Da definire": un piccolo quadratino color ottone, come un cartellino. */
+.badge-incerto {
+    color: var(--ottone-testo);
+    background: #f1e6d2;
+    border: 1px solid var(--ottone);
+}
+
+.badge-chiuso {
+    color: #fff;
+    background: var(--testo-tenue);
+}
+
+/* Avviso nella pagina Prenota per una data da definire. */
+.avviso-data {
+    margin: 12px 0 0;
+    padding: 10px 14px;
+    color: var(--ottone-testo);
+    background: #f1e6d2;
+    border-left: 3px solid var(--ottone);
+    border-radius: 6px;
+}
+
+/* Modulo su una riga: campo e pulsante affiancati. */
+.riga-modulo {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.turni {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.turni label {
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 /* --- Piè di pagina --- */
 
 footer {
-    padding: 28px 24px;
-    background: var(--superficie);
-    border-top: 1px solid var(--bordo);
-    color: var(--testo-tenue);
-    font-size: 0.9rem;
-    text-align: center;
+    padding: 48px 32px 24px;
+    background: var(--testo);
+    color: #d8cfc4;
 }
 
-footer p {
+footer a {
+    color: #f1e6d8;
+    text-decoration: none;
+}
+
+footer a:hover {
+    color: var(--corallo-chiaro);
+}
+
+.piede {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 32px;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.piede p {
     margin: 4px 0;
+}
+
+.piede-marchio {
+    color: #fff;
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.piede-marchio span {
+    color: var(--corallo-chiaro);
+    font-style: italic;
+}
+
+.piede-titolo {
+    color: var(--ottone);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.piede-copyright {
+    max-width: 1280px;
+    margin: 32px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.85rem;
 }
 
 /* --- Telefono e tablet stretto --- */
@@ -750,7 +1100,7 @@ footer p {
         border: 1px solid var(--testo);
     }
 
-    .js nav {
+    .js header nav {
         display: none;
         width: 100%;
         flex-direction: column;
@@ -759,7 +1109,7 @@ footer p {
         padding-top: 10px;
     }
 
-    .js nav.aperto {
+    .js header nav.aperto {
         display: flex;
     }
 
@@ -786,7 +1136,9 @@ footer p {
 
     .card-grandi,
     .orari,
-    .pagina-divisa {
+    .pagina-divisa,
+    .listino,
+    .piede {
         grid-template-columns: 1fr;
     }
 
@@ -797,6 +1149,16 @@ footer p {
 
     .banner {
         height: 190px;
+    }
+
+    .scheda-dipendente {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .riga-data {
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
     }
 
     .card-testo {

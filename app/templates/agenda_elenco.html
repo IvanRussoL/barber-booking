@@ -1,0 +1,38 @@
+{# Prossimi appuntamenti e storico di un professionista. Variabili: appuntamenti, storico, fuso_orario,
+   endpoint_annulla (rotta di annullamento: quella del dipendente o quella del proprietario). #}
+<h2>Prossimi appuntamenti</h2>
+{% for appuntamento in appuntamenti %}
+    {% set prenotazione = appuntamento.prenotazione %}
+    <div class="riga-agenda">
+        <div>
+            <p class="riga-agenda-quando">{{ prenotazione.inizio | data_ora(fuso_orario) }} · {{ prenotazione.durata_totale() | durata }}</p>
+            <p>{% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+            <p><small>{{ appuntamento.cliente.nome }} {{ appuntamento.cliente.cognome }} ·
+                <a href="tel:{{ appuntamento.cliente.telefono }}">{{ appuntamento.cliente.telefono }}</a></small></p>
+        </div>
+        {% if appuntamento.annullabile %}
+            <a class="link-annulla" href="{{ url_for(endpoint_annulla, prenotazione_id=prenotazione.id) }}">Annulla</a>
+        {% endif %}
+    </div>
+{% else %}
+    <p>Nessun appuntamento in programma.</p>
+{% endfor %}
+
+<h2 class="titolo-storico">Storico</h2>
+{% for appuntamento in storico %}
+    {% set prenotazione = appuntamento.prenotazione %}
+    <div class="riga-agenda {{ 'annullata' if prenotazione.stato == 'annullata' }}">
+        <div>
+            <p class="riga-agenda-quando">{{ prenotazione.inizio | data_ora(fuso_orario) }}</p>
+            <p>{% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}
+                · {{ appuntamento.cliente.nome }} {{ appuntamento.cliente.cognome }}</p>
+        </div>
+        {% if prenotazione.stato == 'annullata' %}
+            <span class="etichetta-annullata">Annullata {{ "dal salone" if prenotazione.annullata_da == 'salone' else "dal cliente" }}</span>
+        {% else %}
+            <span class="etichetta-svolta">Svolta</span>
+        {% endif %}
+    </div>
+{% else %}
+    <p>Lo storico è vuoto.</p>
+{% endfor %}

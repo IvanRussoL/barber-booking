@@ -1,9 +1,11 @@
 import calendar
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app.eccezioni import DatiNonValidiError
 from app.modelli.orario import Turno
+from app.servizi.festivita import giornate_a_rischio
 from app.repository.impostazioni import ImpostazioniRepository
 from app.repository.indisponibilita import IndisponibilitaRepository
 from app.repository.orario import OrarioRepository
@@ -11,6 +13,18 @@ from app.repository.prenotazione import PrenotazioneRepository
 
 PASSO_GRIGLIA = timedelta(minutes=30)
 GIORNI_BREVI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"]
+
+
+@dataclass
+class GiornoSpeciale:
+    """
+    Data fuori dal calendario settimanale: giornata a rischio ancora da definire, oppure eccezione decisa.
+    stato vale "da_definire", "chiuso" o "aperto" (con i turni dell'eccezione).
+    """
+    data: date
+    stato: str
+    turni: list[Turno] = field(default_factory=list)
+    nota: str | None = None
 
 
 def in_utc(momento: datetime) -> datetime:
@@ -137,4 +151,29 @@ class DisponibilitaService:
                         quando = GIORNI_BREVI[giorno.weekday()]
                     return False, f"Chiuso ora · riapre {quando} alle {inizio:%H:%M}"
         return False, "Chiuso"
+
+    def da_definire(self, giorno: date) -> bool:
+        """
+        Vero se la data è una giornata a rischio (festività, vigilia), il salone di solito è aperto
+        quel giorno della settimana e il proprietario non ha ancora deciso l'orario.
+        """
+        return (giorno in giornate_a_rischio(giorno.year)
+                and self._orari.leggi_eccezione(giorno) is None
+                and bool(self._orari.turni_settimanali(giorno.isoweekday())))
+
+    def giornate_speciali(self, da: date, a: date) -> list[GiornoSpeciale]:
+        """
+        Date in [da, a] con un'eccezione decisa dal proprietario o ancora da definire, in ordine di data.
+        Returns: la lista dei GiornoSpeciale.
+        """
+        speciali = {
+            eccezione.data: GiornoSpeciale(eccezione.data, "aperto" if eccezione.aperto else "chiuso",
+                                           eccezione.turni, eccezione.nota)
+            for eccezione in self._orari.elenca_eccezioni(da, a)
+        }
+        for anno in range(da.year, a.year + 1):
+            for giorno in giornate_a_rischio(anno):
+                if da <= giorno <= a and giorno not in speciali and self._orari.turni_settimanali(giorno.isoweekday()):
+                    speciali[giorno] = GiornoSpeciale(giorno, "da_definire")
+        return [speciali[giorno] for giorno in sorted(speciali)]
 

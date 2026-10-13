@@ -2,18 +2,18 @@
 
 Applicazione web per un salone di barbiere/parrucchiere: i clienti prenotano online servizi e professionista pagando un acconto o l'intero importo, i professionisti consultano la propria agenda e il proprietario gestisce il listino. Progetto finale del corso Full Stack Python.
 
-> Stato: versione consegnata per il corso. Il pagamento è simulato (`FakeProvider`); Stripe, vendita di prodotti e statistiche sono negli sviluppi futuri.
+> Stato: versione consegnata per il corso. Il pagamento è simulato (`FakeProvider`); Stripe e vendita di prodotti sono negli sviluppi futuri.
 
 ## Funzionalità
 
 | Ruolo | Cosa può fare |
 |---|---|
-| Visitatore | Vede se il salone è aperto in quel momento, consulta orari, servizi e prezzi, si registra come cliente |
+| Visitatore | Vede se il salone è aperto in quel momento, consulta orari (con le date particolari), servizi e prezzi, si registra come cliente |
 | Cliente | Prenota uno o più servizi scegliendo professionista, data e orario libero; paga acconto o importo completo; consulta lo storico con il totale speso; annulla fino a 2 ore prima con rimborso |
-| Dipendente | Consulta la propria agenda con i recapiti dei clienti |
-| Proprietario | Crea, modifica, disattiva e riattiva i servizi; se lavora in sala riceve prenotazioni e ha la sua agenda |
+| Dipendente | Consulta la propria agenda con i recapiti dei clienti e lo storico (anche le annullate); annulla un proprio appuntamento con rimborso al cliente; vede le proprie statistiche |
+| Proprietario | Gestisce i servizi; nella pagina Dipendenti vede recapiti, lavoro e agenda di ogni professionista e il totale del salone su settimana, mese o anno; annulla qualsiasi prenotazione con rimborso; decide gli orari delle singole date (chiusure, festività); consulta le statistiche; se lavora in sala riceve prenotazioni |
 
-Regole principali: slot di 30 minuti dentro i turni del salone, nessuna sovrapposizione per lo stesso professionista né per lo stesso cliente (anche con richieste simultanee), prenotazione bloccata per 30 minuti in attesa del pagamento, prezzi e importi calcolati sempre dal server.
+Regole principali: slot di 30 minuti dentro i turni del salone (festività e vigilie restano "da definire" e prenotabili con un avviso finché il proprietario non decide l'orario), nessuna sovrapposizione per lo stesso professionista né per lo stesso cliente (anche con richieste simultanee), prenotazione bloccata per 30 minuti in attesa del pagamento, prezzi e importi calcolati sempre dal server.
 
 ## Tecnologie
 
@@ -21,6 +21,7 @@ Regole principali: slot di 30 minuti dentro i turni del salone, nessuna sovrappo
 - MySQL 8 con `mysql-connector-python` e query SQL scritte a mano (nessun ORM)
 - HTML, CSS e JavaScript (`fetch` per gli orari liberi), Playfair Display da Google Fonts per i titoli
 - Flask-WTF (solo protezione CSRF), python-dotenv, tzdata
+- pandas e matplotlib per le statistiche (grafici generati in memoria)
 - pytest
 
 ## Struttura
@@ -32,7 +33,8 @@ barber-booking/
 │   ├── modelli/           # dataclass: Utente, Servizio, Prenotazione, Pagamento, ...
 │   ├── repository/        # unico posto con SQL, sempre parametrizzato
 │   ├── servizi/           # regole di business, senza Flask: AuthService, SaloneService,
-│   │                      #   DisponibilitaService, PrenotazioneService
+│   │                      #   DisponibilitaService, PrenotazioneService, CalendarioService,
+│   │                      #   StatisticheService
 │   ├── pagamenti/         # PaymentProvider (classe astratta) e FakeProvider
 │   ├── rotte/             # Blueprint: pubblico, auth, cliente, dipendente, proprietario
 │   ├── templates/         # pagine Jinja, una cartella per Blueprint
@@ -88,7 +90,8 @@ Creati da `seed.py`, con password `demo12345` (solo per l'uso in locale):
 
 | Email | Ruolo |
 |---|---|
-| anna@demo.it, luca@demo.it | Cliente, con due prenotazioni confermate |
+| anna@demo.it, luca@demo.it | Cliente, con due prenotazioni future confermate |
+| sara, paolo, chiara, giovanni, elena (@demo.it) | Clienti dello storico di 4 mesi usato dalle statistiche |
 | marco@demo.it, giulia@demo.it | Dipendente |
 
 Il proprietario è quello creato al punto 5.
@@ -99,7 +102,7 @@ Il proprietario è quello creato al punto 5.
 python -m pytest
 ```
 
-I test usano il database `barber_booking_test`. Coprono validazioni, repository, calcolo degli slot (compreso il cambio dell'ora legale), prenotazione e pagamento, annullamento con la regola delle 2 ore, controllo degli accessi su tutte le rotte, protezione dai dati altrui (IDOR) e due prenotazioni simultanee sullo stesso orario.
+I test usano il database `barber_booking_test`. Coprono validazioni, repository, calcolo degli slot (compreso il cambio dell'ora legale), prenotazione e pagamento, annullamento con la regola delle 2 ore e da parte del salone, orari delle singole date e festività (anche il calcolo della Pasqua), controllo degli accessi su tutte le rotte, protezione dai dati altrui (IDOR) e due prenotazioni simultanee sullo stesso orario.
 
 ## Scelte tecniche principali
 
@@ -116,9 +119,9 @@ Le motivazioni complete e le alternative scartate sono in `DEVLOG.md` e `docs/PR
 
 - Pagamento reale con Stripe Checkout (carta, Google Pay, PayPal) e conferma tramite webhook con firma verificata.
 - Vendita di prodotti con carrello, foto e ritiro in negozio.
-- Statistiche con pandas e matplotlib: prenotazioni per dipendente, occupazione, fasce di punta, ricavi.
-- Gestione dal sito di orari, eccezioni per data, assenze e chiusure; creazione dei dipendenti da parte del proprietario.
-- Saldo in sede registrato dal proprietario, annullamenti da parte del salone.
+- Statistiche avanzate: occupazione rispetto all'orario, funnel visite → prenotazioni con il tracciamento delle visite.
+- Gestione dal sito del calendario settimanale, delle assenze e delle chiusure lunghe; creazione dei dipendenti da parte del proprietario.
+- Saldo in sede registrato dal proprietario.
 - Limite ai tentativi di login (Flask-Limiter), cambio e recupero della password.
 - Foto per ogni servizio, caricate dal proprietario e controllate con Pillow.
 
@@ -135,5 +138,7 @@ Foto da Unsplash, ridotte per il web:
 | `img/area.jpg` | [Arthur Humeau](https://unsplash.com/photos/Twd3yaqA2NM) |
 | `img/accedi.jpg` | [Oriol Pascual](https://unsplash.com/photos/pzl6s-FJ72I) |
 | `img/registrati.jpg` | [T (@tanyabarrow)](https://unsplash.com/photos/fa0DqQ91dWU) |
+| `img/agenda.jpg` | [Ta Focando](https://unsplash.com/photos/1VTQaaI0HP8) |
+| `img/gestione.jpg` | [Haberdoedas](https://unsplash.com/photos/zj2CkHpoDPQ) |
 
 Carattere dei titoli: [Playfair Display](https://fonts.google.com/specimen/Playfair+Display) da Google Fonts (senza connessione il browser usa Georgia).

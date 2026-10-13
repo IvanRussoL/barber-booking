@@ -40,18 +40,21 @@ class PrenotazioneRepository:
         return prenotazione_id
 
     def leggi_per_id(self, prenotazione_id: int, cliente_id: int | None = None,
-                     per_aggiornamento: bool = False) -> Prenotazione | None:
+                     per_aggiornamento: bool = False, dipendente_id: int | None = None) -> Prenotazione | None:
         """
         Legge una prenotazione con i suoi servizi (nome letto da servizi, durata e prezzo dalla copia).
-        Args: cliente_id, se indicato la prenotazione deve essere sua (controllo dentro la query);
-            per_aggiornamento, True per bloccare la riga (FOR UPDATE) fino alla fine della transazione.
-        Returns: la Prenotazione, oppure None se non esiste o è di un altro cliente.
+        Args: cliente_id o dipendente_id, se indicati la prenotazione deve essere di quel cliente o di quel
+            professionista (controllo dentro la query); per_aggiornamento, True per bloccare la riga (FOR UPDATE).
+        Returns: la Prenotazione, oppure None se non esiste o è di un altro utente.
         """
         sql = _SELECT + "WHERE id = %s"
         parametri = [prenotazione_id]
         if cliente_id is not None:
             sql += " AND cliente_id = %s"
             parametri.append(cliente_id)
+        if dipendente_id is not None:
+            sql += " AND dipendente_id = %s"
+            parametri.append(dipendente_id)
         if per_aggiornamento:
             sql += " FOR UPDATE"
         with self._conn.cursor(dictionary=True) as cur:
@@ -85,6 +88,24 @@ class PrenotazioneRepository:
             cur.execute(
                 _SELECT + "WHERE dipendente_id = %s AND stato = 'confermata' AND fine > %s ORDER BY inizio",
                 (dipendente_id, da),
+            )
+            righe = cur.fetchall()
+        return [self._con_servizi(riga) for riga in righe]
+
+    def storico_per_dipendente(self, dipendente_id: int, prima_di: datetime, limite: int = 40) -> list[Prenotazione]:
+        """
+        Storico di un professionista, dalla più recente: appuntamenti confermati già iniziati
+        e prenotazioni annullate dopo il pagamento (dal cliente o dal salone).
+        Args: prima_di in UTC (di solito adesso); limite, numero massimo di righe.
+        Returns: la lista delle Prenotazioni con i loro servizi.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                _SELECT + "WHERE dipendente_id = %s AND ("
+                "(stato = 'confermata' AND inizio < %s) OR (stato = 'annullata' AND EXISTS ("
+                "SELECT 1 FROM pagamenti WHERE pagamenti.prenotazione_id = prenotazioni.id "
+                "AND tipo = 'online' AND stato = 'completato'))) ORDER BY inizio DESC LIMIT %s",
+                (dipendente_id, prima_di, limite),
             )
             righe = cur.fetchall()
         return [self._con_servizi(riga) for riga in righe]
@@ -134,6 +155,22 @@ class PrenotazioneRepository:
                 "AND inizio < %s AND fine > %s "
                 "AND (stato = 'confermata' OR (stato = 'in_attesa_pagamento' AND scade_il > %s))",
                 (cliente_id, a, da, adesso),
+            )
+            return cur.fetchall()
+
+    def intervalli_attivi_salone(self, da: datetime, a: datetime,
+                                 adesso: datetime) -> list[tuple[datetime, datetime]]:
+        """
+        Appuntamenti di tutto il salone (confermati o in attesa non scaduti) che toccano [da, a).
+        Serve a controllare che una modifica degli orari di una data non lasci fuori nessuno.
+        Args: date e ore in UTC.
+        Returns: lista di coppie (inizio, fine) in UTC.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "SELECT inizio, fine FROM prenotazioni WHERE inizio < %s AND fine > %s "
+                "AND (stato = 'confermata' OR (stato = 'in_attesa_pagamento' AND scade_il > %s))",
+                (a, da, adesso),
             )
             return cur.fetchall()
 

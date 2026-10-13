@@ -2,6 +2,7 @@
 // chiede al server gli orari liberi con fetch e li mostra come scelte.
 const modulo = document.getElementById("modulo-prenotazione");
 const contenitoreSlot = document.getElementById("slot");
+const avvisoData = document.getElementById("avviso-data");
 let ultimaRichiesta = 0;  // numero dell'ultima richiesta: le risposte più vecchie si ignorano
 
 async function aggiornaSlot() {
@@ -10,6 +11,7 @@ async function aggiornaSlot() {
     const dipendente = dati.get("dipendente_id");
     const data = dati.get("data");
 
+    avvisoData.hidden = true;
     if (servizi.length === 0 || !dipendente || !data) {
         contenitoreSlot.textContent = "Scegli servizi, professionista e data per vedere gli orari liberi.";
         return;
@@ -31,6 +33,7 @@ async function aggiornaSlot() {
         contenitoreSlot.textContent = risultato.errore;
         return;
     }
+    avvisoData.hidden = !risultato.da_definire;  // festività o vigilia: l'orario può ancora cambiare
     if (risultato.slot.length === 0) {
         contenitoreSlot.textContent = "Nessun orario libero in questa data.";
         return;

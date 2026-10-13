@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block titolo %}Barber Booking{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/stile.css') }}">
+    <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
     <header>
         <a class="marchio" href="{{ url_for('pubblico.home') }}">Barber <span>Booking</span></a>
-        <nav>
+        <button type="button" id="apri-menu" class="apri-menu" aria-expanded="false" aria-controls="menu">Menu</button>
+        <nav id="menu">
             <a href="{{ url_for('pubblico.servizi') }}">Servizi</a>
             {% if g.utente %}
                 {% if g.utente.ruolo == 'cliente' %}
@@ -33,11 +35,17 @@
             {% endif %}
         </nav>
     </header>
-    <main>
+    <main class="{% block classe_main %}{% endblock %}">
         {% for messaggio in get_flashed_messages() %}
             <p class="messaggio">{{ messaggio }}</p>
         {% endfor %}
         {% block contenuto %}{% endblock %}
     </main>
+    <footer>
+        <p>Barber Booking · progetto finale del corso Full Stack Python</p>
+        <p>Foto di <a href="https://unsplash.com/photos/1Pmp9uxK8X8">Agustin Fernandez</a>
+            e <a href="https://unsplash.com/photos/YmaaUNbHHtw">Megan Bagshaw</a> su Unsplash</p>
+    </footer>
+    <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
 </body>
 </html>

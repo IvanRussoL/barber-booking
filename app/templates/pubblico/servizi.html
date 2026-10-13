@@ -4,13 +4,19 @@
 
 {% block contenuto %}
     <h1>Servizi e prezzi</h1>
-    {% for servizio in servizi %}
-        <article>
-            <h2>{{ servizio.nome }}</h2>
-            {% if servizio.descrizione %}<p>{{ servizio.descrizione }}</p>{% endif %}
-            <p>{{ servizio.durata_minuti | durata }} · {{ servizio.prezzo_centesimi | euro }}</p>
-        </article>
-    {% else %}
-        <p>Il listino sarà disponibile a breve.</p>
-    {% endfor %}
+    <div class="griglia-servizi">
+        {% for servizio in servizi %}
+            <article>
+                <h2>{{ servizio.nome }}</h2>
+                {% if servizio.descrizione %}<p>{{ servizio.descrizione }}</p>{% endif %}
+                <p class="prezzo">{{ servizio.prezzo_centesimi | euro }}</p>
+                <p><small>{{ servizio.durata_minuti | durata }}</small></p>
+            </article>
+        {% else %}
+            <p>Il listino sarà disponibile a breve.</p>
+        {% endfor %}
+    </div>
+    {% if servizi %}
+        <p><a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota</a></p>
+    {% endif %}
 {% endblock %}

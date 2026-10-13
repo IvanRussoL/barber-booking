@@ -16,7 +16,11 @@
     box-sizing: border-box;
 }
 
+/* Colonna a tutta altezza: il piè di pagina resta in fondo anche nelle pagine corte. */
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     margin: 0;
     background: var(--sfondo);
     color: var(--testo);
@@ -79,6 +83,8 @@ nav form {
 /* --- Contenuto --- */
 
 main {
+    flex: 1;
+    width: 100%;
     max-width: 920px;
     margin: 0 auto;
     padding: 32px 24px 64px;
@@ -283,36 +289,6 @@ small {
     color: var(--testo-tenue);
 }
 
-/* --- Home --- */
-
-.copertina {
-    padding: 48px 0 24px;
-}
-
-.copertina h1 {
-    font-size: 2.4rem;
-    margin-bottom: 8px;
-}
-
-.copertina p {
-    color: var(--testo-tenue);
-    font-size: 1.15rem;
-}
-
-.pulsante {
-    display: inline-block;
-    padding: 12px 22px;
-    background: var(--menta);
-    color: #062a25;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.pulsante:hover {
-    background: var(--menta-scuro);
-}
-
 .stato-annullata,
 .stato-scaduta {
     color: var(--rosa);
@@ -320,10 +296,6 @@ small {
 
 .stato-confermata {
     color: var(--menta);
-}
-
-.copertina .pulsante {
-    margin-right: 16px;
 }
 
 /* Riattivare un servizio non è un'azione distruttiva: verde invece di rosa. */
@@ -335,3 +307,366 @@ td button.riattiva {
 td button.riattiva:hover {
     background: rgba(45, 212, 191, 0.12);
 }
+
+/* --- Pulsanti a link --- */
+
+.pulsante {
+    display: inline-block;
+    padding: 12px 24px;
+    background: var(--menta);
+    color: #062a25;
+    border: 2px solid var(--menta);
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.pulsante:hover {
+    background: var(--menta-scuro);
+    border-color: var(--menta-scuro);
+}
+
+.pulsante:active {
+    transform: scale(0.97);
+}
+
+.pulsante-contorno {
+    background: transparent;
+    color: var(--testo);
+    border-color: var(--bordo);
+}
+
+.pulsante-contorno:hover {
+    background: transparent;
+    border-color: var(--menta);
+    color: var(--menta);
+}
+
+/* --- Home: pagina più larga --- */
+
+main.larga {
+    max-width: 1280px;
+}
+
+/* --- Home: sezione in alto con l'insegna --- */
+
+.copertina {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 48px;
+    padding: 24px 0 56px;
+}
+
+.copertina h1 {
+    margin: 12px 0;
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.sottotitolo {
+    max-width: 520px;
+    color: var(--testo-tenue);
+    font-size: 1.15rem;
+}
+
+.azioni {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.stato-apertura {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 14px;
+    border: 1px solid var(--bordo);
+    border-radius: 999px;
+    color: var(--testo-tenue);
+    font-size: 0.95rem;
+}
+
+.stato-apertura::before {
+    content: "";
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--rosa);
+}
+
+.stato-apertura.aperto::before {
+    background: var(--menta);
+    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.2);
+}
+
+/* L'insegna del barbiere: un cilindro di vetro con strisce diagonali che scorrono verso l'alto. */
+.insegna {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 40px;
+}
+
+.insegna-cappello {
+    width: 92px;
+    height: 26px;
+    border-radius: 13px;
+    background: linear-gradient(90deg, #5b616e, #e4e7ec 45%, #8b919c);
+}
+
+.insegna-vetro {
+    position: relative;
+    width: 70px;
+    height: 300px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.insegna-strisce {
+    position: absolute;
+    top: -114px;
+    left: 0;
+    right: 0;
+    height: calc(100% + 114px);
+    /* 4 strisce da 20px misurate in diagonale: lo schema si ripete ogni 80px, cioè ogni 113,14px in verticale. */
+    background: repeating-linear-gradient(45deg,
+        var(--menta) 0 20px, #ffffff 20px 40px, var(--rosa) 40px 60px, #ffffff 60px 80px);
+    animation: scorri 2.4s linear infinite;
+}
+
+/* Riflesso del vetro: chiaro al centro, scuro ai bordi, dà l'effetto del cilindro. */
+.insegna-vetro::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.35) 40%,
+        rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.4));
+}
+
+@keyframes scorri {
+    to {
+        transform: translateY(113.14px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .insegna-strisce {
+        animation: none;
+    }
+}
+
+/* --- Home: card grandi con foto --- */
+
+.card-grandi {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.card-foto {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: var(--raggio);
+    color: #fff;
+    text-decoration: none;
+}
+
+.card-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+/* Sfumatura scura in basso: il testo resta leggibile su qualsiasi foto. */
+.card-foto::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0) 55%);
+}
+
+.card-testo {
+    position: absolute;
+    z-index: 1;
+    left: 32px;
+    right: 32px;
+    bottom: 32px;
+}
+
+.card-etichetta {
+    margin: 0;
+    font-weight: 600;
+}
+
+.card-testo h2 {
+    margin: 4px 0 18px;
+    font-size: clamp(1.4rem, 2.6vw, 2rem);
+    line-height: 1.15;
+}
+
+.pillola {
+    display: inline-block;
+    padding: 10px 22px;
+    background: #fff;
+    color: #111;
+    border-radius: 999px;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+}
+
+.card-foto:hover img,
+.card-foto:focus-visible img {
+    transform: scale(1.05);
+}
+
+.card-foto:hover .pillola,
+.card-foto:focus-visible .pillola {
+    background: var(--menta);
+    color: #062a25;
+}
+
+.card-foto:focus-visible {
+    outline: 3px solid var(--menta);
+    outline-offset: 3px;
+}
+
+/* --- Home: orari e contatti --- */
+
+.orari {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 32px;
+    margin-top: 56px;
+}
+
+.orari table {
+    max-width: 560px;
+}
+
+.orari tr.oggi th,
+.orari tr.oggi td {
+    color: var(--menta);
+    font-weight: 600;
+}
+
+.contatti p {
+    margin: 4px 0;
+    color: var(--testo-tenue);
+}
+
+/* --- Listino pubblico --- */
+
+.griglia-servizi {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.griglia-servizi article {
+    margin: 0;
+}
+
+.griglia-servizi h2 {
+    margin-top: 0;
+    font-size: 1.2rem;
+}
+
+.prezzo {
+    color: var(--menta);
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+/* --- Piè di pagina --- */
+
+footer {
+    padding: 24px;
+    border-top: 1px solid var(--bordo);
+    color: var(--testo-tenue);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+footer p {
+    margin: 4px 0;
+}
+
+/* --- Menu su telefono --- */
+
+.apri-menu {
+    display: none;
+}
+
+@media (max-width: 720px) {
+    header {
+        padding: 12px 16px;
+    }
+
+    main {
+        padding: 24px 16px 48px;
+    }
+
+    /* Solo con JavaScript attivo il menu si chiude: senza, i link restano sempre visibili. */
+    .js .apri-menu {
+        display: block;
+        padding: 6px 14px;
+        background: transparent;
+        color: var(--testo);
+        border: 1px solid var(--bordo);
+    }
+
+    .js nav {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        padding-top: 8px;
+    }
+
+    .js nav.aperto {
+        display: flex;
+    }
+
+    .copertina {
+        position: relative;
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding-bottom: 32px;
+    }
+
+    /* Su telefono l'insegna diventa piccola e sta in alto a destra del titolo. */
+    .insegna {
+        position: absolute;
+        top: 24px;
+        right: 0;
+        margin: 0;
+        transform: scale(0.45);
+        transform-origin: top right;
+    }
+
+    .copertina-testo {
+        padding-right: 56px;
+    }
+
+    .card-grandi,
+    .orari {
+        grid-template-columns: 1fr;
+    }
+
+    .card-testo {
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+    }
+}
+

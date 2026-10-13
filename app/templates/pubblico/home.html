@@ -1,12 +1,69 @@
 {% extends "base.html" %}
 
+{% set GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"] %}
+
+{% block titolo %}{{ impostazioni.nome_salone }} – Prenota online{% endblock %}
+{% block classe_main %}larga{% endblock %}
+
 {% block contenuto %}
     <section class="copertina">
-        <h1>Il tuo taglio, quando vuoi tu.</h1>
-        <p>Scegli i servizi, il professionista e l'orario: prenoti in un minuto e paghi online l'acconto o l'intero importo.</p>
-        <p>
-            <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
-            <a href="{{ url_for('pubblico.servizi') }}">Guarda servizi e prezzi</a>
-        </p>
+        <div class="copertina-testo">
+            <p class="stato-apertura {{ 'aperto' if aperto else 'chiuso' }}">{{ stato_apertura }}</p>
+            <h1>Il tuo taglio,<br>quando vuoi tu.</h1>
+            <p class="sottotitolo">Scegli i servizi, il professionista e l'orario: prenoti in un minuto
+                e paghi online l'acconto o l'intero importo.</p>
+            <div class="azioni">
+                <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
+                <a class="pulsante pulsante-contorno" href="{{ url_for('pubblico.servizi') }}">Servizi e prezzi</a>
+            </div>
+        </div>
+        <div class="insegna" aria-hidden="true">
+            <div class="insegna-cappello"></div>
+            <div class="insegna-vetro"><div class="insegna-strisce"></div></div>
+            <div class="insegna-cappello"></div>
+        </div>
+    </section>
+
+    <section class="card-grandi">
+        <a class="card-foto" href="{{ url_for('cliente.prenota') }}">
+            <img src="{{ url_for('static', filename='img/barbiere.jpg') }}"
+                 alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348">
+            <div class="card-testo">
+                <p class="card-etichetta">Prenotazione online</p>
+                <h2>Scegli orario e professionista</h2>
+                <span class="pillola">Prenota</span>
+            </div>
+        </a>
+        <a class="card-foto" href="{{ url_for('pubblico.servizi') }}">
+            <img src="{{ url_for('static', filename='img/ritratto.jpg') }}"
+                 alt="Ritratto di profilo con taglio corto sfumato" width="900" height="1350" loading="lazy">
+            <div class="card-testo">
+                <p class="card-etichetta">Listino</p>
+                <h2>Taglio, barba, colore e piega</h2>
+                <span class="pillola">Scopri i servizi</span>
+            </div>
+        </a>
+    </section>
+
+    <section class="orari" id="orari">
+        <div>
+            <h2>Orari</h2>
+            <table>
+                {% for giorno, turni in orari %}
+                    <tr class="{{ 'oggi' if giorno == oggi }}">
+                        <th>{{ GIORNI[giorno - 1] }}</th>
+                        <td>
+                            {% for turno in turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% else %}Chiuso{% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div class="contatti">
+            <h2>Dove siamo</h2>
+            <p>{{ impostazioni.nome_salone }}</p>
+            <p>{{ impostazioni.indirizzo }}</p>
+            <p><a href="tel:{{ impostazioni.telefono }}">{{ impostazioni.telefono }}</a></p>
+        </div>
     </section>
 {% endblock %}

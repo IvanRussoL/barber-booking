@@ -159,3 +159,16 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 ## 2026-10-12 · Correzione – Nome della tabella in `ServizioRepository.aggiorna()`
 
 - **`UPDATE Servizi` → `UPDATE servizi`**: su Windows MySQL non distingue le maiuscole nei nomi delle tabelle, su Linux sì, quindi la query falliva provando i test su un MySQL Linux. Uso sempre nomi in minuscolo, come nello schema.
+
+## 2026-10-13 · CRUD dei servizi per il proprietario
+
+- **`SaloneService` per le operazioni del proprietario, per ora solo sui servizi**: riceve i testi del modulo, li controlla e li converte, e fa il commit, come `AuthService`. Le rotte leggono il modulo, chiamano il servizio e mostrano il risultato. Alternativa scartata: controlli nelle rotte (non testabili senza Flask).
+- **Funzioni di validazione comuni in `app/servizi/validazione.py`**: `testo_obbligatorio` (spostata da `auth.py`), `testo_facoltativo` (testo vuoto → `NULL`) ed `euro_in_centesimi`. Servono a più servizi, quindi stanno in un modulo condiviso. Alternativa scartata: copiarle in ogni servizio.
+- **Prezzo inserito in euro ("25" o "25,50") e convertito in centesimi con un'espressione regolare e calcoli tra interi**: virgola o punto, al massimo due decimali, nessun numero in virgola mobile. Alternative scartate: `float` (arrotondamenti sbagliati), `Decimal` (corretto, ma con la regex servono solo interi), prezzo da scrivere già in centesimi (scomodo per il proprietario).
+- **Prezzo maggiore di zero, anche se lo schema accetta 0**: un servizio gratuito darebbe un pagamento di 0 euro, che `pagamenti` rifiuta (`importo_centesimi > 0`). Durata da 30 a 480 minuti, multipla di 30: il limite massimo corrisponde al turno più lungo.
+- **Nome univoco controllato dal servizio con `leggi_per_nome()`, come l'email degli utenti**: messaggio chiaro invece di un `IntegrityError`; il vincolo `UNIQUE` resta come ultima difesa. In modifica il servizio può tenere il proprio nome.
+- **Disattivazione al posto della cancellazione (la "D" del CRUD)**: un servizio disattivato sparisce dal listino pubblico e dalle nuove prenotazioni, ma resta nello storico. Un pulsante fa sia disattiva sia riattiva, con un campo nascosto `attivo` in un modulo POST con token CSRF. La modifica non cambia lo stato attivo.
+- **`RisorsaNonTrovataError` con un gestore che risponde 404**: Flask sceglie il gestore della classe più specifica, quindi questa eccezione non arriva a quello generico (400). Servirà anche nell'area cliente per i dati di altri utenti.
+- **Filtri Jinja `euro` e `durata` in `app/formato.py`**: i template mostrano "25,50 €" e "1 h 30 min" senza calcoli ripetuti in ogni pagina.
+- **Pagina pubblica `/servizi` con il listino dei servizi attivi**: la consulta anche il visitatore, come previsto dai requisiti.
+- **Moduli con `novalidate`**: il browser non blocca più l'invio con i suoi avvisi, quindi gli errori li mostra sempre il server con i messaggi in italiano della pagina. Gli attributi `required`, `min` e `step` restano come indicazione dei valori ammessi.

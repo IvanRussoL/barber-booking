@@ -8,7 +8,7 @@ Applicazione web per un salone di barbiere/parrucchiere: i clienti prenotano onl
 
 | Ruolo | Cosa può fare |
 |---|---|
-| Visitatore | Consulta servizi e prezzi, si registra come cliente |
+| Visitatore | Vede se il salone è aperto in quel momento, consulta orari, servizi e prezzi, si registra come cliente |
 | Cliente | Prenota uno o più servizi scegliendo professionista, data e orario libero; paga acconto o importo completo; consulta lo storico con il totale speso; annulla fino a 2 ore prima con rimborso |
 | Dipendente | Consulta la propria agenda con i recapiti dei clienti |
 | Proprietario | Crea, modifica, disattiva e riattiva i servizi; se lavora in sala riceve prenotazioni e ha la sua agenda |
@@ -36,7 +36,7 @@ barber-booking/
 │   ├── pagamenti/         # PaymentProvider (classe astratta) e FakeProvider
 │   ├── rotte/             # Blueprint: pubblico, auth, cliente, dipendente, proprietario
 │   ├── templates/         # pagine Jinja, una cartella per Blueprint
-│   ├── static/            # CSS e JavaScript
+│   ├── static/            # CSS, JavaScript e foto ridotte (img/)
 │   ├── accessi.py         # controllo comune dei Blueprint riservati
 │   ├── comandi.py         # flask crea-proprietario
 │   ├── eccezioni.py       # BarberBookingError e sottoclassi
@@ -120,3 +120,8 @@ Le motivazioni complete e le alternative scartate sono in `DEVLOG.md` e `docs/PR
 - Gestione dal sito di orari, eccezioni per data, assenze e chiusure; creazione dei dipendenti da parte del proprietario.
 - Saldo in sede registrato dal proprietario, annullamenti da parte del salone.
 - Limite ai tentativi di login (Flask-Limiter), cambio e recupero della password.
+- Foto per ogni servizio, caricate dal proprietario e controllate con Pillow.
+
+## Crediti
+
+Foto di [Agustin Fernandez](https://unsplash.com/photos/1Pmp9uxK8X8) e [Megan Bagshaw](https://unsplash.com/photos/YmaaUNbHHtw) su Unsplash.

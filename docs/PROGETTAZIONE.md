@@ -517,7 +517,7 @@ Il criterio che ho seguito è la soluzione più semplice che rispetta i requisit
 | Login | Sessione di Flask gestita a mano | Flask-Login | Pochi passaggi, nessuna libreria in più |
 | Date | DATETIME in UTC, turni in ora locale | Tutto in ora locale | Nessuna ambiguità con l'ora legale |
 | Prezzi | Interi in centesimi | FLOAT o DECIMAL | Nessun arrotondamento, formato richiesto da Stripe |
-| Doppie prenotazioni | Controllo nella transazione con `SELECT ... FOR UPDATE` | Controllo solo prima dell'inserimento | Richieste simultanee servite una alla volta |
+| Doppie prenotazioni | Controllo nella transazione con `SELECT ... FOR UPDATE` su cliente e dipendente, isolamento `READ COMMITTED` | Controllo solo prima dell'inserimento | Richieste simultanee servite una alla volta, e ognuna vede le prenotazioni appena confermate dalle altre |
 | Pagamenti | Conferma dal webhook firmato, movimenti in `pagamenti` | Conferma dalla pagina di ritorno | Il browser non decide l'esito |
 | Provider | Classe astratta con implementazione reale e finta | Chiamate dirette a Stripe | Test senza servizi esterni, provider sostituibile |
 | Errori | Eccezioni personalizzate e `@app.errorhandler` | Codici di errore restituiti | Regola violata riconoscibile, gestione in un punto |
@@ -550,3 +550,35 @@ Dalla libreria standard di Python uso inoltre `dataclasses` (modelli), `abc` (cl
 - Giacenza numerica dei prodotti (pezzi in magazzino) al posto della disponibilità sì/no.
 - Termine per il ritiro degli ordini, con annullamento e rimborso automatici alla scadenza.
 - Recupero della password dimenticata tramite email.
+
+## 11. Versione consegnata (14 ottobre 2026)
+
+Per la consegna del corso ho realizzato una versione ridotta del progetto. Le sezioni 1-10 restano il progetto completo; questa sezione dice cosa è implementato oggi. Le date e le motivazioni delle modifiche sono nel DEVLOG.
+
+### Implementato
+
+- Registrazione dei clienti, login e logout; primo proprietario creato con `flask crea-proprietario`.
+- Blueprint `pubblico`, `auth`, `cliente`, `dipendente`, `proprietario` con il controllo degli accessi in `before_request` e il test che scorre tutte le rotte.
+- CRUD dei servizi per il proprietario (creazione, modifica, disattivazione e riattivazione) e listino pubblico.
+- Calcolo degli slot liberi sul calendario settimanale e sulle eccezioni per data, con assenze e chiusure lette da `indisponibilita`.
+- Prenotazione con controllo anti-sovrapposizione per professionista e per cliente, nella stessa transazione.
+- Pagamento simulato con `FakeProvider`: acconto o importo completo, scadenza di 30 minuti, conferma idempotente, rimborso automatico dei pagamenti tardivi, uscita dal pagamento.
+- Area cliente con storico, importo pagato, totale speso e annullamento fino a 2 ore prima con rimborso; protezione dai dati altrui (404).
+- Agenda del professionista.
+- Home con stato di apertura, orari e contatti; `seed.py` con dati di prova.
+
+### Rimandato agli sviluppi futuri
+
+- `StripeProvider` (Checkout, Google Pay, PayPal) e Blueprint `webhook` (fase 7 e 7b).
+- Prodotti, carrello e ordini (fase 7c).
+- Tracking e statistiche con pandas e matplotlib (fase 8).
+- Pagine del proprietario per orari, eccezioni, assenze, chiusure, dipendenti, saldo in sede e annullamenti per conto del salone: oggi si modificano solo dal database.
+- Blueprint `account` con il cambio password; rate limiting del login con Flask-Limiter.
+
+### Scelte cambiate o aggiunte durante lo sviluppo
+
+- **Isolamento `READ COMMITTED`** per tutte le connessioni: con il `REPEATABLE READ` predefinito il controllo dopo il `FOR UPDATE` non vedeva le prenotazioni appena confermate (verificato con un test di concorrenza).
+- **Blocco anche sulla riga del cliente**, prima di quella del dipendente: un cliente non può avere due appuntamenti sovrapposti con professionisti diversi.
+- **Moduli con `novalidate`**: gli errori li mostra sempre il server, con i messaggi in italiano.
+- **Prezzo dei servizi maggiore di zero**: lo schema accetta 0, ma un pagamento di 0 euro sarebbe rifiutato da `pagamenti`.
+

@@ -19,7 +19,7 @@ Regole principali: slot di 30 minuti dentro i turni del salone, nessuna sovrappo
 
 - Python 3.13, Flask 3, Jinja
 - MySQL 8 con `mysql-connector-python` e query SQL scritte a mano (nessun ORM)
-- HTML, CSS e JavaScript (`fetch` per gli orari liberi)
+- HTML, CSS e JavaScript (`fetch` per gli orari liberi), Playfair Display da Google Fonts per i titoli
 - Flask-WTF (solo protezione CSRF), python-dotenv, tzdata
 - pytest
 
@@ -124,4 +124,16 @@ Le motivazioni complete e le alternative scartate sono in `DEVLOG.md` e `docs/PR
 
 ## Crediti
 
-Foto di [Agustin Fernandez](https://unsplash.com/photos/1Pmp9uxK8X8) e [Megan Bagshaw](https://unsplash.com/photos/YmaaUNbHHtw) su Unsplash.
+Foto da Unsplash, ridotte per il web:
+
+| File | Autore |
+|---|---|
+| `img/barbiere.jpg` | [Agustin Fernandez](https://unsplash.com/photos/1Pmp9uxK8X8) |
+| `img/ritratto.jpg` | [Megan Bagshaw](https://unsplash.com/photos/YmaaUNbHHtw) |
+| `img/listino.jpg` | [Agustin Fernandez](https://unsplash.com/photos/Znyjl9pbaUs) |
+| `img/prenota.jpg` | [Jay Huang](https://unsplash.com/photos/aZBQB-uYosc) |
+| `img/area.jpg` | [Arthur Humeau](https://unsplash.com/photos/Twd3yaqA2NM) |
+| `img/accedi.jpg` | [Oriol Pascual](https://unsplash.com/photos/pzl6s-FJ72I) |
+| `img/registrati.jpg` | [T (@tanyabarrow)](https://unsplash.com/photos/fa0DqQ91dWU) |
+
+Carattere dei titoli: [Playfair Display](https://fonts.google.com/specimen/Playfair+Display) da Google Fonts (senza connessione il browser usa Georgia).

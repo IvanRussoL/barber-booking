@@ -581,4 +581,4 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 - **Blocco anche sulla riga del cliente**, prima di quella del dipendente: un cliente non può avere due appuntamenti sovrapposti con professionisti diversi.
 - **Moduli con `novalidate`**: gli errori li mostra sempre il server, con i messaggi in italiano.
 - **Prezzo dei servizi maggiore di zero**: lo schema accetta 0, ma un pagamento di 0 euro sarebbe rifiutato da `pagamenti`.
-
+- **Tema grafico chiaro e caldo** (osso, espresso, corallo, ottone) al posto del tema scuro con verde menta e rosa: più adatto a un salone. Contrasti dei testi verificati (almeno 4,5:1).

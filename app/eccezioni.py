@@ -20,3 +20,15 @@ class CredenzialiNonValideError(BarberBookingError):
     """
     Login fallito: email o password errate, oppure account disattivato.
     """
+
+
+class ServizioGiaEsistenteError(BarberBookingError):
+    """
+    Servizio creato o rinominato con un nome già usato da un altro servizio.
+    """
+
+
+class RisorsaNonTrovataError(BarberBookingError):
+    """
+    Dato richiesto inesistente, o di un altro utente: viene mostrato come pagina non trovata (404).
+    """

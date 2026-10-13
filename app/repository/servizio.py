@@ -43,6 +43,17 @@ class ServizioRepository:
             riga = cur.fetchone()
         return _da_riga(riga) if riga else None
 
+    def leggi_per_nome(self, nome: str) -> Servizio | None:
+        """
+        Legge un servizio dal suo nome, senza distinguere maiuscole e minuscole.
+        Args: nome.
+        Returns: il Servizio, oppure None se non esiste.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(_SELECT + "WHERE nome = %s", (nome,))
+            riga = cur.fetchone()
+        return _da_riga(riga) if riga else None
+
     def elenca(self, solo_attivi: bool = True) -> list[Servizio]:
         """
         Elenca i servizi in ordine di nome.

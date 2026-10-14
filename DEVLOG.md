@@ -296,3 +296,7 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 ## 2026-10-14 · "Apri in Maps" nella pagina del salone
 
 - **Link alle indicazioni stradali di Google Maps** sotto la mappa di "Dove siamo", con il formato pubblico "Maps URLs" (`https://www.google.com/maps/dir/?api=1&destination=lat,lon`): non serve una chiave API e sul telefono si apre l'app di Maps. Google riceve le coordinate del salone solo se il visitatore clicca. Alternative scartate: link `geo:` (funziona solo su Android), indicazioni dentro la mappa Leaflet (servirebbe un servizio di percorsi).
+
+## 2026-10-14 · Ricerca dei saloni solo per chi prenota
+
+- **Dipendenti e proprietari non vedono più la ricerca dei saloni**: niente "Trova il salone" nel menu e nel piè di pagina, niente sezione di ricerca e pulsanti di ricerca nel carosello della home. Al posto di "Trova il salone" nella prima slide c'è "Area di lavoro". Il criterio è `puo_prenotare`, già usato per i pulsanti "Prenota" (vero per visitatori e clienti). La pagina `/saloni` resta pubblica, quindi non serve bloccarla: è solo un'interfaccia più pulita per lo staff. Alternativa scartata: rispondere 403 allo staff su `/saloni` (pagina già aperta a chiunque, il blocco non proteggerebbe niente).

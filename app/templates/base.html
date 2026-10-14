@@ -22,7 +22,9 @@
         </a>
         <button type="button" id="apri-menu" class="apri-menu" aria-expanded="false" aria-controls="menu">Menu</button>
         <nav id="menu">
-            <a href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a>
+            {% if puo_prenotare %}
+                <a href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a>
+            {% endif %}
             {% if g.utente %}
                 {% if g.utente.ruolo == 'cliente' %}
                     <a href="{{ url_for('cliente.area') }}">Area personale</a>
@@ -64,15 +66,18 @@
                     <p>{{ salone_utente.indirizzo }}</p>
                 </div>
             {% endif %}
-            <div>
-                <p class="piede-titolo">Esplora</p>
-                <p><a href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a></p>
-                {% if g.utente and g.utente.ruolo == 'cliente' %}
-                    <p><a href="{{ url_for('cliente.area') }}">Le mie prenotazioni</a></p>
-                {% elif not g.utente %}
-                    <p><a href="{{ url_for('auth.registrazione') }}">Registrati</a></p>
-                {% endif %}
-            </div>
+            {# La ricerca dei saloni serve a chi prenota: dipendenti e proprietari non la vedono. #}
+            {% if puo_prenotare %}
+                <div>
+                    <p class="piede-titolo">Esplora</p>
+                    <p><a href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a></p>
+                    {% if g.utente %}
+                        <p><a href="{{ url_for('cliente.area') }}">Le mie prenotazioni</a></p>
+                    {% else %}
+                        <p><a href="{{ url_for('auth.registrazione') }}">Registrati</a></p>
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
         <p class="piede-copyright">© {{ anno }} Barber Booking</p>
     </footer>

@@ -130,3 +130,11 @@ def test_avviso_solo_con_testo_fisso(client):
 def test_pagina_del_salone_con_link_a_maps(client, salone_test):
     pagina = client.get(f"/saloni/{salone_test}").text
     assert "https://www.google.com/maps/dir/?api=1&destination=" in pagina
+
+
+@pytest.mark.parametrize("ruolo", ["dipendente", "proprietario"])
+def test_staff_non_vede_la_ricerca_dei_saloni(client, utenti_accessi, ruolo):
+    with client.session_transaction() as sessione:
+        sessione["utente_id"] = utenti_accessi[ruolo]
+    pagina = client.get("/").text
+    assert 'id="cerca"' not in pagina and 'href="/saloni"' not in pagina and "Trova il salone" not in pagina

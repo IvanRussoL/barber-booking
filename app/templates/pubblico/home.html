@@ -16,7 +16,11 @@
                     <p class="sottotitolo">Trova un salone vicino a te, scegli servizi, professionista e orario:
                         prenoti in un minuto e paghi online l'acconto o l'intero importo.</p>
                     <div class="azioni">
-                        <a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a>
+                        {% if puo_prenotare %}
+                            <a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a>
+                        {% else %}
+                            <a class="pulsante" href="{{ url_for('dipendente.agenda') if g.utente.riceve_prenotazioni else url_for('proprietario.pannello') }}">Area di lavoro</a>
+                        {% endif %}
                         {% if not g.utente %}
                             <a class="pulsante pulsante-contorno" href="{{ url_for('auth.registrazione') }}">Registrati</a>
                         {% endif %}
@@ -30,9 +34,11 @@
                     <p class="card-etichetta">I saloni</p>
                     <h2>Poltrone d'epoca,<br><em>mani esperte.</em></h2>
                     <p class="sottotitolo">Ambienti caldi e curati, nella tua provincia.</p>
-                    <div class="azioni">
-                        <a class="pulsante" href="#cerca">Cerca nella tua zona</a>
-                    </div>
+                    {% if puo_prenotare %}
+                        <div class="azioni">
+                            <a class="pulsante" href="#cerca">Cerca nella tua zona</a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
             <div class="slide" role="group" aria-roledescription="slide" aria-label="3 di 3" inert>
@@ -42,9 +48,11 @@
                     <p class="card-etichetta">Barba e rasatura</p>
                     <h2>La barba,<br><em>fatta come si deve.</em></h2>
                     <p class="sottotitolo">Rifinitura, rasatura e cura: ogni salone mostra trattamenti e prezzi nel suo listino.</p>
-                    <div class="azioni">
-                        <a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Scopri i saloni</a>
-                    </div>
+                    {% if puo_prenotare %}
+                        <div class="azioni">
+                            <a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Scopri i saloni</a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -100,7 +108,8 @@
         </a>
     </section>
 
-    {# Due modi di cercare: si sceglie qui e si arriva a una sola delle due ricerche. #}
+    {# Due modi di cercare: si sceglie qui e si arriva a una sola delle due ricerche. Solo per chi prenota. #}
+    {% if puo_prenotare %}
     <section class="cerca-home" id="cerca">
         <h2>Trova il salone più vicino</h2>
         <div class="scelte-ricerca">
@@ -116,6 +125,7 @@
             </div>
         </div>
     </section>
+    {% endif %}
 {% endblock %}
 
 {% block script %}

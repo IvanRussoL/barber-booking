@@ -6,8 +6,8 @@ from zoneinfo import ZoneInfo
 import matplotlib
 
 matplotlib.use("Agg")  # disegna in memoria, senza aprire finestre: adatto a un server
-import matplotlib.pyplot as plt  # noqa: E402 (va importato dopo la scelta del backend)
-import pandas as pd  # noqa: E402
+import matplotlib.pyplot as plt  
+import pandas as pd  
 
 from app.repository.impostazioni import ImpostazioniRepository  # noqa: E402
 from app.repository.statistiche import StatisticheRepository  # noqa: E402

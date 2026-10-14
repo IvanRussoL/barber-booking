@@ -124,6 +124,7 @@ Le motivazioni complete e le alternative scartate sono in `DEVLOG.md` e `docs/PR
 - Saldo in sede registrato dal proprietario.
 - Limite ai tentativi di login (Flask-Limiter), cambio e recupero della password.
 - Foto per ogni servizio, caricate dal proprietario e controllate con Pillow.
+- Più saloni nello stesso sito (multi tenancy): tabella `saloni`, colonna `salone_id` nelle tabelle del salone e ogni query filtrata per il salone dell'utente in sessione.
 
 ## Crediti
 

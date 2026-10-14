@@ -550,6 +550,7 @@ Dalla libreria standard di Python uso inoltre `dataclasses` (modelli), `abc` (cl
 - Giacenza numerica dei prodotti (pezzi in magazzino) al posto della disponibilità sì/no.
 - Termine per il ritiro degli ordini, con annullamento e rimborso automatici alla scadenza.
 - Recupero della password dimenticata tramite email.
+- Più saloni nello stesso sito (multi tenancy): una tabella `saloni` con i dati oggi in `impostazioni`; colonna `salone_id` in utenti dello staff, servizi, turni, eccezioni, indisponibilità e prenotazioni; ogni query dei repository filtrata con il `salone_id` preso dalla sessione, mai dall'URL (come il controllo IDOR sui clienti). Più proprietari per lo stesso salone sono già possibili oggi.
 
 ## 11. Versione consegnata (14 ottobre 2026)
 

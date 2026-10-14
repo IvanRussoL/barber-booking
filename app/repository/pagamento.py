@@ -64,6 +64,15 @@ class PagamentoRepository:
             )
             return [Pagamento(**riga) for riga in cur.fetchall()]
 
+    def online_della_prenotazione(self, prenotazione_id: int) -> list[Pagamento]:
+        """
+        Pagamenti online di una prenotazione, in qualsiasi stato, dal più recente.
+        Returns: la lista dei Pagamenti.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(_SELECT + "WHERE prenotazione_id = %s AND tipo = 'online' ORDER BY id DESC", (prenotazione_id,))
+            return [Pagamento(**riga) for riga in cur.fetchall()]
+
     def totale_pagato(self, prenotazione_id: int) -> int:
         """
         Quanto ha pagato il cliente per una prenotazione: movimenti completati, rimborsi sottratti.

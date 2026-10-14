@@ -50,3 +50,9 @@ class AnnullamentoNonConsentitoError(BarberBookingError):
     """
     Annullamento non permesso: prenotazione non confermata o a meno di 2 ore dall'inizio.
     """
+
+
+class PagamentoNonDisponibileError(BarberBookingError):
+    """
+    Il provider di pagamento non ha risposto o ha rifiutato l'operazione (es. Stripe non raggiungibile).
+    """

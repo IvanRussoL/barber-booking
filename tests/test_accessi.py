@@ -4,8 +4,9 @@ import pytest
 
 from app import create_app
 
-# Aree aperte a tutti: "static" è la rotta dei file statici creata da Flask.
-AREE_PUBBLICHE = {"pubblico", "auth", "static"}
+# Aree aperte a tutti: "static" è la rotta dei file statici creata da Flask; "webhook" la chiama Stripe
+# e la protegge la firma (test_stripe.py).
+AREE_PUBBLICHE = {"pubblico", "auth", "static", "webhook"}
 
 # Per ogni area riservata, i ruoli che possono entrare.
 # Il proprietario di prova riceve prenotazioni, quindi entra anche nell'area dipendente.

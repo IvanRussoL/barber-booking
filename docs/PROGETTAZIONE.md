@@ -581,7 +581,7 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 
 ### Rimandato agli sviluppi futuri
 
-- `StripeProvider` (Checkout, Google Pay, PayPal) e Blueprint `webhook` (fase 7 e 7b).
+- `StripeProvider` (Checkout, Google Pay, PayPal) e Blueprint `webhook` (fase 7 e 7b): realizzati dopo la consegna, vedi la sezione 12.
 - Prodotti, carrello e ordini (fase 7c): non più previsti, vedi la sezione 10.
 - Tracciamento di visite e click (tabella `eventi`), funnel e occupazione (resto della fase 8): non più previsti, vedi la sezione 10.
 - Pagine del proprietario per il calendario settimanale, assenze, chiusure lunghe, creazione dei dipendenti e saldo in sede: realizzate dopo la consegna, vedi la sezione 12.
@@ -621,6 +621,7 @@ La sezione 11 descrive la versione consegnata (un solo salone). Questa descrive 
 
 - `/saloni` ricerca con mappa; `/saloni/<id>` pagina del salone, con il link "Apri in Maps" per le indicazioni stradali; `/saloni/<id>/servizi` listino.
 - `/cliente/saloni/<id>/prenota` e `/cliente/saloni/<id>/slot` per la prenotazione; `/cliente/prenotazioni/<id>/recensione`.
+- `/webhook/stripe` (notifiche di Stripe, protette dalla firma) e `/cliente/prenotazioni/<id>/pagamento-eseguito` e `-annullato` (pagine a cui Stripe riporta il cliente; non confermano niente).
 - `/account/` per tutti gli utenti con il login: dati dell'account e cambio della password (serve quella attuale).
 - Proprietario: `/proprietario/orari/settimana/<giorno>` (orario settimanale), `/proprietario/assenze` (assenze dei professionisti e chiusure del salone a giorni interi), `/proprietario/dipendenti/nuovo` e `/proprietario/dipendenti/<id>/attivo` (creazione, disattivazione e riattivazione dei dipendenti), `/proprietario/prenotazioni/<id>/saldo` (saldo in sede, solo dopo l'inizio dell'appuntamento).
 
@@ -630,5 +631,6 @@ La sezione 11 descrive la versione consegnata (un solo salone). Questa descrive 
 - Ordinamento della ricerca scelto da un elenco fisso: nessun testo dell'utente nella query.
 - Leaflet da CDN con Subresource Integrity; dati della mappa passati con `tojson` e testi inseriti con `textContent`.
 - Commenti delle recensioni mostrati con l'escape automatico di Jinja (verificato da un test con un tag `<script>`).
+- Pagamenti con Stripe Checkout se in `.env` c'è la chiave, altrimenti simulati; conferma solo dal webhook firmato; con Stripe attivo le pagine del pagamento simulato non esistono (404). Importo minimo di un pagamento 0,50 €.
 - Al massimo 5 tentativi sbagliati al minuto per indirizzo IP su login e cambio password (Flask-Limiter, conteggi in memoria), poi risposta 429.
 

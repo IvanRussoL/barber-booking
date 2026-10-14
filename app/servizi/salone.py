@@ -1,5 +1,6 @@
 from app.eccezioni import DatiNonValidiError, RisorsaNonTrovataError, ServizioGiaEsistenteError
 from app.modelli.servizio import Servizio
+from app.pagamenti.provider import IMPORTO_MINIMO_CENTESIMI
 from app.repository.servizio import ServizioRepository
 from app.servizi.validazione import euro_in_centesimi, testo_facoltativo, testo_obbligatorio
 
@@ -94,11 +95,11 @@ class SaloneService:
         """
         Controlla e converte i dati del modulo.
         Returns: un Servizio senza id.
-        Raises: DatiNonValidiError se un dato non è valido o il prezzo è zero.
+        Raises: DatiNonValidiError se un dato non è valido o il prezzo è sotto 0,50 €.
         """
         prezzo_centesimi = euro_in_centesimi(prezzo_euro, "prezzo")
-        if prezzo_centesimi == 0:
-            raise DatiNonValidiError("Il prezzo deve essere maggiore di zero.")
+        if prezzo_centesimi < IMPORTO_MINIMO_CENTESIMI:
+            raise DatiNonValidiError("Il prezzo deve essere almeno 0,50 €, l'importo minimo dei pagamenti online.")
         return Servizio(
             nome=testo_obbligatorio(nome, "nome", 100),
             descrizione=testo_facoltativo(descrizione, "descrizione", 255),

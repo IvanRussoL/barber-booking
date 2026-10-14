@@ -8,7 +8,7 @@ from app.modelli.prenotazione import Prenotazione, ServizioPrenotato
 from app.modelli.salone import Salone
 from app.modelli.servizio import Servizio
 from app.modelli.utente import Utente
-from app.pagamenti.provider import PaymentProvider
+from app.pagamenti.provider import IMPORTO_MINIMO_CENTESIMI, PaymentProvider
 from app.repository.pagamento import PagamentoRepository
 from app.repository.recensione import RecensioneRepository
 from app.repository.prenotazione import PrenotazioneRepository
@@ -58,9 +58,10 @@ class Appuntamento:
 
 def calcola_acconto(totale_centesimi: int, percentuale: int) -> int:
     """
-    Acconto arrotondato al centesimo più vicino (le metà per eccesso), almeno 1 centesimo.
+    Acconto arrotondato al centesimo più vicino (le metà per eccesso). Non scende sotto l'importo minimo
+    dei pagamenti online (0,50 €), salvo che il totale stesso sia più basso: allora l'acconto è il totale.
     """
-    return max(1, (totale_centesimi * percentuale + 50) // 100)
+    return max(min(IMPORTO_MINIMO_CENTESIMI, totale_centesimi), (totale_centesimi * percentuale + 50) // 100)
 
 
 def _intero(valore: str, campo: str) -> int:
@@ -199,7 +200,7 @@ class PrenotazioneService:
         importo = prenotazione.prezzo_totale()
         if modalita == "acconto":
             importo = calcola_acconto(importo, salone.percentuale_acconto)
-        sessione = self._provider.crea_sessione(importo, f"Prenotazione n. {prenotazione_id}")
+        sessione = self._provider.crea_sessione(importo, f"{salone.nome} – prenotazione n. {prenotazione_id}", prenotazione_id)
         self._pagamenti.inserisci(Pagamento(
             tipo="online", importo_centesimi=importo, prenotazione_id=prenotazione_id,
             riferimento_provider=sessione.riferimento,
@@ -220,6 +221,17 @@ class PrenotazioneService:
         if prenotazione is None or prenotazione.cliente_id != cliente_id:
             raise RisorsaNonTrovataError("Pagamento non trovato.")
         return pagamento, prenotazione
+
+    def pagamento_in_attesa(self, prenotazione_id: int, cliente_id: int) -> tuple[Pagamento | None, Prenotazione]:
+        """
+        Prenotazione del cliente con il suo pagamento online ancora in attesa, per le pagine a cui
+        Stripe riporta il cliente (pagamento eseguito o abbandonato).
+        Returns: (Pagamento in attesa oppure None, Prenotazione).
+        Raises: RisorsaNonTrovataError se la prenotazione non esiste o è di un altro cliente.
+        """
+        prenotazione = self.prenotazione_del_cliente(prenotazione_id, cliente_id)
+        in_attesa = [p for p in self._pagamenti.online_della_prenotazione(prenotazione.id) if p.stato == "in_attesa"]
+        return (in_attesa[0] if in_attesa else None), prenotazione
 
     def conferma_pagamento(self, riferimento: str, adesso: datetime | None = None) -> bool:
         """

@@ -10,9 +10,10 @@ from app.eccezioni import BarberBookingError, RisorsaNonTrovataError
 from app.formato import formatta_data_ora, formatta_durata, formatta_euro
 from app.limiti import limiter
 from app.pagamenti.finto import FakeProvider
+from app.pagamenti.stripe_provider import StripeProvider
 from app.repository.salone import SaloneRepository
 from app.repository.utente import UtenteRepository
-from app.rotte import account, auth, cliente, dipendente, proprietario, pubblico
+from app.rotte import account, auth, cliente, dipendente, proprietario, pubblico, webhook
 
 csrf = CSRFProtect()
 
@@ -91,6 +92,19 @@ def dati_comuni() -> dict:
     }
 
 
+def scegli_provider(in_test: bool):
+    """
+    Provider di pagamento usato dai servizi: Stripe se in .env c'è la chiave segreta, altrimenti
+    il pagamento simulato. I test usano sempre quello simulato, anche se la chiave c'è.
+    Returns: StripeProvider oppure FakeProvider.
+    """
+    chiave = os.environ.get("STRIPE_SECRET_KEY")
+    if chiave and not in_test:
+        return StripeProvider(chiave, os.environ.get("STRIPE_WEBHOOK_SECRET", ""),
+                              os.environ.get("URL_SITO", "http://127.0.0.1:5000"))
+    return FakeProvider()
+
+
 def create_app(config: dict | None = None) -> Flask:
     """
     Crea e configura l'applicazione Flask.
@@ -109,8 +123,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     csrf.init_app(app)
     limiter.init_app(app)
-    # Provider di pagamento usato dai servizi: per ora solo quello simulato.
-    app.extensions["provider_pagamenti"] = app.config.get("PROVIDER_PAGAMENTI") or FakeProvider()
+    app.extensions["provider_pagamenti"] = app.config.get("PROVIDER_PAGAMENTI") or scegli_provider(app.testing)
     app.before_request(carica_utente)
     app.teardown_appcontext(chiudi_connessione)
 
@@ -120,6 +133,8 @@ def create_app(config: dict | None = None) -> Flask:
     app.register_blueprint(cliente.bp)
     app.register_blueprint(dipendente.bp)
     app.register_blueprint(proprietario.bp)
+    app.register_blueprint(webhook.bp)
+    csrf.exempt(webhook.bp)  # la chiama Stripe: la protezione è la firma
 
     app.register_error_handler(BarberBookingError, gestisci_errore)
     app.register_error_handler(RisorsaNonTrovataError, gestisci_non_trovato)

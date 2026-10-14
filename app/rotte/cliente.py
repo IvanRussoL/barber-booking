@@ -5,9 +5,10 @@ from flask import (Blueprint, current_app, flash, g, jsonify, redirect, render_t
 
 from app.accessi import controlla_accesso
 from app.db import ottieni_connessione
-from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, RecensioneNonConsentitaError,
-                           RisorsaNonTrovataError, SlotNonDisponibileError)
+from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, PagamentoNonDisponibileError,
+                           RecensioneNonConsentitaError, RisorsaNonTrovataError, SlotNonDisponibileError)
 from app.formato import formatta_euro
+from app.pagamenti.finto import FakeProvider
 from app.repository.utente import UtenteRepository
 from app.servizi.prenotazione import PrenotazioneService
 from app.servizi.recensioni import LUNGHEZZA_MASSIMA_COMMENTO, RecensioniService
@@ -138,7 +139,7 @@ def prenota(salone_id: int):
             request.form.get("ora", ""),
             request.form.get("modalita", ""),
         )
-    except (DatiNonValidiError, SlotNonDisponibileError) as errore:
+    except (DatiNonValidiError, SlotNonDisponibileError, PagamentoNonDisponibileError) as errore:
         ottieni_connessione().rollback()  # libera subito il blocco sul dipendente
         return _pagina_prenotazione(salone_id, request.form, request.form.getlist("servizi"), str(errore), 400)
     return redirect(url_pagamento)
@@ -168,13 +169,54 @@ def slot(salone_id: int):
     return jsonify(slot=[inizio.strftime("%H:%M") for inizio in liberi], da_definire=incerta)
 
 
+# --- Ritorno da Stripe Checkout ---
+
+@bp.route("/prenotazioni/<int:prenotazione_id>/pagamento-eseguito")
+def pagamento_eseguito(prenotazione_id: int):
+    """
+    Pagina a cui Stripe riporta il cliente dopo il pagamento. Non conferma niente: la conferma
+    arriva solo dal webhook firmato, perché questo indirizzo lo può aprire chiunque.
+    """
+    _, prenotazione = _prenotazioni().pagamento_in_attesa(prenotazione_id, g.utente.id)
+    if prenotazione.stato == "confermata":
+        flash("Pagamento riuscito: prenotazione confermata.")
+    else:
+        flash("Pagamento ricevuto: la prenotazione risulterà confermata appena Stripe ce lo comunica, di solito in pochi secondi.")
+    return redirect(url_for("cliente.area"))
+
+
+@bp.route("/prenotazioni/<int:prenotazione_id>/pagamento-annullato")
+def pagamento_annullato(prenotazione_id: int):
+    """
+    Pagina a cui Stripe riporta il cliente se torna indietro senza pagare: può annullare subito la
+    prenotazione (con un POST) e liberare l'orario; altrimenti l'orario si libera da solo alla scadenza.
+    """
+    servizio = _prenotazioni()
+    pagamento_aperto, prenotazione = servizio.pagamento_in_attesa(prenotazione_id, g.utente.id)
+    return render_template(
+        "cliente/pagamento_annullato.html", pagamento=pagamento_aperto, prenotazione=prenotazione,
+        fuso_orario=servizio.disponibilita(prenotazione.salone_id).fuso_orario,
+    )
+
+
 # --- Pagamento simulato (FakeProvider) ---
+
+def _solo_pagamento_simulato() -> None:
+    """
+    Le pagine del pagamento simulato esistono solo con FakeProvider: con Stripe attivo, "Paga"
+    confermerebbe una prenotazione senza un vero pagamento.
+    Raises: RisorsaNonTrovataError (404) se il provider non è quello simulato.
+    """
+    if not isinstance(current_app.extensions["provider_pagamenti"], FakeProvider):
+        raise RisorsaNonTrovataError("Pagina non trovata.")
+
 
 @bp.route("/pagamento/<riferimento>")
 def pagamento(riferimento: str):
     """
-    Pagina di pagamento simulata: con Stripe il cliente andrebbe sulla pagina di Stripe Checkout.
+    Pagina di pagamento simulata: con Stripe il cliente va sulla pagina di Stripe Checkout.
     """
+    _solo_pagamento_simulato()
     servizio = _prenotazioni()
     movimento, prenotazione = servizio.pagamento_del_cliente(riferimento, g.utente.id)
     dipendente = UtenteRepository(ottieni_connessione()).leggi_per_id(prenotazione.dipendente_id)
@@ -190,6 +232,7 @@ def paga(riferimento: str):
     """
     Simula il pagamento riuscito e la notifica del provider che conferma la prenotazione.
     """
+    _solo_pagamento_simulato()
     servizio = _prenotazioni()
     servizio.pagamento_del_cliente(riferimento, g.utente.id)
     if servizio.conferma_pagamento(riferimento):
@@ -202,7 +245,8 @@ def paga(riferimento: str):
 @bp.route("/pagamento/<riferimento>/annulla", methods=["POST"])
 def annulla_pagamento(riferimento: str):
     """
-    Il cliente esce dal pagamento: la prenotazione in attesa viene annullata e lo slot torna libero.
+    Il cliente esce dal pagamento: la prenotazione in attesa viene annullata e lo slot torna libero
+    (con Stripe la sessione viene fatta scadere, così non si può più pagare).
     """
     servizio = _prenotazioni()
     _, prenotazione = servizio.pagamento_del_cliente(riferimento, g.utente.id)

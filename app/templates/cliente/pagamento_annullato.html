@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block titolo %}Pagamento non completato – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Pagamento non completato</h1>
+    {% if pagamento and prenotazione.stato == 'in_attesa_pagamento' %}
+        <p>Non hai completato il pagamento. L'orario resta bloccato per te fino alle
+            {{ prenotazione.scade_il | data_ora(fuso_orario) }}, poi torna libero.</p>
+        <form method="post" action="{{ url_for('cliente.annulla_pagamento', riferimento=pagamento.riferimento_provider) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Annulla la prenotazione e scegli un altro orario</button>
+        </form>
+    {% else %}
+        <p>Questa prenotazione non è più in attesa di pagamento.</p>
+    {% endif %}
+    <p><a href="{{ url_for('cliente.area') }}">Vai all'area personale</a></p>
+{% endblock %}

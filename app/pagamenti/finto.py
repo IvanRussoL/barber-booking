@@ -14,7 +14,7 @@ class FakeProvider(PaymentProvider):
         self.sessioni_chiuse: list[str] = []
         self.rimborsi: list[tuple[str, int]] = []
 
-    def crea_sessione(self, importo_centesimi: int, descrizione: str) -> SessionePagamento:
+    def crea_sessione(self, importo_centesimi: int, descrizione: str, prenotazione_id: int) -> SessionePagamento:
         """
         Crea un riferimento casuale e la pagina simulata in cui pagare.
         Returns: la SessionePagamento.

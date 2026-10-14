@@ -36,7 +36,7 @@ def _pulisci(conn) -> None:
 
 
 @pytest.fixture
-def dati_confermati():
+def dati_confermati(salone_test):
     """
     Due clienti, un dipendente e un servizio salvati con commit reale: due connessioni diverse
     vedono solo dati confermati. Cancellati a fine test.
@@ -48,8 +48,10 @@ def dati_confermati():
         "cliente_a": utenti.inserisci(Utente("a" + DOMINIO, "x", "Anna", "Prima", "3330000010")),
         "cliente_b": utenti.inserisci(Utente("b" + DOMINIO, "x", "Bruno", "Secondo", "3330000011")),
         "dipendente": utenti.inserisci(Utente("d" + DOMINIO, "x", "Dino", "Dipendente", "3330000012",
-                                              ruolo="dipendente", riceve_prenotazioni=True)),
-        "servizio": ServizioRepository(conn).inserisci(Servizio("Servizio concorrenza", 30, 1000)),
+                                              ruolo="dipendente", salone_id=salone_test, riceve_prenotazioni=True)),
+        "servizio": ServizioRepository(conn).inserisci(Servizio("Servizio concorrenza", 30, 1000,
+                                                                salone_id=salone_test)),
+        "salone": salone_test,
     }
     conn.commit()
     dati["cliente_b"] = utenti.leggi_per_id(dati["cliente_b"])
@@ -66,7 +68,7 @@ def test_due_richieste_simultanee_sullo_stesso_slot(dati_confermati):
     # Richiesta A: blocca il dipendente e salva le 10:00 (08:00 UTC), ma non ha ancora fatto commit.
     UtenteRepository(conn_a).blocca(dati_confermati["dipendente"])
     PrenotazioneRepository(conn_a).inserisci(Prenotazione(
-        cliente_id=dati_confermati["cliente_a"], dipendente_id=dati_confermati["dipendente"],
+        salone_id=dati_confermati["salone"], cliente_id=dati_confermati["cliente_a"], dipendente_id=dati_confermati["dipendente"],
         inizio=datetime(2026, 10, 14, 8, 0), fine=datetime(2026, 10, 14, 8, 30),
         modalita_pagamento="completo", scade_il=datetime(2026, 10, 13, 6, 30),
     ))
@@ -75,7 +77,7 @@ def test_due_richieste_simultanee_sullo_stesso_slot(dati_confermati):
     def richiesta_b():
         try:
             PrenotazioneService(conn_b, FakeProvider()).crea(
-                dati_confermati["cliente_b"], str(dati_confermati["dipendente"]),
+                dati_confermati["cliente_b"], dati_confermati["salone"], str(dati_confermati["dipendente"]),
                 [str(dati_confermati["servizio"])], "2026-10-14", "10:00", "completo", ADESSO,
             )
             risultato["esito"] = "prenotata"

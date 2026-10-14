@@ -8,7 +8,8 @@ class Prodotto:
     nome: str
     prezzo_centesimi: int
     descrizione: str | None = None
+    salone_id: int | None = None
     foto: str | None = None # contiene solo il nome del file, l'immagine vera sta su disco.
     disponibile: bool = True # Ci dice se possiamo comprare il prodotto.
     attivo: bool = True # Attivo se compare nel catalogo.
-    id: int | None = None
+    id: int | None = None

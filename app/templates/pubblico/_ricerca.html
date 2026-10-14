@@ -1,0 +1,58 @@
+{# Moduli di ricerca dei saloni, usati nella home e nella pagina Trova il salone.
+   Variabili: regioni, province, raggi, ordini_vicino, ordini_zona, dati (parametri della ricerca precedente). #}
+<div class="ricerca">
+    <form method="get" action="{{ url_for('pubblico.ricerca') }}" id="cerca-vicino" class="ricerca-modulo solo-js">
+        <h3>Vicino a te</h3>
+        <p class="ricerca-nota">Il browser ti chiede il permesso. La posizione serve solo a questa ricerca e non viene salvata.</p>
+        <input type="hidden" name="lat">
+        <input type="hidden" name="lon">
+        <label>Entro
+            <select name="raggio">
+                {% for raggio in raggi %}
+                    <option value="{{ raggio }}" {% if dati.get('raggio', '10') == raggio | string %}selected{% endif %}>{{ raggio }} km</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Ordina per
+            <select name="ordine">
+                {% for valore, etichetta in ordini_vicino.items() %}
+                    <option value="{{ valore }}" {% if dati.get('lat') and dati.get('ordine') == valore %}selected{% endif %}>{{ etichetta }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="button" data-usa-posizione>Usa la mia posizione</button>
+        <p class="ricerca-stato" data-stato-posizione aria-live="polite"></p>
+    </form>
+
+    <form method="get" action="{{ url_for('pubblico.ricerca') }}" id="cerca-zona" class="ricerca-modulo">
+        <h3>Per regione e provincia</h3>
+        <label>Regione
+            <select name="regione" id="regione">
+                <option value="">Scegli la regione</option>
+                {% for regione in regioni %}
+                    <option {% if dati.get('regione') == regione %}selected{% endif %}>{{ regione }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Provincia
+            <select name="provincia" id="provincia">
+                <option value="">Tutta la regione</option>
+                {% for regione, elenco in province | groupby('regione') %}
+                    <optgroup label="{{ regione }}">
+                        {% for provincia in elenco %}
+                            <option value="{{ provincia.sigla }}" {% if dati.get('provincia') == provincia.sigla %}selected{% endif %}>{{ provincia.nome }}</option>
+                        {% endfor %}
+                    </optgroup>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Ordina per
+            <select name="ordine">
+                {% for valore, etichetta in ordini_zona.items() %}
+                    <option value="{{ valore }}" {% if dati.get('regione') and dati.get('ordine') == valore %}selected{% endif %}>{{ etichetta }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Cerca</button>
+    </form>
+</div>

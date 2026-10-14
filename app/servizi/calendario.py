@@ -58,13 +58,17 @@ def turni_validi(orari: list[tuple[str, str]]) -> list[Turno]:
 
 class CalendarioService:
     """
-    Orari delle singole date decisi dal proprietario: festività, chiusure e aperture straordinarie.
-    Il calendario settimanale resta quello di partenza.
+    Orari delle singole date decisi dal proprietario di un salone: festività, chiusure e aperture
+    straordinarie. Il calendario settimanale resta quello di partenza.
     """
 
-    def __init__(self, connessione):
+    def __init__(self, connessione, salone_id: int):
+        """
+        Raises: RisorsaNonTrovataError se il salone non esiste.
+        """
         self._conn = connessione
-        self._disponibilita = DisponibilitaService(connessione)
+        self._salone_id = salone_id
+        self._disponibilita = DisponibilitaService(connessione, salone_id)
         self._orari = OrarioRepository(connessione)
         self._prenotazioni = PrenotazioneRepository(connessione)
 
@@ -83,7 +87,7 @@ class CalendarioService:
         fuso = self._disponibilita.fuso_orario
         inizio_giorno = datetime.combine(giorno, time(0), fuso)
         intervalli = self._prenotazioni.intervalli_attivi_salone(
-            in_utc(inizio_giorno), in_utc(inizio_giorno + timedelta(days=1)), in_utc(adesso)
+            self._salone_id, in_utc(inizio_giorno), in_utc(inizio_giorno + timedelta(days=1)), in_utc(adesso)
         )
         turni_utc = [(in_utc(datetime.combine(giorno, t.ora_inizio, fuso)),
                       in_utc(datetime.combine(giorno, t.ora_fine, fuso))) for t in turni]
@@ -109,7 +113,9 @@ class CalendarioService:
             raise DatiNonValidiError("Scegli se il salone è aperto o chiuso.")
         turni = turni_validi(orari) if aperto == "si" else []
         self._controlla_prenotazioni(giorno, turni, adesso)
-        self._orari.salva_eccezione(EccezioneData(giorno, aperto == "si", turni, testo_facoltativo(nota, "nota", 255)))
+        self._orari.salva_eccezione(
+            self._salone_id, EccezioneData(giorno, aperto == "si", turni, testo_facoltativo(nota, "nota", 255))
+        )
         self._conn.commit()
         return giorno
 
@@ -121,7 +127,7 @@ class CalendarioService:
         """
         adesso = adesso or datetime.now(UTC)
         giorno = _data_valida(data, self._oggi(adesso))
-        self._controlla_prenotazioni(giorno, self._orari.turni_settimanali(giorno.isoweekday()), adesso)
-        self._orari.elimina_eccezione(giorno)
+        self._controlla_prenotazioni(giorno, self._orari.turni_settimanali(self._salone_id, giorno.isoweekday()), adesso)
+        self._orari.elimina_eccezione(self._salone_id, giorno)
         self._conn.commit()
         return giorno

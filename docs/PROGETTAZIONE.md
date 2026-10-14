@@ -550,7 +550,9 @@ Dalla libreria standard di Python uso inoltre `dataclasses` (modelli), `abc` (cl
 - Giacenza numerica dei prodotti (pezzi in magazzino) al posto della disponibilità sì/no.
 - Termine per il ritiro degli ordini, con annullamento e rimborso automatici alla scadenza.
 - Recupero della password dimenticata tramite email.
-- Più saloni nello stesso sito (multi tenancy): una tabella `saloni` con i dati oggi in `impostazioni`; colonna `salone_id` in utenti dello staff, servizi, turni, eccezioni, indisponibilità e prenotazioni; ogni query dei repository filtrata con il `salone_id` preso dalla sessione, mai dall'URL (come il controllo IDOR sui clienti). Più proprietari per lo stesso salone sono già possibili oggi.
+- Più saloni nello stesso sito (multi tenancy): realizzato dopo la consegna sul branch `multi-salone`, vedi la sezione 12.
+- Pagina pubblica "Registra il tuo salone", con verifica e approvazione prima della pubblicazione.
+- Coordinate dei saloni calcolate dall'indirizzo (geocoding) e mappe da un fornitore con contratto se il traffico cresce.
 
 ## 11. Versione consegnata (14 ottobre 2026)
 
@@ -588,3 +590,36 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 - **Tema grafico chiaro e caldo** (osso, espresso, corallo, ottone) al posto del tema scuro con verde menta e rosa: più adatto a un salone. Contrasti dei testi verificati (almeno 4,5:1).
 - **Il dipendente può annullare le prenotazioni della propria agenda**, con rimborso: le sezioni 2 e 3 lo escludevano. Il salone annulla fino all'inizio dell'appuntamento, senza il limite delle 2 ore del cliente.
 - **Festività "da definire"**: date calcolate dal programma, non salvate; diventano normali eccezioni per data quando il proprietario decide.
+
+## 12. Dopo la consegna: più saloni, ricerca, recensioni e mappa (branch `multi-salone`)
+
+La sezione 11 descrive la versione consegnata (un solo salone). Questa descrive le aggiunte successive; le date e le motivazioni sono nel DEVLOG.
+
+### Modello dei dati
+
+- `province` (sigla, nome, regione): 110 province dai dati ISTAT, Sardegna con le 8 province in vigore dal 2026.
+- `saloni` sostituisce `impostazioni`: nome, indirizzo, provincia, telefono, fuso orario, latitudine e longitudine, percentuale dell'acconto, mesi prenotabili, attivo.
+- `salone_id` in `servizi` (nome unico nel salone), `orari_settimanali`, `eccezioni_date` (chiave primaria `salone_id, data`) ed `eccezioni_turni`, `indisponibilita`, `prenotazioni`, `prodotti`, `ordini`. In `utenti` solo per lo staff: vincolo `chk_utenti_salone`.
+- `recensioni`: una per prenotazione (`UNIQUE`), voto da 1 a 5 (`CHECK`), commento facoltativo, salone e cliente.
+
+### Regole
+
+- Un cliente ha un solo account per tutti i saloni; dipendenti e proprietari appartengono a un salone. Più proprietari per salone sono possibili.
+- Ogni prenotazione è di un salone: servizi e professionista devono appartenere a quel salone. Un cliente non può avere due appuntamenti sovrapposti, neanche in saloni diversi.
+- Lo staff vede e modifica solo il proprio salone; il salone viene dalla sessione. I dati di un altro salone risultano non trovati (404).
+- Ricerca vicino al cliente (raggio di 5, 10, 25 o 50 km, posizione arrotondata a circa 100 metri e non salvata) o per regione e provincia; ordinamento per distanza, recensioni o nome.
+- Recensione solo per un appuntamento confermato e già finito, una volta, dal cliente che l'ha avuto.
+- I saloni si creano con `flask crea-salone` (salone, calendario di partenza e proprietario in un'unica transazione).
+
+### Pagine nuove o spostate
+
+- `/saloni` ricerca con mappa; `/saloni/<id>` pagina del salone; `/saloni/<id>/servizi` listino.
+- `/cliente/saloni/<id>/prenota` e `/cliente/saloni/<id>/slot` per la prenotazione; `/cliente/prenotazioni/<id>/recensione`.
+
+### Sicurezza
+
+- Isolamento tra saloni dentro le query (`WHERE ... AND salone_id = %s`), con test dedicati (`test_multi_salone.py`).
+- Ordinamento della ricerca scelto da un elenco fisso: nessun testo dell'utente nella query.
+- Leaflet da CDN con Subresource Integrity; dati della mappa passati con `tojson` e testi inseriti con `textContent`.
+- Commenti delle recensioni mostrati con l'escape automatico di Jinja (verificato da un test con un tag `<script>`).
+

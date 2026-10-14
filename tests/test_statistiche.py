@@ -16,7 +16,7 @@ def _prenotazione(conn, salone, dipendente, inizio_utc, prezzo, stato="confermat
     Inserisce una prenotazione di 30 minuti con un pagamento online completato.
     """
     prenotazione_id = PrenotazioneRepository(conn).inserisci(Prenotazione(
-        cliente_id=salone["cliente"].id, dipendente_id=salone[dipendente], inizio=inizio_utc,
+        salone_id=salone["salone_id"], cliente_id=salone["cliente"].id, dipendente_id=salone[dipendente], inizio=inizio_utc,
         fine=inizio_utc.replace(minute=30), modalita_pagamento="completo", scade_il=inizio_utc, stato=stato,
         servizi=[ServizioPrenotato(salone["taglio_id"], "Taglio prova", 30, prezzo)],
     ))
@@ -44,7 +44,7 @@ def test_periodo_valido(valore, giorni):
 
 
 def test_riepilogo_del_salone(conn, dati):
-    riepilogo = StatisticheService(conn).riepilogo(30, ADESSO)
+    riepilogo = StatisticheService(conn, dati["salone_id"]).riepilogo(30, ADESSO)
     assert riepilogo.prenotazioni == 3
     assert riepilogo.clienti_unici == 1
     assert riepilogo.valore_servizi_centesimi == 6000
@@ -54,13 +54,13 @@ def test_riepilogo_del_salone(conn, dati):
 
 
 def test_riepilogo_del_professionista(conn, dati):
-    riepilogo = StatisticheService(conn).riepilogo(30, ADESSO, dipendente_id=dati["dipendente_id"])
+    riepilogo = StatisticheService(conn, dati["salone_id"]).riepilogo(30, ADESSO, dipendente_id=dati["dipendente_id"])
     assert (riepilogo.prenotazioni, riepilogo.valore_servizi_centesimi) == (2, 5000)
     assert riepilogo.incasso_netto_centesimi is None
 
 
 def test_per_professionista_e_fasce(conn, dati):
-    servizio = StatisticheService(conn)
+    servizio = StatisticheService(conn, dati["salone_id"])
     tabella = servizio.per_professionista(30, ADESSO)
     assert tabella["professionista"].tolist() == ["Dario Dipendente", "Alba Altra"]
     assert tabella["prenotazioni"].tolist() == [2, 1]
@@ -68,7 +68,7 @@ def test_per_professionista_e_fasce(conn, dati):
 
 
 def test_grafici_png_anche_senza_dati(conn, dati):
-    servizio = StatisticheService(conn)
+    servizio = StatisticheService(conn, dati["salone_id"])
     for immagine in (servizio.grafico_professionisti(30, ADESSO), servizio.grafico_fasce(30, ADESSO),
                      servizio.grafico_andamento(30, datetime(2020, 1, 1, tzinfo=UTC))):
         assert immagine.startswith(b"\x89PNG")

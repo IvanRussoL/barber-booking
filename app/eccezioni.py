@@ -40,6 +40,12 @@ class SlotNonDisponibileError(BarberBookingError):
     """
 
 
+class RecensioneNonConsentitaError(BarberBookingError):
+    """
+    Recensione non permessa: appuntamento non ancora svolto, annullato o già recensito.
+    """
+
+
 class AnnullamentoNonConsentitoError(BarberBookingError):
     """
     Annullamento non permesso: prenotazione non confermata o a meno di 2 ore dall'inizio.

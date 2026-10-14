@@ -22,10 +22,9 @@
         </a>
         <button type="button" id="apri-menu" class="apri-menu" aria-expanded="false" aria-controls="menu">Menu</button>
         <nav id="menu">
-            <a href="{{ url_for('pubblico.servizi') }}">Servizi</a>
+            <a href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a>
             {% if g.utente %}
                 {% if g.utente.ruolo == 'cliente' %}
-                    <a href="{{ url_for('cliente.prenota') }}">Prenota</a>
                     <a href="{{ url_for('cliente.area') }}">Area personale</a>
                 {% endif %}
                 {% if g.utente.riceve_prenotazioni %}
@@ -56,21 +55,26 @@
         <div class="piede">
             <div>
                 <p class="piede-marchio">Barber <span>Booking</span></p>
-                <p>Taglio, barba e cura della persona, su appuntamento.</p>
+                <p>Taglio, barba e cura della persona nei saloni vicino a te, su appuntamento.</p>
             </div>
-            <div>
-                <p class="piede-titolo">Il salone</p>
-                <p>{{ salone.indirizzo }}</p>
-                <p><a href="tel:{{ salone.telefono }}">{{ salone.telefono }}</a></p>
-            </div>
+            {% if salone_utente %}
+                <div>
+                    <p class="piede-titolo">Il tuo salone</p>
+                    <p><a href="{{ url_for('pubblico.salone', salone_id=salone_utente.id) }}">{{ salone_utente.nome }}</a></p>
+                    <p>{{ salone_utente.indirizzo }}</p>
+                </div>
+            {% endif %}
             <div>
                 <p class="piede-titolo">Esplora</p>
-                <p><a href="{{ url_for('pubblico.servizi') }}">Servizi e prezzi</a></p>
-                <p><a href="{{ url_for('pubblico.home') }}#orari">Orari</a></p>
-                {% if puo_prenotare %}<p><a href="{{ url_for('cliente.prenota') }}">Prenota</a></p>{% endif %}
+                <p><a href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a></p>
+                {% if g.utente and g.utente.ruolo == 'cliente' %}
+                    <p><a href="{{ url_for('cliente.area') }}">Le mie prenotazioni</a></p>
+                {% elif not g.utente %}
+                    <p><a href="{{ url_for('auth.registrazione') }}">Registrati</a></p>
+                {% endif %}
             </div>
         </div>
-        <p class="piede-copyright">© {{ anno }} {{ salone.nome_salone }}</p>
+        <p class="piede-copyright">© {{ anno }} Barber Booking</p>
     </footer>
     <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
     {% block script %}{% endblock %}

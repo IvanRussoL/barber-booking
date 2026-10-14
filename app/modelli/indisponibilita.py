@@ -8,6 +8,7 @@ class Indisponibilita:
     """
     inizio: datetime
     fine: datetime
-    dipendente_id: int | None = None # Quando l'id dipendente è vuoto vuol dire che la chiusura è per l'intero magazzino.
+    salone_id: int | None = None
+    dipendente_id: int | None = None  # vuoto: chiusura dell'intero salone
     nota: str | None = None
-    id: int | None = None
+    id: int | None = None

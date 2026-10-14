@@ -18,8 +18,9 @@ class Ordine:
     """
     Acquisto di prodotti di un cliente, da ritirare in negozio.
     """
-    cliente_id: int 
+    cliente_id: int
     scade_il: datetime
+    salone_id: int | None = None
     prodotti: list[ProdottoOrdinato] = field(default_factory=list)
     stato: str = "in_attesa_pagamento"
     ritirato_il: datetime | None = None
@@ -31,4 +32,4 @@ class Ordine:
         """
         Restituisce il totale dell'ordine in centesimi, somma di quantità per prezzo di ogni prodotto.
         """
-        return sum(p.quantita * p.prezzo_centesimi for p in self.prodotti)
+        return sum(p.quantita * p.prezzo_centesimi for p in self.prodotti)

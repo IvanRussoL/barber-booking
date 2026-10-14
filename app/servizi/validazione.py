@@ -41,3 +41,15 @@ def euro_in_centesimi(valore: str, campo: str) -> int:
         )
     euro, _, decimali = valore.replace(",", ".").partition(".")
     return int(euro) * 100 + int(decimali.ljust(2, "0"))
+
+
+def telefono_valido(valore: str) -> str:
+    """
+    Controlla un numero di telefono: solo cifre (da 6 a 15), con il + iniziale facoltativo; gli spazi si tolgono.
+    Returns: il numero senza spazi.
+    Raises: DatiNonValidiError se non è un numero valido.
+    """
+    telefono = testo_obbligatorio(valore, "telefono", 20).replace(" ", "")
+    if not re.fullmatch(r"\+?[0-9]{6,15}", telefono):
+        raise DatiNonValidiError("Il telefono deve contenere solo cifre, con il + iniziale facoltativo.")
+    return telefono

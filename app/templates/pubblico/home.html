@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 
-{% set GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"] %}
-
-{% block titolo %}{{ impostazioni.nome_salone }} – Prenota online{% endblock %}
+{% block titolo %}Barber Booking – Prenota nei saloni vicino a te{% endblock %}
 {% block classe_main %}larga{% endblock %}
 
 {% block copertina %}
@@ -14,15 +12,14 @@
                     <source src="{{ url_for('static', filename='video/copertina.mp4') }}" type="video/mp4">
                 </video>
                 <div class="slide-testo">
-                    <p class="stato-apertura {{ 'aperto' if aperto else 'chiuso' }}">{{ stato_apertura }}</p>
                     <h1>Il tuo taglio,<br><em>quando vuoi tu.</em></h1>
-                    <p class="sottotitolo">Scegli i servizi, il professionista e l'orario: prenoti in un minuto
-                        e paghi online l'acconto o l'intero importo.</p>
+                    <p class="sottotitolo">Trova un salone vicino a te, scegli servizi, professionista e orario:
+                        prenoti in un minuto e paghi online l'acconto o l'intero importo.</p>
                     <div class="azioni">
-                        {% if puo_prenotare %}
-                            <a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota ora</a>
+                        <a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Trova il salone</a>
+                        {% if not g.utente %}
+                            <a class="pulsante pulsante-contorno" href="{{ url_for('auth.registrazione') }}">Registrati</a>
                         {% endif %}
-                        <a class="pulsante pulsante-contorno" href="{{ url_for('pubblico.servizi') }}">Servizi e prezzi</a>
                     </div>
                 </div>
             </div>
@@ -30,11 +27,11 @@
                 <img class="slide-media" src="{{ url_for('static', filename='img/salone.jpg') }}"
                      alt="" width="1920" height="1079">
                 <div class="slide-testo">
-                    <p class="card-etichetta">Il salone</p>
+                    <p class="card-etichetta">I saloni</p>
                     <h2>Poltrone d'epoca,<br><em>mani esperte.</em></h2>
-                    <p class="sottotitolo">Un ambiente caldo e curato, dove prenderti il tuo tempo.</p>
+                    <p class="sottotitolo">Ambienti caldi e curati, nella tua provincia.</p>
                     <div class="azioni">
-                        <a class="pulsante" href="#orari">Orari e contatti</a>
+                        <a class="pulsante" href="#cerca">Cerca nella tua zona</a>
                     </div>
                 </div>
             </div>
@@ -44,9 +41,9 @@
                 <div class="slide-testo">
                     <p class="card-etichetta">Barba e rasatura</p>
                     <h2>La barba,<br><em>fatta come si deve.</em></h2>
-                    <p class="sottotitolo">Rifinitura, rasatura e cura: trovi tutti i trattamenti e i prezzi nel listino.</p>
+                    <p class="sottotitolo">Rifinitura, rasatura e cura: ogni salone mostra trattamenti e prezzi nel suo listino.</p>
                     <div class="azioni">
-                        <a class="pulsante" href="{{ url_for('pubblico.servizi') }}">Scopri i servizi</a>
+                        <a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Scopri i saloni</a>
                     </div>
                 </div>
             </div>
@@ -60,22 +57,26 @@
 {% endblock %}
 
 {% block contenuto %}
+    <section class="cerca-home" id="cerca">
+        <h2>Trova il salone più vicino</h2>
+        {% include "pubblico/_ricerca.html" %}
+    </section>
 
     <section class="card-grandi">
         {% if puo_prenotare %}
-            <a class="card-foto" href="{{ url_for('cliente.prenota') }}">
+            <a class="card-foto" href="{{ url_for('pubblico.ricerca') }}">
                 <img src="{{ url_for('static', filename='img/barbiere.jpg') }}"
-                     alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348">
+                     alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348" loading="lazy">
                 <div class="card-testo">
                     <p class="card-etichetta">Prenotazione online</p>
-                    <h2>Scegli orario e professionista</h2>
-                    <span class="pillola">Prenota</span>
+                    <h2>Scegli salone, orario e professionista</h2>
+                    <span class="pillola">Trova il salone</span>
                 </div>
             </a>
         {% else %}
             <a class="card-foto" href="{{ url_for('dipendente.agenda') if g.utente.riceve_prenotazioni else url_for('proprietario.pannello') }}">
                 <img src="{{ url_for('static', filename='img/barbiere.jpg') }}"
-                     alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348">
+                     alt="Barbiere che rifinisce un taglio con rasoio e pettine" width="900" height="1348" loading="lazy">
                 <div class="card-testo">
                     <p class="card-etichetta">Area di lavoro</p>
                     <h2>{{ "La tua agenda" if g.utente.riceve_prenotazioni else "Gestione del salone" }}</h2>
@@ -83,59 +84,29 @@
                 </div>
             </a>
         {% endif %}
-        <a class="card-foto" href="{{ url_for('pubblico.servizi') }}">
+        {% if salone_utente %}
+            {% set link_seconda = url_for('pubblico.servizi', salone_id=salone_utente.id) %}
+            {% set etichetta_seconda, titolo_seconda, pillola_seconda = "Listino", "I servizi del tuo salone", "Apri il listino" %}
+        {% elif g.utente %}
+            {% set link_seconda = url_for('cliente.area') %}
+            {% set etichetta_seconda, titolo_seconda, pillola_seconda = "Area personale", "Le tue prenotazioni, in tutti i saloni", "Apri" %}
+        {% else %}
+            {% set link_seconda = url_for('auth.registrazione') %}
+            {% set etichetta_seconda, titolo_seconda, pillola_seconda = "Un solo account", "Prenota in tutti i saloni", "Registrati" %}
+        {% endif %}
+        <a class="card-foto" href="{{ link_seconda }}">
             <img src="{{ url_for('static', filename='img/ritratto.jpg') }}"
                  alt="Ritratto di profilo con taglio corto sfumato" width="900" height="1350" loading="lazy">
             <div class="card-testo">
-                <p class="card-etichetta">Listino</p>
-                <h2>Taglio, barba, colore e piega</h2>
-                <span class="pillola">Scopri i servizi</span>
+                <p class="card-etichetta">{{ etichetta_seconda }}</p>
+                <h2>{{ titolo_seconda }}</h2>
+                <span class="pillola">{{ pillola_seconda }}</span>
             </div>
         </a>
-    </section>
-
-    <section class="orari" id="orari">
-        <div>
-            <h2>Orari</h2>
-            <table>
-                {% for giorno, turni in orari %}
-                    <tr class="{{ 'oggi' if giorno == oggi }}">
-                        <th>{{ GIORNI[giorno - 1] }}</th>
-                        <td>
-                            {% for turno in turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% else %}Chiuso{% endfor %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
-            {% if speciali %}
-                <h3>Date particolari</h3>
-                <div class="elenco-date">
-                    {% for giorno in speciali %}
-                        <div class="riga-data">
-                            <p class="riga-data-quando">{{ GIORNI[giorno.data.weekday()] }} {{ giorno.data.strftime('%d/%m') }}</p>
-                            <p>
-                                {% if giorno.stato == 'da_definire' %}
-                                    <span class="badge-incerto">Da definire</span>
-                                {% elif giorno.stato == 'chiuso' %}
-                                    <span class="badge-chiuso">Chiuso</span>
-                                {% else %}
-                                    {% for turno in giorno.turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% endfor %}
-                                {% endif %}
-                            </p>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
-        <div class="contatti">
-            <h2>Dove siamo</h2>
-            <p>{{ impostazioni.nome_salone }}</p>
-            <p>{{ impostazioni.indirizzo }}</p>
-            <p><a href="tel:{{ impostazioni.telefono }}">{{ impostazioni.telefono }}</a></p>
-        </div>
     </section>
 {% endblock %}
 
 {% block script %}
     <script src="{{ url_for('static', filename='js/carosello.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ricerca.js') }}"></script>
 {% endblock %}

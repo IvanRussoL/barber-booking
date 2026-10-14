@@ -4,7 +4,7 @@
 
 {% block contenuto %}
     <h1>Annullare la prenotazione?</h1>
-    <p>{{ prenotazione.inizio | data_ora(fuso_orario) }} ·
+    <p>{{ salone.nome }} · {{ prenotazione.inizio | data_ora(fuso_orario) }} ·
         {% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
     <p>Ti verrà rimborsato tutto quello che hai pagato online.</p>
     <form method="post" class="secondario">

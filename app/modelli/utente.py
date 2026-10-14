@@ -12,7 +12,8 @@ class Utente:
     cognome: str
     telefono: str
     ruolo: str = "cliente"
+    salone_id: int | None = None  # None per i clienti, il salone per dipendenti e proprietari
     riceve_prenotazioni: bool = False
     attivo: bool = True
     creato_il: datetime | None = None
-    id: int | None = None
+    id: int | None = None

@@ -3,7 +3,7 @@ from datetime import datetime
 from app.modelli.prenotazione import Prenotazione, ServizioPrenotato
 
 _SELECT = (
-    "SELECT id, cliente_id, dipendente_id, inizio, fine, modalita_pagamento, scade_il, stato, "
+    "SELECT id, salone_id, cliente_id, dipendente_id, inizio, fine, modalita_pagamento, scade_il, stato, "
     "annullata_il, annullata_da, creato_il FROM prenotazioni "
 )
 
@@ -19,14 +19,14 @@ class PrenotazioneRepository:
     def inserisci(self, prenotazione: Prenotazione) -> int:
         """
         Inserisce la prenotazione e i suoi servizi, senza fare commit.
-        Args: prenotazione senza id, con la lista dei ServizioPrenotato.
+        Args: prenotazione senza id, con il salone_id e la lista dei ServizioPrenotato.
         Returns: l'id assegnato da MySQL.
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO prenotazioni (cliente_id, dipendente_id, inizio, fine, stato, "
-                "modalita_pagamento, scade_il) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                (prenotazione.cliente_id, prenotazione.dipendente_id, prenotazione.inizio,
+                "INSERT INTO prenotazioni (salone_id, cliente_id, dipendente_id, inizio, fine, stato, "
+                "modalita_pagamento, scade_il) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                (prenotazione.salone_id, prenotazione.cliente_id, prenotazione.dipendente_id, prenotazione.inizio,
                  prenotazione.fine, prenotazione.stato, prenotazione.modalita_pagamento,
                  prenotazione.scade_il),
             )
@@ -40,15 +40,20 @@ class PrenotazioneRepository:
         return prenotazione_id
 
     def leggi_per_id(self, prenotazione_id: int, cliente_id: int | None = None,
-                     per_aggiornamento: bool = False, dipendente_id: int | None = None) -> Prenotazione | None:
+                     per_aggiornamento: bool = False, dipendente_id: int | None = None,
+                     salone_id: int | None = None) -> Prenotazione | None:
         """
         Legge una prenotazione con i suoi servizi (nome letto da servizi, durata e prezzo dalla copia).
-        Args: cliente_id o dipendente_id, se indicati la prenotazione deve essere di quel cliente o di quel
-            professionista (controllo dentro la query); per_aggiornamento, True per bloccare la riga (FOR UPDATE).
-        Returns: la Prenotazione, oppure None se non esiste o è di un altro utente.
+        Args: cliente_id, dipendente_id o salone_id, se indicati la prenotazione deve essere di quel cliente,
+            di quel professionista o di quel salone (controllo dentro la query);
+            per_aggiornamento, True per bloccare la riga (FOR UPDATE).
+        Returns: la Prenotazione, oppure None se non esiste o è di un altro utente o salone.
         """
         sql = _SELECT + "WHERE id = %s"
         parametri = [prenotazione_id]
+        if salone_id is not None:
+            sql += " AND salone_id = %s"
+            parametri.append(salone_id)
         if cliente_id is not None:
             sql += " AND cliente_id = %s"
             parametri.append(cliente_id)
@@ -158,7 +163,7 @@ class PrenotazioneRepository:
             )
             return cur.fetchall()
 
-    def intervalli_attivi_salone(self, da: datetime, a: datetime,
+    def intervalli_attivi_salone(self, salone_id: int, da: datetime, a: datetime,
                                  adesso: datetime) -> list[tuple[datetime, datetime]]:
         """
         Appuntamenti di tutto il salone (confermati o in attesa non scaduti) che toccano [da, a).
@@ -168,9 +173,9 @@ class PrenotazioneRepository:
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                "SELECT inizio, fine FROM prenotazioni WHERE inizio < %s AND fine > %s "
+                "SELECT inizio, fine FROM prenotazioni WHERE salone_id = %s AND inizio < %s AND fine > %s "
                 "AND (stato = 'confermata' OR (stato = 'in_attesa_pagamento' AND scade_il > %s))",
-                (a, da, adesso),
+                (salone_id, a, da, adesso),
             )
             return cur.fetchall()
 

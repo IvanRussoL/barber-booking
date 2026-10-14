@@ -1,25 +1,26 @@
 # Barber Booking
 
-Applicazione web per un salone di barbiere/parrucchiere: i clienti prenotano online servizi e professionista pagando un acconto o l'intero importo, i professionisti consultano la propria agenda e il proprietario gestisce il listino. Progetto finale del corso Full Stack Python.
+Applicazione web di prenotazione per saloni di barbiere/parrucchiere: i clienti trovano un salone vicino (con la posizione del browser o per regione e provincia, anche su una mappa), prenotano servizi e professionista pagando un acconto o l'intero importo e, dopo l'appuntamento, lasciano una recensione; i professionisti consultano la propria agenda e ogni proprietario gestisce il proprio salone. Progetto finale del corso Full Stack Python.
 
-> Stato: versione consegnata per il corso. Il pagamento è simulato (`FakeProvider`); Stripe e vendita di prodotti sono negli sviluppi futuri.
+> Stato: la versione consegnata per il corso (un solo salone) è sul branch `main`; il branch `multi-salone` aggiunge più saloni, ricerca, recensioni e mappa. Il pagamento è simulato (`FakeProvider`); Stripe e vendita di prodotti sono negli sviluppi futuri.
 
 ## Funzionalità
 
 | Ruolo | Cosa può fare |
 |---|---|
-| Visitatore | Vede se il salone è aperto in quel momento, consulta orari (con le date particolari), servizi e prezzi, si registra come cliente |
-| Cliente | Prenota uno o più servizi scegliendo professionista, data e orario libero; paga acconto o importo completo; consulta lo storico con il totale speso; annulla fino a 2 ore prima con rimborso |
+| Visitatore | Cerca i saloni vicino a sé (raggio di 5, 10, 25 o 50 km) o per regione e provincia, ordinati per distanza, recensioni o nome, anche su una mappa interattiva; nella pagina di un salone vede se è aperto, orari (con le date particolari), servizi e prezzi, recensioni; si registra come cliente |
+| Cliente | Con un solo account prenota in qualsiasi salone uno o più servizi scegliendo professionista, data e orario libero; paga acconto o importo completo; consulta lo storico di tutti i saloni con il totale speso; annulla fino a 2 ore prima con rimborso; recensisce un appuntamento svolto (una volta) |
 | Dipendente | Consulta la propria agenda con i recapiti dei clienti e lo storico (anche le annullate); annulla un proprio appuntamento con rimborso al cliente; vede le proprie statistiche |
-| Proprietario | Gestisce i servizi; nella pagina Dipendenti vede recapiti, lavoro e agenda di ogni professionista e il totale del salone su settimana, mese o anno; annulla qualsiasi prenotazione con rimborso; decide gli orari delle singole date (chiusure, festività); consulta le statistiche; se lavora in sala riceve prenotazioni |
+| Proprietario | Vede e gestisce solo il proprio salone: servizi; nella pagina Dipendenti vede recapiti, lavoro e agenda di ogni professionista e il totale del salone su settimana, mese o anno; annulla qualsiasi prenotazione con rimborso; decide gli orari delle singole date (chiusure, festività); consulta le statistiche; se lavora in sala riceve prenotazioni |
 
-Regole principali: slot di 30 minuti dentro i turni del salone (festività e vigilie restano "da definire" e prenotabili con un avviso finché il proprietario non decide l'orario), nessuna sovrapposizione per lo stesso professionista né per lo stesso cliente (anche con richieste simultanee), prenotazione bloccata per 30 minuti in attesa del pagamento, prezzi e importi calcolati sempre dal server.
+Regole principali: ogni salone ha i suoi servizi, professionisti, orari e acconto, e nessuno dello staff vede i dati di un altro salone; slot di 30 minuti dentro i turni del salone (festività e vigilie restano "da definire" e prenotabili con un avviso finché il proprietario non decide l'orario), nessuna sovrapposizione per lo stesso professionista né per lo stesso cliente (anche con richieste simultanee), prenotazione bloccata per 30 minuti in attesa del pagamento, prezzi e importi calcolati sempre dal server.
 
 ## Tecnologie
 
 - Python 3.13, Flask 3, Jinja
 - MySQL 8 con `mysql-connector-python` e query SQL scritte a mano (nessun ORM)
-- HTML, CSS e JavaScript (`fetch` per gli orari liberi), Playfair Display da Google Fonts per i titoli
+- HTML, CSS e JavaScript (`fetch` per gli orari liberi, geolocalizzazione del browser), Playfair Display da Google Fonts per i titoli
+- Leaflet con le mappe di OpenStreetMap per la mappa dei saloni; distanze calcolate da MySQL con `ST_Distance_Sphere`
 - Flask-WTF (solo protezione CSRF), python-dotenv, tzdata
 - pandas e matplotlib per le statistiche (grafici generati in memoria)
 - pytest
@@ -30,20 +31,20 @@ Regole principali: slot di 30 minuti dentro i turni del salone (festività e vig
 barber-booking/
 ├── app/
 │   ├── __init__.py        # create_app(): configurazione, Blueprint, gestori degli errori
-│   ├── modelli/           # dataclass: Utente, Servizio, Prenotazione, Pagamento, ...
-│   ├── repository/        # unico posto con SQL, sempre parametrizzato
-│   ├── servizi/           # regole di business, senza Flask: AuthService, SaloneService,
-│   │                      #   DisponibilitaService, PrenotazioneService, CalendarioService,
-│   │                      #   StatisticheService
+│   ├── modelli/           # dataclass: Salone, Utente, Servizio, Prenotazione, Pagamento, Recensione, ...
+│   ├── repository/        # unico posto con SQL, sempre parametrizzato e filtrato per salone
+│   ├── servizi/           # regole di business, senza Flask: SaloniService (creazione e ricerca),
+│   │                      #   AuthService, SaloneService, DisponibilitaService, PrenotazioneService,
+│   │                      #   CalendarioService, StatisticheService, RecensioniService
 │   ├── pagamenti/         # PaymentProvider (classe astratta) e FakeProvider
 │   ├── rotte/             # Blueprint: pubblico, auth, cliente, dipendente, proprietario
 │   ├── templates/         # pagine Jinja, una cartella per Blueprint
 │   ├── static/            # CSS, JavaScript, foto ridotte (img/) e video della home (video/)
 │   ├── accessi.py         # controllo comune dei Blueprint riservati
-│   ├── comandi.py         # flask crea-proprietario
+│   ├── comandi.py         # flask crea-salone e flask crea-proprietario
 │   ├── eccezioni.py       # BarberBookingError e sottoclassi
 │   └── db.py              # connessione a MySQL
-├── database/schema.sql    # tabelle, vincoli e dati iniziali
+├── database/schema.sql    # tabelle, vincoli e province italiane
 ├── tests/                 # test con pytest
 ├── docs/PROGETTAZIONE.md  # requisiti, modello dei dati, architettura, sicurezza
 ├── DEVLOG.md              # diario delle scelte
@@ -74,14 +75,15 @@ Servono Python 3.13 e MySQL 8.0.16 o successivo.
    ```powershell
    python -c "import secrets; print(secrets.token_hex(32))"
    ```
-5. Proprietario (le domande compaiono nel terminale):
-   ```powershell
-   flask --app app crea-proprietario
-   ```
-6. Dati di prova (facoltativo):
+5. Dati di prova (facoltativo): cinque saloni immaginari con proprietari, dipendenti, clienti, prenotazioni e recensioni:
    ```powershell
    python seed.py
    ```
+6. Un salone vero, con il suo proprietario (le domande compaiono nel terminale; le coordinate si copiano da Google Maps con il tasto destro sul punto):
+   ```powershell
+   flask --app app crea-salone
+   ```
+   Per aggiungere un altro proprietario a un salone esistente: `flask --app app crea-proprietario`.
 7. Avvio: `python run.py`, poi aprire http://127.0.0.1:5000
 
 ## Profili di prova
@@ -90,11 +92,13 @@ Creati da `seed.py`, con password `demo12345` (solo per l'uso in locale):
 
 | Email | Ruolo |
 |---|---|
-| anna@demo.it, luca@demo.it | Cliente, con due prenotazioni future confermate |
-| sara, paolo, chiara, giovanni, elena (@demo.it) | Clienti dello storico di 4 mesi usato dalle statistiche |
-| marco@demo.it, giulia@demo.it | Dipendente |
+| anna@demo.it, luca@demo.it | Cliente, con due prenotazioni future confermate in due saloni diversi |
+| sara, paolo, chiara, giovanni, elena (@demo.it) | Clienti dello storico di 4 mesi (statistiche e recensioni) |
+| titolare.napoli, titolare.pozzuoli, titolare.salerno, titolare.caserta, titolare.roma (@demo.it) | Proprietario del salone della sua città (lavora anche in sala) |
+| marco@demo.it, giulia@demo.it | Dipendenti della Barberia Plebiscito (Napoli) |
+| tommaso, federica, stefano (@demo.it) | Dipendenti dei saloni di Pozzuoli, Salerno e Roma |
 
-Il proprietario è quello creato al punto 5.
+Nomi dei saloni e delle persone sono inventati; indirizzi e coordinate sono piazze pubbliche.
 
 ## Test
 
@@ -102,13 +106,15 @@ Il proprietario è quello creato al punto 5.
 python -m pytest
 ```
 
-I test usano il database `barber_booking_test`. Coprono validazioni, repository, calcolo degli slot (compreso il cambio dell'ora legale), prenotazione e pagamento, annullamento con la regola delle 2 ore e da parte del salone, orari delle singole date e festività (anche il calcolo della Pasqua), controllo degli accessi su tutte le rotte, protezione dai dati altrui (IDOR) e due prenotazioni simultanee sullo stesso orario.
+I test usano il database `barber_booking_test` e creano da soli due saloni di prova (Napoli e Roma) la prima volta. Coprono l'isolamento tra saloni (nessun proprietario apre o modifica i dati di un altro salone, nessuna prenotazione mescola servizi o professionisti di saloni diversi), la ricerca per zona e per distanza, le recensioni (solo dopo l'appuntamento, una volta, testo mostrato senza HTML), validazioni, repository, calcolo degli slot (compreso il cambio dell'ora legale), prenotazione e pagamento, annullamento con la regola delle 2 ore e da parte del salone, orari delle singole date e festività (anche il calcolo della Pasqua), controllo degli accessi su tutte le rotte, protezione dai dati altrui (IDOR) e due prenotazioni simultanee sullo stesso orario.
 
 ## Scelte tecniche principali
 
 - **Architettura a strati**: rotte sottili → servizi con le regole → repository con l'SQL → modelli `@dataclass`. I servizi non dipendono da Flask e si testano da soli.
 - **OOP**: `PaymentProvider` è una classe astratta (`abc`); i servizi usano solo l'interfaccia, quindi `FakeProvider` e un futuro `StripeProvider` sono intercambiabili. Le eccezioni derivano da `BarberBookingError` e un gestore centrale le trasforma in pagine di errore (400, o 404 per i dati non trovati).
 - **Doppie prenotazioni**: `SELECT ... FOR UPDATE` sulla riga del dipendente e nuovo controllo dello slot nella stessa transazione dell'`INSERT`, con isolamento `READ COMMITTED`. Un test lancia due richieste in parallelo.
+- **Più saloni (multi tenancy)**: tabella `saloni` e colonna `salone_id` in servizi, orari, prenotazioni e staff. Il salone dello staff viene sempre dalla sessione, mai dall'URL; quello del cliente dalla pagina del salone, ma servizi e professionista devono appartenergli. Un dato di un altro salone risulta "non trovato" (404), come per i dati di un altro cliente.
+- **Ricerca**: per distanza con `ST_Distance_Sphere` di MySQL (nessuna libreria), con la posizione arrotondata a circa 100 metri e mai salvata; per regione e provincia con i dati ISTAT. L'ordinamento si sceglie da un elenco fisso: nella query non entra mai testo dell'utente.
 - **Controllo degli accessi "nega per default"**: ogni area riservata è un Blueprint con un controllo in `before_request`; anonimo → login, ruolo sbagliato → 403. I dati del cliente si leggono con `WHERE id = %s AND cliente_id = %s` (404 per i dati altrui).
 - **Sicurezza**: password con hash scrypt di Werkzeug, sessione svuotata al login, token CSRF in ogni modulo, query parametrizzate, escape automatico di Jinja, segreti solo in `.env`, utente MySQL con i soli permessi sui dati.
 - **Date**: istanti salvati in UTC, turni in ora locale del salone, conversione con `zoneinfo`. Prezzi in centesimi interi.
@@ -124,7 +130,9 @@ Le motivazioni complete e le alternative scartate sono in `DEVLOG.md` e `docs/PR
 - Saldo in sede registrato dal proprietario.
 - Limite ai tentativi di login (Flask-Limiter), cambio e recupero della password.
 - Foto per ogni servizio, caricate dal proprietario e controllate con Pillow.
-- Più saloni nello stesso sito (multi tenancy): tabella `saloni`, colonna `salone_id` nelle tabelle del salone e ogni query filtrata per il salone dell'utente in sessione.
+- Pagina pubblica "Registra il tuo salone", con approvazione prima della pubblicazione (oggi i saloni si creano da terminale).
+- Coordinate calcolate dall'indirizzo (geocoding) al posto di quelle copiate da Google Maps.
+- Mappe da un fornitore con contratto (o tile ospitate in proprio) se il traffico cresce: le tile pubbliche di OpenStreetMap hanno limiti d'uso.
 
 ## Crediti
 
@@ -144,5 +152,7 @@ Foto da Unsplash e video da Pexels, ridotti per il web:
 | `img/salone.jpg` | [T (@tanyabarrow)](https://unsplash.com/photos/fa0DqQ91dWU) |
 | `img/barba.jpg` | [Reza Ghaemi](https://unsplash.com/photos/5P-eClxMg1s) |
 | `video/copertina.mp4` | Pexels, video 4177956 |
+
+Mappa: [Leaflet](https://leafletjs.com) (licenza BSD-2) e mappe © [OpenStreetMap](https://www.openstreetmap.org/copyright) e collaboratori. Province: dati ISTAT, dall'elenco dei comuni del progetto [comuni-json](https://github.com/matteocontrini/comuni-json) e, per la Sardegna, dall'elenco ISTAT delle nuove province.
 
 Carattere dei titoli: [Playfair Display](https://fonts.google.com/specimen/Playfair+Display) da Google Fonts (senza connessione il browser usa Georgia).

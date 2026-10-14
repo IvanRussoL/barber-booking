@@ -23,6 +23,7 @@ class Prenotazione:
     fine: datetime
     modalita_pagamento: str
     scade_il: datetime
+    salone_id: int | None = None
     servizi: list[ServizioPrenotato] = field(default_factory=list) # ogni prenotazione riceve una lista nuova tutta sua invece di condividerne una con tutte le altre.
     stato: str = "in_attesa_pagamento"
     annullata_il: datetime | None = None
@@ -40,4 +41,4 @@ class Prenotazione:
         """
         Restituisce il prezzo della prenotazione in centesimi, somma dei prezzi dei servizi.
         """
-        return sum(s.prezzo_centesimi for s in self.servizi)
+        return sum(s.prezzo_centesimi for s in self.servizi)

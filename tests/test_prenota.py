@@ -27,7 +27,8 @@ def _crea(conn, salone, provider, ora="09:00", modalita="acconto", servizi=None,
     servizi = servizi or [str(salone["taglio_id"]), str(salone["barba_id"])]
     dati = {"dipendente_id": str(salone["dipendente_id"]), "giorno": MERCOLEDI} | altro
     return PrenotazioneService(conn, provider).crea(
-        salone["cliente"], dati["dipendente_id"], servizi, dati["giorno"], ora, modalita, adesso
+        salone["cliente"], dati.get("salone_id", salone["salone_id"]), dati["dipendente_id"], servizi,
+        dati["giorno"], ora, modalita, adesso,
     )
 
 
@@ -76,7 +77,7 @@ def test_importo_completo(conn, salone, provider):
 def test_prezzo_fissato_al_momento_della_prenotazione(conn, salone, provider):
     prenotazione_id, _ = _crea(conn, salone, provider)
     servizi = ServizioRepository(conn)
-    taglio = servizi.leggi_per_id(salone["taglio_id"])
+    taglio = servizi.leggi_per_id(salone["salone_id"], salone["taglio_id"])
     taglio.prezzo_centesimi = 9900
     servizi.aggiorna(taglio)
     assert PrenotazioneRepository(conn).leggi_per_id(prenotazione_id).prezzo_totale() == 3550
@@ -110,13 +111,14 @@ def test_dati_non_validi(conn, salone, provider, modifica):
 def test_nessun_servizio_scelto(conn, salone, provider):
     with pytest.raises(DatiNonValidiError):
         PrenotazioneService(conn, provider).crea(
-            salone["cliente"], str(salone["dipendente_id"]), [], MERCOLEDI, "09:00", "acconto", ADESSO
+            salone["cliente"], salone["salone_id"], str(salone["dipendente_id"]), [], MERCOLEDI, "09:00",
+            "acconto", ADESSO,
         )
 
 
 def test_servizio_disattivato_non_prenotabile(conn, salone, provider):
     servizi = ServizioRepository(conn)
-    barba = servizi.leggi_per_id(salone["barba_id"])
+    barba = servizi.leggi_per_id(salone["salone_id"], salone["barba_id"])
     barba.attivo = False
     servizi.aggiorna(barba)
     with pytest.raises(DatiNonValidiError):
@@ -257,8 +259,9 @@ def test_orari_del_cliente_occupati_non_proposti(conn, salone, provider):
     altro = str(salone["altro_dipendente_id"])
     taglio = [str(salone["taglio_id"])]
     per_il_cliente = [s.strftime("%H:%M") for s in servizio.slot_per_scelta(
-        altro, taglio, MERCOLEDI, ADESSO, salone["cliente"].id)]
-    per_tutti = [s.strftime("%H:%M") for s in servizio.slot_per_scelta(altro, taglio, MERCOLEDI, ADESSO)]
+        salone["salone_id"], altro, taglio, MERCOLEDI, ADESSO, salone["cliente"].id)]
+    per_tutti = [s.strftime("%H:%M") for s in servizio.slot_per_scelta(
+        salone["salone_id"], altro, taglio, MERCOLEDI, ADESSO)]
     assert "10:00" not in per_il_cliente and "10:30" not in per_il_cliente and "11:00" in per_il_cliente
     assert "10:00" in per_tutti
 
@@ -269,15 +272,18 @@ def _utente(conn, utente_id):
     return UtenteRepository(conn).leggi_per_id(utente_id)
 
 
-def _proprietario(conn):
+def _proprietario(conn, salone_id):
     return _utente(conn, UtenteRepository(conn).inserisci(Utente(
         "titolare@salone.test", "hash-finto", "Tina", "Titolare", "3330000004", ruolo="proprietario",
+        salone_id=salone_id,
     )))
 
 
 def test_proprietario_annulla_qualsiasi_prenotazione_con_rimborso(conn, salone, provider):
     prenotazione_id, riferimento = _confermata(conn, salone, provider)
-    rimborsato = PrenotazioneService(conn, provider).annulla_dal_salone(prenotazione_id, _proprietario(conn), ADESSO)
+    rimborsato = PrenotazioneService(conn, provider).annulla_dal_salone(
+        prenotazione_id, _proprietario(conn, salone["salone_id"]), ADESSO
+    )
     prenotazione = PrenotazioneRepository(conn).leggi_per_id(prenotazione_id)
     assert rimborsato == 1065
     assert (prenotazione.stato, prenotazione.annullata_da) == ("annullata", "salone")

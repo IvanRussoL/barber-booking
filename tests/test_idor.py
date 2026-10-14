@@ -19,7 +19,7 @@ def _pulisci(conn) -> None:
     conn.commit()
 
 
-def _prenotazione_di_altro_cliente(professionista_id: int):
+def _prenotazione_di_altro_cliente(professionista_id: int, salone_id: int):
     """
     Salva con commit reale, perché la legga l'app, una prenotazione confermata di un altro cliente
     fra 3 giorni con il professionista indicato; alla fine la cancella.
@@ -29,7 +29,7 @@ def _prenotazione_di_altro_cliente(professionista_id: int):
     altro_id = UtenteRepository(conn).inserisci(Utente(EMAIL_ALTRO_CLIENTE, "x", "Altro", "Cliente", "3330000099"))
     inizio = datetime.now(UTC).replace(tzinfo=None, microsecond=0) + timedelta(days=3)
     prenotazione_id = PrenotazioneRepository(conn).inserisci(Prenotazione(
-        cliente_id=altro_id, dipendente_id=professionista_id, inizio=inizio,
+        salone_id=salone_id, cliente_id=altro_id, dipendente_id=professionista_id, inizio=inizio,
         fine=inizio + timedelta(minutes=30), modalita_pagamento="completo", scade_il=inizio,
         stato="confermata",
     ))
@@ -40,19 +40,19 @@ def _prenotazione_di_altro_cliente(professionista_id: int):
 
 
 @pytest.fixture
-def prenotazione_altrui(utenti_accessi):
+def prenotazione_altrui(utenti_accessi, salone_test):
     """
     Prenotazione di un altro cliente nell'agenda del dipendente. Returns: il suo id.
     """
-    yield from _prenotazione_di_altro_cliente(utenti_accessi["dipendente"])
+    yield from _prenotazione_di_altro_cliente(utenti_accessi["dipendente"], salone_test)
 
 
 @pytest.fixture
-def prenotazione_del_proprietario(utenti_accessi):
+def prenotazione_del_proprietario(utenti_accessi, salone_test):
     """
     Prenotazione di un altro cliente nell'agenda del proprietario, che lavora in sala. Returns: il suo id.
     """
-    yield from _prenotazione_di_altro_cliente(utenti_accessi["proprietario"])
+    yield from _prenotazione_di_altro_cliente(utenti_accessi["proprietario"], salone_test)
 
 
 def _stato(prenotazione_id: int) -> str:

@@ -1,11 +1,10 @@
-import re
-
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.eccezioni import CredenzialiNonValideError, DatiNonValidiError, EmailGiaRegistrataError
 from app.modelli.utente import Utente
 from app.repository.utente import UtenteRepository
-from app.servizi.validazione import testo_obbligatorio
+from app.repository.salone import SaloneRepository
+from app.servizi.validazione import telefono_valido, testo_obbligatorio
 
 LUNGHEZZA_MINIMA_PASSWORD = 8
 CARATTERI_AMMESSI_NOME = " '’-"
@@ -42,27 +41,45 @@ class AuthService:
         Returns: l'id del nuovo utente.
         Raises: DatiNonValidiError se un dato non è valido; EmailGiaRegistrataError se l'email è già usata.
         """
-        return self._crea_utente(email, password, nome, cognome, telefono, "cliente", False)
+        return self._salva(self.utente_valido(email, password, nome, cognome, telefono))
 
     def crea_staff(self, email: str, password: str, nome: str, cognome: str, telefono: str,
-                   ruolo: str, riceve_prenotazioni: bool) -> int:
+                   ruolo: str, riceve_prenotazioni: bool, salone_id: int) -> int:
         """
-        Crea un dipendente o un proprietario; usato dal comando crea-proprietario e da seed.py.
+        Crea un dipendente o un proprietario di un salone esistente; usato dal comando crea-proprietario
+        e da seed.py.
         Returns: l'id del nuovo utente.
-        Raises: DatiNonValidiError se il ruolo non è dipendente o proprietario o un dato non è valido;
-            EmailGiaRegistrataError se l'email è già usata.
+        Raises: DatiNonValidiError se il ruolo non è dipendente o proprietario, il salone non esiste
+            o un dato non è valido; EmailGiaRegistrataError se l'email è già usata.
         """
         if ruolo not in RUOLI_STAFF:
             raise DatiNonValidiError("Il ruolo deve essere dipendente o proprietario.")
-        return self._crea_utente(email, password, nome, cognome, telefono, ruolo, riceve_prenotazioni)
+        if SaloneRepository(self._conn).leggi_per_id(salone_id) is None:
+            raise DatiNonValidiError("Il salone indicato non esiste.")
+        utente = self.utente_valido(email, password, nome, cognome, telefono, ruolo, riceve_prenotazioni)
+        utente.salone_id = salone_id
+        return self._salva(utente)
 
-    def _crea_utente(self, email: str, password: str, nome: str, cognome: str, telefono: str,
-                     ruolo: str, riceve_prenotazioni: bool) -> int:
+    def _salva(self, utente: Utente) -> int:
         """
-        Controlla i dati, salva l'utente con la password trasformata in hash e conferma con commit.
+        Inserisce l'utente già controllato e conferma con commit.
         Returns: l'id del nuovo utente.
-        Raises: DatiNonValidiError se un dato non è valido; EmailGiaRegistrataError se l'email è già usata.
         """
+        utente_id = self._utenti.inserisci(utente)
+        self._conn.commit()
+        return utente_id
+
+    def utente_valido(self, email: str, password: str, nome: str, cognome: str, telefono: str,
+                      ruolo: str = "cliente", riceve_prenotazioni: bool = False) -> Utente:
+        """
+        Controlla i dati di un nuovo utente e trasforma la password in hash, senza salvare niente.
+        Usato anche da SaloniService, che crea salone e proprietario nella stessa transazione.
+        Returns: l'Utente senza id e senza salone.
+        Raises: DatiNonValidiError se un dato non è valido o il ruolo non esiste;
+            EmailGiaRegistrataError se l'email è già usata.
+        """
+        if ruolo != "cliente" and ruolo not in RUOLI_STAFF:
+            raise DatiNonValidiError("Il ruolo deve essere dipendente o proprietario.")
         email = testo_obbligatorio(email, "email", 255).lower()
         if "@" not in email:
             raise DatiNonValidiError("L'email non è valida.")
@@ -72,16 +89,12 @@ class AuthService:
             )
         nome = _nome_valido(nome, "nome")
         cognome = _nome_valido(cognome, "cognome")
-        telefono = testo_obbligatorio(telefono, "telefono", 20).replace(" ", "")
-        if not re.fullmatch(r"\+?[0-9]{6,15}", telefono):
-            raise DatiNonValidiError(
-                "Il telefono deve contenere solo cifre, con il + iniziale facoltativo."
-            )
+        telefono = telefono_valido(telefono)
 
         if self._utenti.leggi_per_email(email) is not None:
             raise EmailGiaRegistrataError("Esiste già un account con questa email.")
 
-        utente = Utente(
+        return Utente(
             email=email,
             password_hash=generate_password_hash(password),
             nome=nome,
@@ -90,9 +103,6 @@ class AuthService:
             ruolo=ruolo,
             riceve_prenotazioni=riceve_prenotazioni,
         )
-        utente_id = self._utenti.inserisci(utente)
-        self._conn.commit()
-        return utente_id
 
     def autentica(self, email: str, password: str) -> Utente:
         """
@@ -105,4 +115,4 @@ class AuthService:
             raise CredenzialiNonValideError("Email o password non corretti.")
         if not utente.attivo:
             raise CredenzialiNonValideError("Account disattivato: contatta il salone.")
-        return utente
+        return utente

@@ -67,17 +67,29 @@ def test_nomi_reali_accettati(conn, nome, cognome):
 
 # --- Creazione di dipendenti e proprietario ---
 
-def test_crea_staff_proprietario_che_riceve_prenotazioni(conn):
+def test_crea_staff_proprietario_che_riceve_prenotazioni(conn, salone_test):
     servizio = AuthService(conn)
-    utente_id = servizio.crea_staff(**DATI_VALIDI, ruolo="proprietario", riceve_prenotazioni=True)
+    utente_id = servizio.crea_staff(**DATI_VALIDI, ruolo="proprietario", riceve_prenotazioni=True,
+                                    salone_id=salone_test)
     utente = UtenteRepository(conn).leggi_per_id(utente_id)
     assert utente.ruolo == "proprietario"
+    assert utente.salone_id == salone_test
     assert utente.riceve_prenotazioni is True
 
 
-def test_crea_staff_rifiuta_il_ruolo_cliente(conn):
+def test_crea_staff_rifiuta_il_ruolo_cliente(conn, salone_test):
     with pytest.raises(DatiNonValidiError):
-        AuthService(conn).crea_staff(**DATI_VALIDI, ruolo="cliente", riceve_prenotazioni=False)
+        AuthService(conn).crea_staff(**DATI_VALIDI, ruolo="cliente", riceve_prenotazioni=False,
+                                     salone_id=salone_test)
+
+
+def test_crea_staff_rifiuta_un_salone_inesistente(conn):
+    with pytest.raises(DatiNonValidiError):
+        AuthService(conn).crea_staff(**DATI_VALIDI, ruolo="dipendente", riceve_prenotazioni=True, salone_id=0)
+
+
+def test_cliente_registrato_senza_salone(conn):
+    assert UtenteRepository(conn).leggi_per_id(_registra(conn)).salone_id is None
 
 
 # --- Login ---

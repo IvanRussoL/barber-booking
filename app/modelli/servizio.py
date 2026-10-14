@@ -5,9 +5,10 @@ class Servizio:
     """
     Servizio offerto dal salone, con durata e prezzo attuali.
     """
-    nome:str
+    nome: str
     durata_minuti: int
     prezzo_centesimi: int
     descrizione: str | None = None
+    salone_id: int | None = None
     attivo: bool = True
-    id: int | None = None
+    id: int | None = None

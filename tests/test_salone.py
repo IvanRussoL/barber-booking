@@ -31,8 +31,8 @@ def test_filtri_euro_e_durata():
 
 # --- Servizi ---
 
-def test_servizio_creato_con_prezzo_in_centesimi(conn):
-    salone = SaloneService(conn)
+def test_servizio_creato_con_prezzo_in_centesimi(conn, salone_test):
+    salone = SaloneService(conn, salone_test)
     servizio = salone.leggi_servizio(salone.crea_servizio(" Taglio test ", "", "30", "15,50"))
     assert servizio.nome == "Taglio test"
     assert servizio.descrizione is None
@@ -50,21 +50,21 @@ def test_servizio_creato_con_prezzo_in_centesimi(conn):
     ("prezzo_euro", "0"),
     ("prezzo_euro", "dieci"),
 ])
-def test_dati_del_servizio_non_validi(conn, campo, valore):
+def test_dati_del_servizio_non_validi(conn, campo, valore, salone_test):
     dati = {"nome": "Servizio test", "descrizione": "", "durata_minuti": "30", "prezzo_euro": "10"}
     with pytest.raises(DatiNonValidiError):
-        SaloneService(conn).crea_servizio(**(dati | {campo: valore}))
+        SaloneService(conn, salone_test).crea_servizio(**(dati | {campo: valore}))
 
 
-def test_nome_gia_usato_anche_con_maiuscole_diverse(conn):
-    salone = SaloneService(conn)
+def test_nome_gia_usato_anche_con_maiuscole_diverse(conn, salone_test):
+    salone = SaloneService(conn, salone_test)
     salone.crea_servizio("Barba test", "", "30", "10")
     with pytest.raises(ServizioGiaEsistenteError):
         salone.crea_servizio("BARBA TEST", "", "60", "20")
 
 
-def test_modifica_mantiene_lo_stato_e_permette_lo_stesso_nome(conn):
-    salone = SaloneService(conn)
+def test_modifica_mantiene_lo_stato_e_permette_lo_stesso_nome(conn, salone_test):
+    salone = SaloneService(conn, salone_test)
     servizio_id = salone.crea_servizio("Colore test", "", "90", "40")
     salone.imposta_attivo(servizio_id, False)
     salone.modifica_servizio(servizio_id, "Colore test", "Con piega", "120", "45")
@@ -74,22 +74,22 @@ def test_modifica_mantiene_lo_stato_e_permette_lo_stesso_nome(conn):
     assert servizio.attivo is False
 
 
-def test_modifica_con_il_nome_di_un_altro_servizio(conn):
-    salone = SaloneService(conn)
+def test_modifica_con_il_nome_di_un_altro_servizio(conn, salone_test):
+    salone = SaloneService(conn, salone_test)
     salone.crea_servizio("Primo test", "", "30", "10")
     secondo_id = salone.crea_servizio("Secondo test", "", "30", "10")
     with pytest.raises(ServizioGiaEsistenteError):
         salone.modifica_servizio(secondo_id, "Primo test", "", "30", "10")
 
 
-def test_servizio_disattivato_sparisce_dal_listino_pubblico(conn):
-    salone = SaloneService(conn)
+def test_servizio_disattivato_sparisce_dal_listino_pubblico(conn, salone_test):
+    salone = SaloneService(conn, salone_test)
     servizio_id = salone.crea_servizio("Shampoo test", "", "30", "5")
     salone.imposta_attivo(servizio_id, False)
     assert "Shampoo test" not in [s.nome for s in salone.elenca_servizi()]
     assert "Shampoo test" in [s.nome for s in salone.elenca_servizi(solo_attivi=False)]
 
 
-def test_servizio_inesistente(conn):
+def test_servizio_inesistente(conn, salone_test):
     with pytest.raises(RisorsaNonTrovataError):
-        SaloneService(conn).leggi_servizio(0)
+        SaloneService(conn, salone_test).leggi_servizio(0)

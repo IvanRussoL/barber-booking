@@ -5,11 +5,12 @@ from flask import (Blueprint, current_app, flash, g, jsonify, redirect, render_t
 
 from app.accessi import controlla_accesso
 from app.db import ottieni_connessione
-from app.eccezioni import AnnullamentoNonConsentitoError, DatiNonValidiError, SlotNonDisponibileError
+from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, RecensioneNonConsentitaError,
+                           RisorsaNonTrovataError, SlotNonDisponibileError)
 from app.formato import formatta_euro
-from app.repository.impostazioni import ImpostazioniRepository
 from app.repository.utente import UtenteRepository
 from app.servizi.prenotazione import PrenotazioneService
+from app.servizi.recensioni import LUNGHEZZA_MASSIMA_COMMENTO, RecensioniService
 from app.servizi.salone import SaloneService
 
 bp = Blueprint("cliente", __name__, url_prefix="/cliente")
@@ -33,14 +34,12 @@ def controlla_cliente():
 @bp.route("/")
 def area():
     """
-    Area personale: storico delle prenotazioni del cliente e totale speso.
+    Area personale: storico delle prenotazioni del cliente in tutti i saloni e totale speso.
     L'id del cliente viene dalla sessione (g.utente), mai dall'URL.
     """
-    servizio = _prenotazioni()
-    storico = servizio.storico_cliente(g.utente.id)
+    storico = _prenotazioni().storico_cliente(g.utente.id)
     return render_template(
         "cliente/area.html", storico=storico, totale_speso=sum(r.pagato_centesimi for r in storico),
-        fuso_orario=servizio.disponibilita.fuso_orario,
     )
 
 
@@ -53,8 +52,10 @@ def annulla_prenotazione(prenotazione_id: int):
     servizio = _prenotazioni()
     prenotazione = servizio.prenotazione_del_cliente(prenotazione_id, g.utente.id)
     if request.method == "GET":
+        disponibilita = servizio.disponibilita(prenotazione.salone_id)
         return render_template(
-            "cliente/annulla.html", prenotazione=prenotazione, fuso_orario=servizio.disponibilita.fuso_orario,
+            "cliente/annulla.html", prenotazione=prenotazione, salone=disponibilita.salone,
+            fuso_orario=disponibilita.fuso_orario,
         )
     try:
         rimborsato = servizio.annulla_dal_cliente(prenotazione_id, g.utente.id)
@@ -65,19 +66,52 @@ def annulla_prenotazione(prenotazione_id: int):
     return redirect(url_for("cliente.area"))
 
 
-# --- Prenotazione ---
-
-def _pagina_prenotazione(dati, servizi_scelti: list[str], errore: str | None = None, codice: int = 200):
+@bp.route("/prenotazioni/<int:prenotazione_id>/recensione", methods=["GET", "POST"])
+def recensione(prenotazione_id: int):
     """
-    Mostra il modulo di prenotazione con servizi, professionisti, finestra di date e scelte già fatte.
+    Recensione di un appuntamento svolto. Una prenotazione di un altro cliente risulta non trovata (404);
+    una non ancora svolta o già recensita riporta all'area personale con un messaggio.
+    """
+    recensioni = RecensioniService(ottieni_connessione())
+    try:
+        prenotazione = recensioni.prenotazione_da_recensire(prenotazione_id, g.utente.id)
+    except RecensioneNonConsentitaError as errore:
+        flash(str(errore))
+        return redirect(url_for("cliente.area"))
+    disponibilita = _prenotazioni().disponibilita(prenotazione.salone_id)
+    pagina = {"prenotazione": prenotazione, "salone": disponibilita.salone, "fuso_orario": disponibilita.fuso_orario,
+              "lunghezza_massima": LUNGHEZZA_MASSIMA_COMMENTO}
+    if request.method == "GET":
+        return render_template("cliente/recensione.html", dati={}, **pagina)
+    try:
+        recensioni.crea(prenotazione_id, g.utente.id, request.form.get("voto", ""), request.form.get("commento", ""))
+    except DatiNonValidiError as errore:
+        ottieni_connessione().rollback()  # libera il blocco sulla prenotazione
+        return render_template("cliente/recensione.html", dati=request.form, errore=str(errore), **pagina), 400
+    except RecensioneNonConsentitaError as errore:
+        flash(str(errore))
+        return redirect(url_for("cliente.area"))
+    flash("Grazie: la tua recensione è pubblicata.")
+    return redirect(url_for("cliente.area"))
+
+
+# --- Prenotazione in un salone ---
+
+def _pagina_prenotazione(salone_id: int, dati, servizi_scelti: list[str], errore: str | None = None,
+                         codice: int = 200):
+    """
+    Mostra il modulo di prenotazione del salone con servizi, professionisti, finestra di date e scelte già fatte.
+    Raises: RisorsaNonTrovataError se il salone non esiste o è disattivato (404).
     """
     connessione = ottieni_connessione()
-    primo, ultimo = _prenotazioni().disponibilita.finestra(datetime.now(UTC))
+    servizio = _prenotazioni()
+    salone = servizio.salone_prenotabile(salone_id)
+    primo, ultimo = servizio.disponibilita(salone.id).finestra(datetime.now(UTC))
     return render_template(
         "cliente/prenota.html",
-        servizi=SaloneService(connessione).elenca_servizi(),
-        professionisti=UtenteRepository(connessione).elenca_professionisti(),
-        percentuale_acconto=ImpostazioniRepository(connessione).leggi().percentuale_acconto,
+        salone=salone,
+        servizi=SaloneService(connessione, salone.id).elenca_servizi(),
+        professionisti=UtenteRepository(connessione).elenca_professionisti(salone.id),
         primo_giorno=primo.isoformat(),
         ultimo_giorno=ultimo.isoformat(),
         dati=dati,
@@ -86,17 +120,18 @@ def _pagina_prenotazione(dati, servizi_scelti: list[str], errore: str | None = N
     ), codice
 
 
-@bp.route("/prenota", methods=["GET", "POST"])
-def prenota():
+@bp.route("/saloni/<int:salone_id>/prenota", methods=["GET", "POST"])
+def prenota(salone_id: int):
     """
-    Modulo di prenotazione. Il POST crea la prenotazione in attesa di pagamento
-    e porta alla pagina di pagamento del provider.
+    Modulo di prenotazione di un salone. Il POST crea la prenotazione in attesa di pagamento
+    e porta alla pagina di pagamento del provider. Servizi e professionista devono essere di questo salone.
     """
     if request.method == "GET":
-        return _pagina_prenotazione({}, [])
+        return _pagina_prenotazione(salone_id, {}, [])
     try:
         _, url_pagamento = _prenotazioni().crea(
             g.utente,
+            salone_id,
             request.form.get("dipendente_id", ""),
             request.form.getlist("servizi"),
             request.form.get("data", ""),
@@ -105,28 +140,31 @@ def prenota():
         )
     except (DatiNonValidiError, SlotNonDisponibileError) as errore:
         ottieni_connessione().rollback()  # libera subito il blocco sul dipendente
-        return _pagina_prenotazione(request.form, request.form.getlist("servizi"), str(errore), 400)
+        return _pagina_prenotazione(salone_id, request.form, request.form.getlist("servizi"), str(errore), 400)
     return redirect(url_pagamento)
 
 
-@bp.route("/slot")
-def slot():
+@bp.route("/saloni/<int:salone_id>/slot")
+def slot(salone_id: int):
     """
-    Orari liberi in formato JSON, chiesti con fetch dalla pagina di prenotazione.
+    Orari liberi in formato JSON, chiesti con fetch dalla pagina di prenotazione del salone.
     Parametri: dipendente_id, data (AAAA-MM-GG) e uno o più servizi.
     """
     servizio = _prenotazioni()
     try:
         liberi = servizio.slot_per_scelta(
+            salone_id,
             request.args.get("dipendente_id", ""),
             request.args.getlist("servizi"),
             request.args.get("data", ""),
             cliente_id=g.utente.id,
         )
+    except RisorsaNonTrovataError as errore:
+        return jsonify(errore=str(errore)), 404
     except DatiNonValidiError as errore:
         return jsonify(errore=str(errore)), 400
     # Qui la data è già stata controllata da slot_per_scelta.
-    incerta = servizio.disponibilita.da_definire(date.fromisoformat(request.args["data"]))
+    incerta = servizio.disponibilita(salone_id).da_definire(date.fromisoformat(request.args["data"]))
     return jsonify(slot=[inizio.strftime("%H:%M") for inizio in liberi], da_definire=incerta)
 
 
@@ -140,9 +178,10 @@ def pagamento(riferimento: str):
     servizio = _prenotazioni()
     movimento, prenotazione = servizio.pagamento_del_cliente(riferimento, g.utente.id)
     dipendente = UtenteRepository(ottieni_connessione()).leggi_per_id(prenotazione.dipendente_id)
+    disponibilita = servizio.disponibilita(prenotazione.salone_id)
     return render_template(
-        "cliente/pagamento.html", pagamento=movimento, prenotazione=prenotazione,
-        dipendente=dipendente, fuso_orario=servizio.disponibilita.fuso_orario,
+        "cliente/pagamento.html", pagamento=movimento, prenotazione=prenotazione, salone=disponibilita.salone,
+        dipendente=dipendente, fuso_orario=disponibilita.fuso_orario,
     )
 
 
@@ -166,7 +205,7 @@ def annulla_pagamento(riferimento: str):
     Il cliente esce dal pagamento: la prenotazione in attesa viene annullata e lo slot torna libero.
     """
     servizio = _prenotazioni()
-    servizio.pagamento_del_cliente(riferimento, g.utente.id)
+    _, prenotazione = servizio.pagamento_del_cliente(riferimento, g.utente.id)
     servizio.annulla_pagamento(riferimento)
     flash("Pagamento annullato: la prenotazione non è stata registrata.")
-    return redirect(url_for("cliente.prenota"))
+    return redirect(url_for("cliente.prenota", salone_id=prenotazione.salone_id))

@@ -5,15 +5,18 @@ from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, R
                            SlotNonDisponibileError)
 from app.modelli.pagamento import Pagamento
 from app.modelli.prenotazione import Prenotazione, ServizioPrenotato
+from app.modelli.salone import Salone
 from app.modelli.servizio import Servizio
 from app.modelli.utente import Utente
 from app.pagamenti.provider import PaymentProvider
-from app.repository.impostazioni import ImpostazioniRepository
 from app.repository.pagamento import PagamentoRepository
+from app.repository.recensione import RecensioneRepository
 from app.repository.prenotazione import PrenotazioneRepository
+from app.repository.salone import SaloneRepository
 from app.repository.servizio import ServizioRepository
 from app.repository.utente import UtenteRepository
 from app.servizi.disponibilita import DisponibilitaService, in_utc
+from app.servizi.recensioni import puo_recensire
 
 MINUTI_PER_PAGARE = 30
 ORE_MINIME_PER_ANNULLARE = 2
@@ -23,12 +26,15 @@ MODALITA_PAGAMENTO = ("acconto", "completo")
 @dataclass
 class RigaStorico:
     """
-    Una prenotazione come la vede il cliente nella sua area: con professionista, pagato e annullabilità.
+    Una prenotazione come la vede il cliente nella sua area: con salone, professionista, pagato
+    e annullabilità. Il salone serve anche a mostrare l'orario nel suo fuso orario.
     """
     prenotazione: Prenotazione
+    salone: Salone
     professionista: str
     pagato_centesimi: int
     annullabile: bool
+    recensibile: bool = False  # appuntamento svolto e non ancora recensito
 
 
 @dataclass
@@ -61,66 +67,85 @@ def _intero(valore: str, campo: str) -> int:
 
 class PrenotazioneService:
     """
-    Creazione delle prenotazioni e gestione del loro pagamento.
+    Creazione delle prenotazioni e gestione del loro pagamento, in qualsiasi salone.
+    Il salone arriva dalla pagina del salone scelto (prenotazione) o dalla sessione (staff):
+    servizi e professionisti di un altro salone vengono rifiutati.
     """
 
     def __init__(self, connessione, provider: PaymentProvider):
         self._conn = connessione
         self._provider = provider
-        self._disponibilita = DisponibilitaService(connessione)
+        self._calendari: dict[int, DisponibilitaService] = {}
         self._prenotazioni = PrenotazioneRepository(connessione)
         self._pagamenti = PagamentoRepository(connessione)
+        self._saloni = SaloneRepository(connessione)
         self._servizi = ServizioRepository(connessione)
         self._utenti = UtenteRepository(connessione)
 
-    @property
-    def disponibilita(self) -> DisponibilitaService:
+    def disponibilita(self, salone_id: int) -> DisponibilitaService:
         """
-        Il servizio di calcolo degli slot, con la stessa connessione.
+        Il calendario di un salone, con la stessa connessione (creato una volta sola per salone).
+        Raises: RisorsaNonTrovataError se il salone non esiste.
         """
-        return self._disponibilita
+        if salone_id not in self._calendari:
+            self._calendari[salone_id] = DisponibilitaService(self._conn, salone_id)
+        return self._calendari[salone_id]
 
-    def servizi_scelti(self, servizi_ids: list[str]) -> list[Servizio]:
+    def salone_prenotabile(self, salone_id: int) -> Salone:
         """
-        Controlla i servizi scelti dal cliente: almeno uno, esistenti e attivi, senza ripetizioni.
+        Il salone in cui il cliente vuole prenotare: deve esistere ed essere attivo.
+        Returns: il Salone.
+        Raises: RisorsaNonTrovataError se non esiste o è disattivato (stessa risposta: 404).
+        """
+        salone = self._saloni.leggi_per_id(salone_id)
+        if salone is None or not salone.attivo:
+            raise RisorsaNonTrovataError("Salone non trovato.")
+        return salone
+
+    def servizi_scelti(self, salone_id: int, servizi_ids: list[str]) -> list[Servizio]:
+        """
+        Controlla i servizi scelti dal cliente: almeno uno, del salone, esistenti e attivi, senza ripetizioni.
         Returns: la lista dei Servizi.
-        Raises: DatiNonValidiError se la scelta non è valida.
+        Raises: DatiNonValidiError se la scelta non è valida (anche con un servizio di un altro salone).
         """
         ids = {_intero(valore, "un servizio valido") for valore in servizi_ids}
         if not ids:
             raise DatiNonValidiError("Scegli almeno un servizio.")
-        servizi = [self._servizi.leggi_per_id(servizio_id) for servizio_id in sorted(ids)]
+        servizi = [self._servizi.leggi_per_id(salone_id, servizio_id) for servizio_id in sorted(ids)]
         if any(s is None or not s.attivo for s in servizi):
             raise DatiNonValidiError("Uno dei servizi scelti non è più disponibile.")
         return servizi
 
-    def professionista(self, dipendente_id: str) -> Utente:
+    def professionista(self, salone_id: int, dipendente_id: str) -> Utente:
         """
-        Controlla il professionista scelto: deve esistere, essere attivo e ricevere prenotazioni.
+        Controlla il professionista scelto: deve lavorare in questo salone, essere attivo e ricevere prenotazioni.
         Returns: l'Utente.
-        Raises: DatiNonValidiError se non è prenotabile.
+        Raises: DatiNonValidiError se non è prenotabile in questo salone.
         """
         dipendente = self._utenti.leggi_per_id(_intero(dipendente_id, "un professionista"))
-        if dipendente is None or not dipendente.attivo or not dipendente.riceve_prenotazioni:
+        if (dipendente is None or dipendente.salone_id != salone_id
+                or not dipendente.attivo or not dipendente.riceve_prenotazioni):
             raise DatiNonValidiError("Il professionista scelto non è prenotabile.")
         return dipendente
 
-    def slot_per_scelta(self, dipendente_id: str, servizi_ids: list[str], giorno: str,
+    def slot_per_scelta(self, salone_id: int, dipendente_id: str, servizi_ids: list[str], giorno: str,
                         adesso: datetime | None = None, cliente_id: int | None = None) -> list[datetime]:
         """
         Orari liberi per la scelta del modulo (usato dalla richiesta fetch della pagina di prenotazione),
-        senza quelli in cui il cliente ha già un altro appuntamento.
+        senza quelli in cui il cliente ha già un altro appuntamento, in qualsiasi salone.
         Returns: gli orari di inizio con il fuso orario del salone.
-        Raises: DatiNonValidiError se servizi, professionista o data non sono validi.
+        Raises: RisorsaNonTrovataError se il salone non è prenotabile;
+            DatiNonValidiError se servizi, professionista o data non sono validi.
         """
         adesso = adesso or datetime.now(UTC)
-        servizi = self.servizi_scelti(servizi_ids)
-        dipendente = self.professionista(dipendente_id)
-        return self._disponibilita.slot_liberi(
+        self.salone_prenotabile(salone_id)
+        servizi = self.servizi_scelti(salone_id, servizi_ids)
+        dipendente = self.professionista(salone_id, dipendente_id)
+        return self.disponibilita(salone_id).slot_liberi(
             dipendente.id, _data(giorno), sum(s.durata_minuti for s in servizi), adesso, cliente_id
         )
 
-    def crea(self, cliente: Utente, dipendente_id: str, servizi_ids: list[str], giorno: str,
+    def crea(self, cliente: Utente, salone_id: int, dipendente_id: str, servizi_ids: list[str], giorno: str,
              ora: str, modalita: str, adesso: datetime | None = None) -> tuple[int, str]:
         """
         Crea una prenotazione in attesa di pagamento e apre il pagamento, in un'unica transazione.
@@ -128,27 +153,31 @@ class PrenotazioneService:
         cliente e quelle per lo stesso professionista: lo slot si ricontrolla solo dopo aver ottenuto i blocchi,
         quindi due richieste non possono prenderlo insieme. L'ordine fisso (prima il cliente) evita stalli.
         Returns: (id della prenotazione, pagina di pagamento).
-        Raises: DatiNonValidiError se un dato non è valido; SlotNonDisponibileError se l'orario non è libero.
+        Raises: RisorsaNonTrovataError se il salone non è prenotabile; DatiNonValidiError se un dato
+            non è valido; SlotNonDisponibileError se l'orario non è libero.
         """
         adesso = adesso or datetime.now(UTC)
         if cliente.ruolo != "cliente":
             raise DatiNonValidiError("Solo i clienti possono prenotare.")
+        salone = self.salone_prenotabile(salone_id)
         if modalita not in MODALITA_PAGAMENTO:
             raise DatiNonValidiError("Scegli se pagare l'acconto o l'importo completo.")
-        servizi = self.servizi_scelti(servizi_ids)
-        dipendente = self.professionista(dipendente_id)
+        servizi = self.servizi_scelti(salone.id, servizi_ids)
+        dipendente = self.professionista(salone.id, dipendente_id)
         durata = sum(s.durata_minuti for s in servizi)
-        inizio = datetime.combine(_data(giorno), _ora(ora), self._disponibilita.fuso_orario)
+        disponibilita = self.disponibilita(salone.id)
+        inizio = datetime.combine(_data(giorno), _ora(ora), disponibilita.fuso_orario)
 
         self._prenotazioni.segna_scadute(in_utc(adesso))
         self._utenti.blocca(cliente.id)
         self._utenti.blocca(dipendente.id)
-        if inizio not in self._disponibilita.slot_liberi(dipendente.id, inizio.date(), durata, adesso, cliente.id):
+        if inizio not in disponibilita.slot_liberi(dipendente.id, inizio.date(), durata, adesso, cliente.id):
             raise SlotNonDisponibileError(
                 "L'orario scelto non è più disponibile, oppure hai già un appuntamento a quell'ora: scegline un altro."
             )
 
         prenotazione = Prenotazione(
+            salone_id=salone.id,
             cliente_id=cliente.id,
             dipendente_id=dipendente.id,
             inizio=in_utc(inizio),
@@ -161,8 +190,7 @@ class PrenotazioneService:
 
         importo = prenotazione.prezzo_totale()
         if modalita == "acconto":
-            percentuale = ImpostazioniRepository(self._conn).leggi().percentuale_acconto
-            importo = calcola_acconto(importo, percentuale)
+            importo = calcola_acconto(importo, salone.percentuale_acconto)
         sessione = self._provider.crea_sessione(importo, f"Prenotazione n. {prenotazione_id}")
         self._pagamenti.inserisci(Pagamento(
             tipo="online", importo_centesimi=importo, prenotazione_id=prenotazione_id,
@@ -249,18 +277,22 @@ class PrenotazioneService:
 
     def storico_cliente(self, cliente_id: int, adesso: datetime | None = None) -> list[RigaStorico]:
         """
-        Prenotazioni del cliente con professionista, importo pagato e possibilità di annullare.
+        Prenotazioni del cliente in tutti i saloni, con salone, professionista, importo pagato
+        e possibilità di annullare o di recensire.
         Returns: la lista delle RigaStorico, dalla più recente.
         """
         adesso = adesso or datetime.now(UTC)
+        recensite = RecensioneRepository(self._conn).prenotazioni_recensite(cliente_id)
         righe = []
         for prenotazione in self._prenotazioni.elenca_per_cliente(cliente_id):
             dipendente = self._utenti.leggi_per_id(prenotazione.dipendente_id)
             righe.append(RigaStorico(
                 prenotazione=prenotazione,
+                salone=self.disponibilita(prenotazione.salone_id).salone,
                 professionista=f"{dipendente.nome} {dipendente.cognome}",
                 pagato_centesimi=self._pagamenti.totale_pagato(prenotazione.id),
                 annullabile=self.puo_annullare(prenotazione, adesso),
+                recensibile=puo_recensire(prenotazione, prenotazione.id in recensite, adesso),
             ))
         return righe
 
@@ -322,12 +354,16 @@ class PrenotazioneService:
 
     def _leggi_per_il_salone(self, prenotazione_id: int, utente: Utente, per_aggiornamento: bool = False):
         """
-        Il proprietario legge qualsiasi prenotazione; un dipendente solo quelle della propria agenda.
-        Raises: RisorsaNonTrovataError se non esiste o è nell'agenda di un altro professionista.
+        Il proprietario legge qualsiasi prenotazione del proprio salone; un dipendente solo quelle
+        della propria agenda. Il salone viene sempre dalla sessione (utente.salone_id), mai dall'URL.
+        Raises: RisorsaNonTrovataError se non esiste, è di un altro salone o nell'agenda di un altro professionista.
         """
+        if utente.salone_id is None:
+            raise RisorsaNonTrovataError("Prenotazione non trovata.")
         dipendente_id = None if utente.ruolo == "proprietario" else utente.id
         prenotazione = self._prenotazioni.leggi_per_id(
-            prenotazione_id, dipendente_id=dipendente_id, per_aggiornamento=per_aggiornamento
+            prenotazione_id, dipendente_id=dipendente_id, salone_id=utente.salone_id,
+            per_aggiornamento=per_aggiornamento,
         )
         if prenotazione is None:
             raise RisorsaNonTrovataError("Prenotazione non trovata.")
@@ -359,13 +395,15 @@ class PrenotazioneService:
 
     def agenda(self, dipendente_id: int, adesso: datetime | None = None) -> list[Appuntamento]:
         """
-        Prossimi appuntamenti confermati di un professionista, dall'inizio di oggi (ora locale).
-        Returns: la lista degli Appuntamenti in ordine di inizio.
+        Prossimi appuntamenti confermati di un professionista, dall'inizio di oggi (ora locale del suo salone).
+        Returns: la lista degli Appuntamenti in ordine di inizio (vuota se non è un professionista).
         """
         adesso = adesso or datetime.now(UTC)
-        inizio_oggi = datetime.combine(
-            adesso.astimezone(self._disponibilita.fuso_orario).date(), time(0), self._disponibilita.fuso_orario
-        )
+        dipendente = self._utenti.leggi_per_id(dipendente_id)
+        if dipendente is None or dipendente.salone_id is None:
+            return []
+        fuso = self.disponibilita(dipendente.salone_id).fuso_orario
+        inizio_oggi = datetime.combine(adesso.astimezone(fuso).date(), time(0), fuso)
         return [
             Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id),
                          self.puo_annullare_salone(prenotazione, adesso))

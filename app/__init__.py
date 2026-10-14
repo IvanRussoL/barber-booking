@@ -4,12 +4,12 @@ from datetime import datetime
 from flask import Flask, g, render_template, session
 from flask_wtf.csrf import CSRFError, CSRFProtect
 
-from app.comandi import crea_proprietario
+from app.comandi import crea_proprietario, crea_salone
 from app.db import chiudi_connessione, ottieni_connessione
 from app.eccezioni import BarberBookingError, RisorsaNonTrovataError
 from app.formato import formatta_data_ora, formatta_durata, formatta_euro
 from app.pagamenti.finto import FakeProvider
-from app.repository.impostazioni import ImpostazioniRepository
+from app.repository.salone import SaloneRepository
 from app.repository.utente import UtenteRepository
 from app.rotte import auth, cliente, dipendente, proprietario, pubblico
 
@@ -71,16 +71,21 @@ def carica_utente() -> None:
     g.utente = utente
 
 
-def dati_piede_pagina() -> dict:
+def dati_comuni() -> dict:
     """
-    Dati comuni a tutte le pagine: il salone e l'anno per il piè di pagina, e puo_prenotare,
-    vero per visitatori e clienti, che decide se mostrare i pulsanti "Prenota".
-    Returns: dizionario con salone (Impostazioni), anno e puo_prenotare.
+    Dati comuni a tutte le pagine: l'anno per il piè di pagina; puo_prenotare, vero per visitatori
+    e clienti, che decide se mostrare i pulsanti "Prenota"; il salone in cui lavora chi è loggato
+    (None per visitatori e clienti), mostrato nell'intestazione dell'area di lavoro.
+    Returns: dizionario con anno, puo_prenotare e salone_utente.
     """
+    utente = g.get("utente")
+    salone_utente = None
+    if utente is not None and utente.salone_id is not None:
+        salone_utente = SaloneRepository(ottieni_connessione()).leggi_per_id(utente.salone_id)
     return {
-        "salone": ImpostazioniRepository(ottieni_connessione()).leggi(),
         "anno": datetime.now().year,
-        "puo_prenotare": g.get("utente") is None or g.utente.ruolo == "cliente",
+        "puo_prenotare": utente is None or utente.ruolo == "cliente",
+        "salone_utente": salone_utente,
     }
 
 
@@ -118,9 +123,10 @@ def create_app(config: dict | None = None) -> Flask:
     for codice in MESSAGGI_HTTP:
         app.register_error_handler(codice, gestisci_errore_http)
 
-    app.context_processor(dati_piede_pagina)
+    app.context_processor(dati_comuni)
     app.add_template_filter(formatta_euro, "euro")
     app.add_template_filter(formatta_durata, "durata")
     app.add_template_filter(formatta_data_ora, "data_ora")
+    app.cli.add_command(crea_salone)
     app.cli.add_command(crea_proprietario)
     return app

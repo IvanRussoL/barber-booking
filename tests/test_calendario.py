@@ -36,22 +36,22 @@ def test_giornate_a_rischio():
 
 # --- Date da definire ---
 
-def test_festivita_in_un_giorno_aperto_da_definire(conn):
-    disponibilita = DisponibilitaService(conn)
+def test_festivita_in_un_giorno_aperto_da_definire(conn, salone_test):
+    disponibilita = DisponibilitaService(conn, salone_test)
     assert disponibilita.da_definire(date(2026, 12, 24)) is True   # giovedì: di solito aperto
     assert disponibilita.da_definire(date(2027, 3, 29)) is False   # Pasquetta di lunedì: già chiuso
     assert disponibilita.da_definire(date(2026, 12, 23)) is False  # giorno qualsiasi
 
 
-def test_festivita_da_definire_resta_prenotabile(conn):
+def test_festivita_da_definire_resta_prenotabile(conn, salone_test):
     # Finché il proprietario non decide valgono i turni settimanali.
-    assert _orari(DisponibilitaService(conn).turni_del_giorno(date(2026, 12, 24))) == ["09:00-13:00", "15:00-23:00"]
+    assert _orari(DisponibilitaService(conn, salone_test).turni_del_giorno(date(2026, 12, 24))) == ["09:00-13:00", "15:00-23:00"]
 
 
-def test_giornate_speciali(conn):
-    CalendarioService(conn).imposta_eccezione("2026-12-24", "si", [("09:00", "13:00"), ("", "")], "Vigilia", ADESSO)
-    CalendarioService(conn).imposta_eccezione("2026-12-25", "no", [], "", ADESSO)
-    speciali = DisponibilitaService(conn).giornate_speciali(date(2026, 12, 20), date(2026, 12, 31))
+def test_giornate_speciali(conn, salone_test):
+    CalendarioService(conn, salone_test).imposta_eccezione("2026-12-24", "si", [("09:00", "13:00"), ("", "")], "Vigilia", ADESSO)
+    CalendarioService(conn, salone_test).imposta_eccezione("2026-12-25", "no", [], "", ADESSO)
+    speciali = DisponibilitaService(conn, salone_test).giornate_speciali(date(2026, 12, 20), date(2026, 12, 31))
     assert [(g.data.day, g.stato) for g in speciali] == [
         (24, "aperto"), (25, "chiuso"), (26, "da_definire"), (31, "da_definire"),
     ]
@@ -80,32 +80,32 @@ def test_turni_validi():
 
 # --- Modifica degli orari di una data ---
 
-def test_chiusura_di_una_data(conn, salone):
-    CalendarioService(conn).imposta_eccezione(MERCOLEDI, "no", [], "Ferie", ADESSO)
-    assert DisponibilitaService(conn).slot_liberi(salone["dipendente_id"], date(2026, 10, 14), 30, ADESSO) == []
+def test_chiusura_di_una_data(conn, salone, salone_test):
+    CalendarioService(conn, salone_test).imposta_eccezione(MERCOLEDI, "no", [], "Ferie", ADESSO)
+    assert DisponibilitaService(conn, salone_test).slot_liberi(salone["dipendente_id"], date(2026, 10, 14), 30, ADESSO) == []
 
 
-def test_orario_ridotto_e_ripristino(conn):
-    calendario = CalendarioService(conn)
+def test_orario_ridotto_e_ripristino(conn, salone_test):
+    calendario = CalendarioService(conn, salone_test)
     calendario.imposta_eccezione(MERCOLEDI, "si", [("10:00", "12:00"), ("", "")], "", ADESSO)
     assert _orari(calendario.disponibilita.turni_del_giorno(date(2026, 10, 14))) == ["10:00-12:00"]
     calendario.rimuovi_eccezione(MERCOLEDI, ADESSO)
-    assert OrarioRepository(conn).leggi_eccezione(date(2026, 10, 14)) is None
+    assert OrarioRepository(conn).leggi_eccezione(salone_test, date(2026, 10, 14)) is None
 
 
 @pytest.mark.parametrize("data", ["2026-10-12", "ieri", ""])
-def test_data_passata_o_non_valida(conn, data):
+def test_data_passata_o_non_valida(conn, data, salone_test):
     with pytest.raises(DatiNonValidiError):
-        CalendarioService(conn).imposta_eccezione(data, "no", [], "", ADESSO)
+        CalendarioService(conn, salone_test).imposta_eccezione(data, "no", [], "", ADESSO)
 
 
-def test_prenotazioni_fuori_dai_nuovi_orari_bloccano_la_modifica(conn, salone):
+def test_prenotazioni_fuori_dai_nuovi_orari_bloccano_la_modifica(conn, salone, salone_test):
     PrenotazioneRepository(conn).inserisci(Prenotazione(
-        cliente_id=salone["cliente"].id, dipendente_id=salone["dipendente_id"],
+        salone_id=salone_test, cliente_id=salone["cliente"].id, dipendente_id=salone["dipendente_id"],
         inizio=datetime(2026, 10, 14, 13, 0), fine=datetime(2026, 10, 14, 13, 30),  # 15:00 italiane
         modalita_pagamento="completo", scade_il=datetime(2026, 10, 14, 13, 0), stato="confermata",
     ))
-    calendario = CalendarioService(conn)
+    calendario = CalendarioService(conn, salone_test)
     with pytest.raises(DatiNonValidiError, match="1 prenotazione fuori"):
         calendario.imposta_eccezione(MERCOLEDI, "no", [], "", ADESSO)
     with pytest.raises(DatiNonValidiError):

@@ -1,0 +1,4 @@
+{# Mappa interattiva (Leaflet). Variabili: dati_mappa, con l'elenco dei saloni e l'eventuale zona del cliente.
+   I dati passano con il filtro tojson, che rende sicuri i caratteri < > & dentro lo script. #}
+<div id="mappa" class="mappa" role="region" aria-label="Mappa dei saloni"></div>
+<script type="application/json" id="dati-mappa">{{ dati_mappa | tojson }}</script>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block titolo %}Recensione – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Com'è andata?</h1>
+    <p>{{ salone.nome }} · {{ prenotazione.inizio | data_ora(fuso_orario) }} ·
+        {% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+    <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <fieldset class="scelta-voto">
+            <legend>Voto</legend>
+            {% for voto in range(5, 0, -1) %}
+                <label>
+                    <input type="radio" name="voto" value="{{ voto }}" {% if dati.get('voto') == voto | string %}checked{% endif %}>
+                    <span class="stelle" aria-hidden="true">{{ "★" * voto }}{{ "☆" * (5 - voto) }}</span>
+                    {{ voto }} su 5
+                </label>
+            {% endfor %}
+        </fieldset>
+        <label>Commento (facoltativo, al massimo {{ lunghezza_massima }} caratteri)
+            <textarea name="commento" rows="4" maxlength="{{ lunghezza_massima }}">{{ dati.get('commento', '') }}</textarea>
+        </label>
+        <p class="ricerca-nota">La recensione sarà pubblica, firmata con il tuo nome e l'iniziale del cognome.</p>
+        <button type="submit">Pubblica la recensione</button>
+    </form>
+    <p><a href="{{ url_for('cliente.area') }}">Torna all'area personale</a></p>
+{% endblock %}

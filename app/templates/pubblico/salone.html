@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% set GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"] %}
+
+{% block titolo %}{{ salone.nome }} – Barber Booking{% endblock %}
+{% block classe_main %}larga{% endblock %}
+
+{% block contenuto %}
+    <section class="testata-salone">
+        <p class="stato-apertura {{ 'aperto' if aperto else 'chiuso' }}">{{ stato_apertura }}</p>
+        <h1>{{ salone.nome }}</h1>
+        <p class="sottotitolo">{{ salone.indirizzo }} ({{ salone.provincia }})</p>
+        {% if media_voti is not none %}
+            <p class="valutazione"><span class="stelle" aria-hidden="true">★</span>
+                {{ "%.1f" | format(media_voti) | replace(".", ",") }} su 5 ·
+                <a href="#recensioni">{{ numero_recensioni }} {{ "recensione" if numero_recensioni == 1 else "recensioni" }}</a></p>
+        {% endif %}
+        <div class="azioni">
+            {% if puo_prenotare %}
+                <a class="pulsante" href="{{ url_for('cliente.prenota', salone_id=salone.id) }}">Prenota</a>
+            {% endif %}
+            <a class="pulsante pulsante-contorno" href="{{ url_for('pubblico.servizi', salone_id=salone.id) }}">Servizi e prezzi</a>
+        </div>
+    </section>
+
+    <section class="orari" id="orari">
+        <div>
+            <h2>Orari</h2>
+            <table>
+                {% for giorno, turni in orari %}
+                    <tr class="{{ 'oggi' if giorno == oggi }}">
+                        <th>{{ GIORNI[giorno - 1] }}</th>
+                        <td>
+                            {% for turno in turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% else %}Chiuso{% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+            {% if speciali %}
+                <h3>Date particolari</h3>
+                <div class="elenco-date">
+                    {% for giorno in speciali %}
+                        <div class="riga-data">
+                            <p class="riga-data-quando">{{ GIORNI[giorno.data.weekday()] }} {{ giorno.data.strftime('%d/%m') }}</p>
+                            <p>
+                                {% if giorno.stato == 'da_definire' %}
+                                    <span class="badge-incerto">Da definire</span>
+                                {% elif giorno.stato == 'chiuso' %}
+                                    <span class="badge-chiuso">Chiuso</span>
+                                {% else %}
+                                    {% for turno in giorno.turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% endfor %}
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <div class="contatti">
+            <h2>Dove siamo</h2>
+            <p>{{ salone.nome }}</p>
+            <p>{{ salone.indirizzo }}</p>
+            <p><a href="tel:{{ salone.telefono }}">{{ salone.telefono }}</a></p>
+            {% include "pubblico/_mappa.html" %}
+        </div>
+    </section>
+
+    <section class="recensioni" id="recensioni">
+        <h2>Recensioni</h2>
+        {% for recensione in recensioni %}
+            <article class="recensione">
+                <p class="valutazione"><span class="stelle" role="img" aria-label="{{ recensione.voto }} su 5">{{ "★" * recensione.voto }}{{ "☆" * (5 - recensione.voto) }}</span>
+                    · {{ recensione.autore }} · {{ recensione.creato_il.strftime('%d/%m/%Y') }}</p>
+                {% if recensione.commento %}<p>{{ recensione.commento }}</p>{% endif %}
+            </article>
+        {% else %}
+            <p>Ancora nessuna recensione. Le lasciano i clienti dopo l'appuntamento.</p>
+        {% endfor %}
+    </section>
+{% endblock %}
+
+{% block script %}
+    {% include "pubblico/_leaflet.html" %}
+    <script src="{{ url_for('static', filename='js/mappa.js') }}"></script>
+{% endblock %}

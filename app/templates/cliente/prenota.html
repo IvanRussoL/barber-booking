@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block titolo %}Prenota – Barber Booking{% endblock %}
+{% block titolo %}Prenota da {{ salone.nome }} – Barber Booking{% endblock %}
 
 {% block contenuto %}
     <figure class="banner">
         <img src="{{ url_for('static', filename='img/prenota.jpg') }}"
              alt="Poltrona da barbiere in pelle rossa in un salone" width="1600" height="900">
         <figcaption>
-            <h1>Prenota un appuntamento</h1>
-            <p>Servizi, professionista e orario: il resto lo pensiamo noi.</p>
+            <h1>Prenota da {{ salone.nome }}</h1>
+            <p>{{ salone.indirizzo }} · servizi, professionista e orario: il resto lo pensiamo noi.</p>
         </figcaption>
     </figure>
     {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
@@ -17,7 +17,7 @@
         <p>Al momento non è possibile prenotare online: contatta il salone.</p>
     {% else %}
     <form method="post" id="modulo-prenotazione" novalidate
-          data-url-slot="{{ url_for('cliente.slot') }}" data-ora-scelta="{{ dati.get('ora', '') }}">
+          data-url-slot="{{ url_for('cliente.slot', salone_id=salone.id) }}" data-ora-scelta="{{ dati.get('ora', '') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <fieldset>
@@ -60,7 +60,7 @@
             <label>
                 <input type="radio" name="modalita" value="acconto"
                        {% if dati.get('modalita', 'acconto') == 'acconto' %}checked{% endif %}>
-                Acconto del {{ percentuale_acconto }}%, il resto in salone
+                Acconto del {{ salone.percentuale_acconto }}%, il resto in salone
             </label>
             <label>
                 <input type="radio" name="modalita" value="completo"

@@ -39,7 +39,7 @@ def servizi():
     """
     Elenco di tutti i servizi, compresi quelli disattivati.
     """
-    elenco = SaloneService(ottieni_connessione()).elenca_servizi(solo_attivi=False)
+    elenco = SaloneService(ottieni_connessione(), g.utente.salone_id).elenca_servizi(solo_attivi=False)
     return render_template("proprietario/servizi.html", servizi=elenco)
 
 
@@ -51,7 +51,7 @@ def nuovo_servizio():
     if request.method == "GET":
         return render_template("proprietario/servizio_modulo.html", dati={}, servizio_id=None)
     try:
-        SaloneService(ottieni_connessione()).crea_servizio(
+        SaloneService(ottieni_connessione(), g.utente.salone_id).crea_servizio(
             request.form.get("nome", ""),
             request.form.get("descrizione", ""),
             request.form.get("durata_minuti", ""),
@@ -71,7 +71,7 @@ def modifica_servizio(servizio_id: int):
     Modulo di modifica di un servizio, precompilato con i valori attuali.
     Un id inesistente arriva al gestore di RisorsaNonTrovataError (404).
     """
-    salone = SaloneService(ottieni_connessione())
+    salone = SaloneService(ottieni_connessione(), g.utente.salone_id)
     if request.method == "GET":
         servizio = salone.leggi_servizio(servizio_id)
         dati = {
@@ -104,7 +104,7 @@ def imposta_attivo_servizio(servizio_id: int):
     Disattiva o riattiva un servizio: il modulo invia attivo = "1" oppure "0".
     """
     attivo = request.form.get("attivo") == "1"
-    SaloneService(ottieni_connessione()).imposta_attivo(servizio_id, attivo)
+    SaloneService(ottieni_connessione(), g.utente.salone_id).imposta_attivo(servizio_id, attivo)
     flash("Servizio riattivato." if attivo else "Servizio disattivato: non è più prenotabile.")
     return redirect(url_for("proprietario.servizi"))
 
@@ -114,10 +114,10 @@ def imposta_attivo_servizio(servizio_id: int):
 @bp.route("/statistiche")
 def statistiche():
     """
-    Statistiche del salone nel periodo scelto (30, 90 o 365 giorni): numeri principali e grafici.
+    Statistiche del salone nel periodo scelto (7, 30 o 365 giorni): numeri principali e grafici.
     """
     giorni = periodo_valido(request.args.get("giorni"))
-    servizio = StatisticheService(ottieni_connessione())
+    servizio = StatisticheService(ottieni_connessione(), g.utente.salone_id)
     return render_template(
         "proprietario/statistiche.html", giorni=giorni, riepilogo=servizio.riepilogo(giorni),
         professionisti=servizio.per_professionista(giorni).to_dict("records"),
@@ -131,7 +131,7 @@ def grafico(nome: str):
     i dati del salone non finiscono mai in una cartella pubblica.
     """
     giorni = periodo_valido(request.args.get("giorni"))
-    servizio = StatisticheService(ottieni_connessione())
+    servizio = StatisticheService(ottieni_connessione(), g.utente.salone_id)
     grafici = {
         "professionisti": servizio.grafico_professionisti,
         "fasce": servizio.grafico_fasce,
@@ -159,14 +159,14 @@ def dipendenti():
     """
     giorni = periodo_valido(request.args.get("giorni"))
     connessione = ottieni_connessione()
-    statistiche = StatisticheService(connessione)
+    statistiche = StatisticheService(connessione, g.utente.salone_id)
     lavoro = {riga["dipendente_id"]: riga for riga in statistiche.per_professionista(giorni).to_dict("records")}
     prenotazioni = _prenotazioni()
     righe = [
         {"utente": utente, "prossimi": len(prenotazioni.agenda(utente.id)),
          "prenotazioni": lavoro.get(utente.id, {}).get("prenotazioni", 0),
          "valore_centesimi": lavoro.get(utente.id, {}).get("valore_centesimi", 0)}
-        for utente in UtenteRepository(connessione).elenca_professionisti()
+        for utente in UtenteRepository(connessione).elenca_professionisti(g.utente.salone_id)
     ]
     return render_template(
         "proprietario/dipendenti.html", giorni=giorni, righe=righe, riepilogo=statistiche.riepilogo(giorni),
@@ -177,15 +177,17 @@ def dipendenti():
 def agenda_dipendente(dipendente_id: int):
     """
     Agenda e storico di un professionista, visti dal proprietario, con la possibilità di annullare.
+    Un professionista di un altro salone risulta non trovato (404), come uno inesistente.
     """
     professionista = UtenteRepository(ottieni_connessione()).leggi_per_id(dipendente_id)
-    if professionista is None or not professionista.riceve_prenotazioni:
+    if (professionista is None or professionista.salone_id != g.utente.salone_id
+            or not professionista.riceve_prenotazioni):
         abort(404)
     servizio = _prenotazioni()
     return render_template(
         "proprietario/agenda_dipendente.html", professionista=professionista,
         appuntamenti=servizio.agenda(dipendente_id), storico=servizio.storico_professionista(dipendente_id),
-        fuso_orario=servizio.disponibilita.fuso_orario,
+        fuso_orario=servizio.disponibilita(g.utente.salone_id).fuso_orario,
     )
 
 
@@ -199,8 +201,8 @@ def annulla_prenotazione(prenotazione_id: int):
     torna_a = url_for("proprietario.agenda_dipendente", dipendente_id=appuntamento.prenotazione.dipendente_id)
     if request.method == "GET":
         return render_template(
-            "annulla_salone.html", appuntamento=appuntamento, fuso_orario=servizio.disponibilita.fuso_orario,
-            torna_a=torna_a,
+            "annulla_salone.html", appuntamento=appuntamento,
+            fuso_orario=servizio.disponibilita(g.utente.salone_id).fuso_orario, torna_a=torna_a,
         )
     try:
         rimborsato = servizio.annulla_dal_salone(prenotazione_id, g.utente)
@@ -219,7 +221,7 @@ def orari():
     Calendario settimanale (sola lettura) e date speciali dei prossimi 12 mesi: festività da definire,
     chiusure e aperture decise dal proprietario.
     """
-    calendario = CalendarioService(ottieni_connessione())
+    calendario = CalendarioService(ottieni_connessione(), g.utente.salone_id)
     oggi = datetime.now(calendario.disponibilita.fuso_orario).date()
     return render_template(
         "proprietario/orari.html", settimana=calendario.disponibilita.orario_settimanale(),
@@ -233,7 +235,7 @@ def orari_data():
     Modulo per decidere l'orario di una data: aperto con uno o due turni, oppure chiuso.
     La data arriva nell'URL (?data=AAAA-MM-GG) o nel modulo.
     """
-    calendario = CalendarioService(ottieni_connessione())
+    calendario = CalendarioService(ottieni_connessione(), g.utente.salone_id)
     disponibilita = calendario.disponibilita
     if request.method == "POST":
         try:
@@ -272,7 +274,7 @@ def orari_ripristina():
     Toglie l'eccezione di una data: torna l'orario settimanale (una festività torna "da definire").
     """
     try:
-        giorno = CalendarioService(ottieni_connessione()).rimuovi_eccezione(request.form.get("data", ""))
+        giorno = CalendarioService(ottieni_connessione(), g.utente.salone_id).rimuovi_eccezione(request.form.get("data", ""))
     except DatiNonValidiError as errore:
         flash(str(errore))
     else:

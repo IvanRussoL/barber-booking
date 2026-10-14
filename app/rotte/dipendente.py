@@ -37,7 +37,8 @@ def agenda():
     servizio = _prenotazioni()
     return render_template(
         "dipendente/agenda.html", appuntamenti=servizio.agenda(g.utente.id),
-        storico=servizio.storico_professionista(g.utente.id), fuso_orario=servizio.disponibilita.fuso_orario,
+        storico=servizio.storico_professionista(g.utente.id),
+        fuso_orario=servizio.disponibilita(g.utente.salone_id).fuso_orario,
     )
 
 
@@ -51,8 +52,8 @@ def annulla_prenotazione(prenotazione_id: int):
     appuntamento = servizio.prenotazione_per_il_salone(prenotazione_id, g.utente)
     if request.method == "GET":
         return render_template(
-            "annulla_salone.html", appuntamento=appuntamento, fuso_orario=servizio.disponibilita.fuso_orario,
-            torna_a=url_for("dipendente.agenda"),
+            "annulla_salone.html", appuntamento=appuntamento,
+            fuso_orario=servizio.disponibilita(g.utente.salone_id).fuso_orario, torna_a=url_for("dipendente.agenda"),
         )
     try:
         rimborsato = servizio.annulla_dal_salone(prenotazione_id, g.utente)
@@ -69,7 +70,9 @@ def statistiche():
     Statistiche personali: solo le prenotazioni di chi è loggato (id dalla sessione, mai dall'URL).
     """
     giorni = periodo_valido(request.args.get("giorni"))
-    riepilogo = StatisticheService(ottieni_connessione()).riepilogo(giorni, dipendente_id=g.utente.id)
+    riepilogo = StatisticheService(ottieni_connessione(), g.utente.salone_id).riepilogo(
+        giorni, dipendente_id=g.utente.id
+    )
     return render_template("dipendente/statistiche.html", giorni=giorni, riepilogo=riepilogo)
 
 
@@ -79,6 +82,8 @@ def grafico_andamento():
     Grafico delle proprie prenotazioni per settimana, generato in memoria.
     """
     giorni = periodo_valido(request.args.get("giorni"))
-    immagine = StatisticheService(ottieni_connessione()).grafico_andamento(giorni, dipendente_id=g.utente.id)
+    immagine = StatisticheService(ottieni_connessione(), g.utente.salone_id).grafico_andamento(
+        giorni, dipendente_id=g.utente.id
+    )
     return Response(immagine, mimetype="image/png", headers={"Cache-Control": "no-store"})
 

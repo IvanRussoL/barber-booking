@@ -3,13 +3,14 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from app.eccezioni import DatiNonValidiError
+from app.eccezioni import DatiNonValidiError, RisorsaNonTrovataError
 from app.modelli.orario import Turno
+from app.modelli.salone import Salone
 from app.servizi.festivita import giornate_a_rischio
-from app.repository.impostazioni import ImpostazioniRepository
 from app.repository.indisponibilita import IndisponibilitaRepository
 from app.repository.orario import OrarioRepository
 from app.repository.prenotazione import PrenotazioneRepository
+from app.repository.salone import SaloneRepository
 
 PASSO_GRIGLIA = timedelta(minutes=30)
 GIORNI_BREVI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"]
@@ -43,20 +44,32 @@ def _si_sovrappone(inizio: datetime, fine: datetime, intervalli: list[tuple[date
 
 class DisponibilitaService:
     """
-    Calcolo degli orari liberi di un professionista in una data.
+    Calendario di un salone: orari, stato di apertura e calcolo degli orari liberi di un professionista.
     """
 
-    def __init__(self, connessione):
-        self._impostazioni = ImpostazioniRepository(connessione).leggi()
-        self._fuso_orario = ZoneInfo(self._impostazioni.fuso_orario)
+    def __init__(self, connessione, salone_id: int):
+        """
+        Raises: RisorsaNonTrovataError se il salone non esiste.
+        """
+        self._salone = SaloneRepository(connessione).leggi_per_id(salone_id)
+        if self._salone is None:
+            raise RisorsaNonTrovataError("Salone non trovato.")
+        self._fuso_orario = ZoneInfo(self._salone.fuso_orario)
         self._orari = OrarioRepository(connessione)
         self._indisponibilita = IndisponibilitaRepository(connessione)
         self._prenotazioni = PrenotazioneRepository(connessione)
 
     @property
+    def salone(self) -> Salone:
+        """
+        Il salone di questo calendario.
+        """
+        return self._salone
+
+    @property
     def fuso_orario(self) -> ZoneInfo:
         """
-        Fuso orario del salone, letto dalle impostazioni.
+        Fuso orario del salone.
         """
         return self._fuso_orario
 
@@ -67,7 +80,7 @@ class DisponibilitaService:
         Returns: (primo giorno, ultimo giorno), nella data locale del salone.
         """
         oggi = adesso.astimezone(self._fuso_orario).date()
-        anni, mese_zero = divmod(oggi.month - 1 + self._impostazioni.mesi_prenotabili, 12)
+        anni, mese_zero = divmod(oggi.month - 1 + self._salone.mesi_prenotabili, 12)
         anno, mese = oggi.year + anni, mese_zero + 1
         return oggi, date(anno, mese, calendar.monthrange(anno, mese)[1])
 
@@ -76,16 +89,17 @@ class DisponibilitaService:
         Turni di apertura di una data: quelli dell'eccezione se esiste, altrimenti quelli della settimana.
         Returns: la lista dei Turni, vuota se il salone è chiuso.
         """
-        eccezione = self._orari.leggi_eccezione(giorno)
+        eccezione = self._orari.leggi_eccezione(self._salone.id, giorno)
         if eccezione is not None:
             return eccezione.turni if eccezione.aperto else []
-        return self._orari.turni_settimanali(giorno.isoweekday())
+        return self._orari.turni_settimanali(self._salone.id, giorno.isoweekday())
 
     def slot_liberi(self, dipendente_id: int, giorno: date, durata_minuti: int,
                     adesso: datetime, cliente_id: int | None = None) -> list[datetime]:
         """
         Orari di inizio in cui un appuntamento della durata indicata sta per intero in un turno,
         non è già passato e non si sovrappone a prenotazioni, assenze o chiusure.
+        Il professionista deve appartenere a questo salone: lo controlla chi chiama (PrenotazioneService).
         Args: giorno nella data locale; adesso con fuso orario; cliente_id, se indicato,
             esclude anche gli orari in cui il cliente ha già un appuntamento con altri.
         Returns: gli orari di inizio con il fuso orario del salone, in ordine.
@@ -105,7 +119,9 @@ class DisponibilitaService:
         chiusura = datetime.combine(giorno, turni[-1].ora_fine, self._fuso_orario)
         occupati = self._prenotazioni.intervalli_occupati(
             dipendente_id, in_utc(apertura), in_utc(chiusura), in_utc(adesso)
-        ) + self._indisponibilita.periodi_sovrapposti(dipendente_id, in_utc(apertura), in_utc(chiusura))
+        ) + self._indisponibilita.periodi_sovrapposti(
+            self._salone.id, dipendente_id, in_utc(apertura), in_utc(chiusura)
+        )
         if cliente_id is not None:
             occupati += self._prenotazioni.intervalli_occupati_cliente(
                 cliente_id, in_utc(apertura), in_utc(chiusura), in_utc(adesso)
@@ -126,7 +142,7 @@ class DisponibilitaService:
         Calendario settimanale del salone, per la pagina pubblica.
         Returns: sette coppie (giorno da 1 a 7, turni), con la lista vuota nei giorni di chiusura.
         """
-        return [(giorno, self._orari.turni_settimanali(giorno)) for giorno in range(1, 8)]
+        return [(giorno, self._orari.turni_settimanali(self._salone.id, giorno)) for giorno in range(1, 8)]
 
     def stato_apertura(self, adesso: datetime) -> tuple[bool, str]:
         """
@@ -158,8 +174,8 @@ class DisponibilitaService:
         quel giorno della settimana e il proprietario non ha ancora deciso l'orario.
         """
         return (giorno in giornate_a_rischio(giorno.year)
-                and self._orari.leggi_eccezione(giorno) is None
-                and bool(self._orari.turni_settimanali(giorno.isoweekday())))
+                and self._orari.leggi_eccezione(self._salone.id, giorno) is None
+                and bool(self._orari.turni_settimanali(self._salone.id, giorno.isoweekday())))
 
     def giornate_speciali(self, da: date, a: date) -> list[GiornoSpeciale]:
         """
@@ -169,11 +185,12 @@ class DisponibilitaService:
         speciali = {
             eccezione.data: GiornoSpeciale(eccezione.data, "aperto" if eccezione.aperto else "chiuso",
                                            eccezione.turni, eccezione.nota)
-            for eccezione in self._orari.elenca_eccezioni(da, a)
+            for eccezione in self._orari.elenca_eccezioni(self._salone.id, da, a)
         }
         for anno in range(da.year, a.year + 1):
             for giorno in giornate_a_rischio(anno):
-                if da <= giorno <= a and giorno not in speciali and self._orari.turni_settimanali(giorno.isoweekday()):
+                if (da <= giorno <= a and giorno not in speciali
+                        and self._orari.turni_settimanali(self._salone.id, giorno.isoweekday())):
                     speciali[giorno] = GiornoSpeciale(giorno, "da_definire")
         return [speciali[giorno] for giorno in sorted(speciali)]
 

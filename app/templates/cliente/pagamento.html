@@ -12,6 +12,7 @@
             <li>{{ servizio.nome }} · {{ servizio.durata_minuti | durata }} · {{ servizio.prezzo_centesimi | euro }}</li>
         {% endfor %}
     </ul>
+    <p>{{ salone.nome }}, {{ salone.indirizzo }}</p>
     <p>Con {{ dipendente.nome }} {{ dipendente.cognome }}, {{ prenotazione.inizio | data_ora(fuso_orario) }}</p>
     <p>Totale {{ prenotazione.prezzo_totale() | euro }} ·
         da pagare ora: <strong>{{ pagamento.importo_centesimi | euro }}</strong>

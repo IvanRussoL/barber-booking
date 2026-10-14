@@ -9,7 +9,8 @@ matplotlib.use("Agg")  # disegna in memoria, senza aprire finestre: adatto a un 
 import matplotlib.pyplot as plt  
 import pandas as pd  
 
-from app.repository.impostazioni import ImpostazioniRepository  # noqa: E402
+from app.eccezioni import RisorsaNonTrovataError  # noqa: E402
+from app.repository.salone import SaloneRepository  # noqa: E402
 from app.repository.statistiche import StatisticheRepository  # noqa: E402
 
 PERIODI = (7, 30, 365)  # settimana, mese e anno: i giorni che si possono scegliere nella pagina
@@ -43,12 +44,20 @@ class Riepilogo:
 
 class StatisticheService:
     """
-    Statistiche su prenotazioni confermate e incassi, calcolate con pandas e disegnate con matplotlib.
+    Statistiche di un salone su prenotazioni confermate e incassi, calcolate con pandas e disegnate
+    con matplotlib.
     """
 
-    def __init__(self, connessione):
+    def __init__(self, connessione, salone_id: int):
+        """
+        Raises: RisorsaNonTrovataError se il salone non esiste.
+        """
+        salone = SaloneRepository(connessione).leggi_per_id(salone_id)
+        if salone is None:
+            raise RisorsaNonTrovataError("Salone non trovato.")
+        self._salone_id = salone_id
         self._repo = StatisticheRepository(connessione)
-        self._fuso_orario = ZoneInfo(ImpostazioniRepository(connessione).leggi().fuso_orario)
+        self._fuso_orario = ZoneInfo(salone.fuso_orario)
 
     # --- Dati ---
 
@@ -65,7 +74,7 @@ class StatisticheService:
         """
         da, a = self._intervallo(giorni, adesso)
         tabella = pd.DataFrame(
-            self._repo.prenotazioni_confermate(da, a, dipendente_id),
+            self._repo.prenotazioni_confermate(self._salone_id, da, a, dipendente_id),
             columns=["id", "dipendente_id", "professionista", "cliente_id", "inizio", "totale_centesimi"],
         )
         tabella["totale_centesimi"] = tabella["totale_centesimi"].astype(int)
@@ -87,7 +96,7 @@ class StatisticheService:
         )
         if dipendente_id is None:
             da, a = self._intervallo(giorni, adesso)
-            movimenti = pd.DataFrame(self._repo.movimenti_completati(da, a),
+            movimenti = pd.DataFrame(self._repo.movimenti_completati(self._salone_id, da, a),
                                      columns=["tipo", "importo_centesimi", "creato_il"])
             segno = movimenti["tipo"].map(lambda tipo: -1 if tipo == "rimborso" else 1)
             riepilogo.incasso_netto_centesimi = int((movimenti["importo_centesimi"] * segno).sum())

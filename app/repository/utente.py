@@ -1,7 +1,7 @@
 from app.modelli.utente import Utente
 
 _SELECT = (
-    "SELECT id, email, password_hash, nome, cognome, telefono, ruolo, "
+    "SELECT id, email, password_hash, nome, cognome, telefono, ruolo, salone_id, "
     "riceve_prenotazioni, attivo, creato_il FROM utenti "
 )
 
@@ -28,14 +28,15 @@ class UtenteRepository:
         Inserisce un nuovo utente, senza fare commit.
         Args: utente senza id, con la password già trasformata in hash.
         Returns: l'id assegnato da MySQL.
-        Raises: mysql.connector.IntegrityError se l'email esiste già.
+        Raises: mysql.connector.IntegrityError se l'email esiste già, o se il salone non è coerente
+            con il ruolo (vincolo chk_utenti_salone).
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO utenti (email, password_hash, nome, cognome, telefono, ruolo, "
-                "riceve_prenotazioni, attivo) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                (utente.email, utente.password_hash, utente.nome, utente.cognome,
-                 utente.telefono, utente.ruolo, utente.riceve_prenotazioni, utente.attivo),
+                "INSERT INTO utenti (email, password_hash, nome, cognome, telefono, ruolo, salone_id, "
+                "riceve_prenotazioni, attivo) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (utente.email, utente.password_hash, utente.nome, utente.cognome, utente.telefono,
+                 utente.ruolo, utente.salone_id, utente.riceve_prenotazioni, utente.attivo),
             )
             return cur.lastrowid
 
@@ -61,13 +62,17 @@ class UtenteRepository:
             riga = cur.fetchone()
         return _da_riga(riga) if riga else None
 
-    def elenca_professionisti(self) -> list[Utente]:
+    def elenca_professionisti(self, salone_id: int) -> list[Utente]:
         """
-        Elenca le persone prenotabili: attive e con riceve_prenotazioni, in ordine di nome.
+        Elenca le persone prenotabili di un salone: attive e con riceve_prenotazioni, in ordine di nome.
         Returns: la lista degli Utenti, vuota se non ce ne sono.
         """
         with self._conn.cursor(dictionary=True) as cur:
-            cur.execute(_SELECT + "WHERE attivo = TRUE AND riceve_prenotazioni = TRUE ORDER BY nome, cognome")
+            cur.execute(
+                _SELECT + "WHERE salone_id = %s AND attivo = TRUE AND riceve_prenotazioni = TRUE "
+                "ORDER BY nome, cognome",
+                (salone_id,),
+            )
             righe = cur.fetchall()
         return [_da_riga(riga) for riga in righe]
 

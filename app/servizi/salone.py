@@ -25,11 +25,13 @@ def _durata_valida(valore: str) -> int:
 
 class SaloneService:
     """
-    Operazioni del proprietario sul salone. Per ora: gestione dei servizi offerti.
+    Operazioni del proprietario sul suo salone. Per ora: gestione dei servizi offerti.
+    Il salone si sceglie alla creazione: tutte le letture e le modifiche restano dentro quel salone.
     """
 
-    def __init__(self, connessione):
+    def __init__(self, connessione, salone_id: int):
         self._conn = connessione
+        self._salone_id = salone_id
         self._servizi = ServizioRepository(connessione)
 
     def elenca_servizi(self, solo_attivi: bool = True) -> list[Servizio]:
@@ -38,15 +40,15 @@ class SaloneService:
         Args: solo_attivi, False per includere anche i servizi disattivati (pagine del proprietario).
         Returns: la lista dei Servizi.
         """
-        return self._servizi.elenca(solo_attivi)
+        return self._servizi.elenca(self._salone_id, solo_attivi)
 
     def leggi_servizio(self, servizio_id: int) -> Servizio:
         """
         Legge un servizio dal suo id.
         Returns: il Servizio.
-        Raises: RisorsaNonTrovataError se non esiste.
+        Raises: RisorsaNonTrovataError se non esiste o è di un altro salone (stessa risposta).
         """
-        servizio = self._servizi.leggi_per_id(servizio_id)
+        servizio = self._servizi.leggi_per_id(self._salone_id, servizio_id)
         if servizio is None:
             raise RisorsaNonTrovataError("Servizio non trovato.")
         return servizio
@@ -102,14 +104,15 @@ class SaloneService:
             descrizione=testo_facoltativo(descrizione, "descrizione", 255),
             durata_minuti=_durata_valida(durata_minuti),
             prezzo_centesimi=prezzo_centesimi,
+            salone_id=self._salone_id,
         )
 
     def _controlla_nome_libero(self, nome: str, servizio_id: int | None) -> None:
         """
         Controlla che il nome non sia usato da un altro servizio.
         Args: servizio_id, il servizio in modifica (può tenere il suo nome), None per uno nuovo.
-        Raises: ServizioGiaEsistenteError se il nome appartiene a un altro servizio.
+        Raises: ServizioGiaEsistenteError se il nome appartiene a un altro servizio dello stesso salone.
         """
-        esistente = self._servizi.leggi_per_nome(nome)
+        esistente = self._servizi.leggi_per_nome(self._salone_id, nome)
         if esistente is not None and esistente.id != servizio_id:
             raise ServizioGiaEsistenteError(f"Esiste già un servizio chiamato «{esistente.nome}».")

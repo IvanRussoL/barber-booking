@@ -7,8 +7,8 @@
         <img src="{{ url_for('static', filename='img/gestione.jpg') }}"
              alt="Insegna di un barbershop con il cilindro a strisce sulla facciata" width="1600" height="900">
         <figcaption>
-            <h1>Gestione del salone</h1>
-            <p>Ciao, {{ g.utente.nome }}</p>
+            <h1>{{ salone_utente.nome }}</h1>
+            <p>Gestione del salone · ciao, {{ g.utente.nome }}</p>
         </figcaption>
     </figure>
     <ul class="voci-gestione">
@@ -16,6 +16,7 @@
         <li><a href="{{ url_for('proprietario.orari') }}">Orari</a><span>Festività, chiusure e aperture straordinarie</span></li>
         <li><a href="{{ url_for('proprietario.servizi') }}">Servizi</a><span>Listino, durate e prezzi</span></li>
         <li><a href="{{ url_for('proprietario.statistiche') }}">Statistiche</a><span>Andamento, professionisti e fasce di punta</span></li>
+        <li><a href="{{ url_for('pubblico.salone', salone_id=salone_utente.id) }}">Pagina pubblica</a><span>Come la vedono i clienti, con le recensioni</span></li>
         {% if g.utente.riceve_prenotazioni %}
             <li><a href="{{ url_for('dipendente.agenda') }}">La mia agenda</a><span>I tuoi appuntamenti</span></li>
         {% endif %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block titolo %}Trova il salone – Barber Booking{% endblock %}
+{% block classe_main %}larga{% endblock %}
+
+{% block contenuto %}
+    <h1>Trova il salone</h1>
+    {% include "pubblico/_ricerca.html" %}
+    {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+
+    {% if risultati is not none %}
+        {% if risultati or modo == 'vicino' %}{% include "pubblico/_mappa.html" %}{% endif %}
+        <section class="risultati" aria-live="polite">
+            <h2>
+                {% if modo == 'vicino' %}
+                    {{ risultati | length }} {{ "salone" if risultati | length == 1 else "saloni" }} entro {{ raggio }} km
+                {% else %}
+                    {{ risultati | length }} {{ "salone" if risultati | length == 1 else "saloni" }} in {{ zona }}
+                {% endif %}
+            </h2>
+            {% for risultato in risultati %}
+                {% set salone = risultato.salone %}
+                <article class="risultato">
+                    <div>
+                        <h3><a href="{{ url_for('pubblico.salone', salone_id=salone.id) }}">{{ salone.nome }}</a></h3>
+                        <p>{{ salone.indirizzo }} ({{ salone.provincia }})</p>
+                        {% if risultato.media_voti is not none %}
+                            <p class="valutazione">
+                                <span class="stelle" aria-hidden="true">★</span>
+                                {{ "%.1f" | format(risultato.media_voti) | replace(".", ",") }} su 5
+                                · {{ risultato.numero_recensioni }} {{ "recensione" if risultato.numero_recensioni == 1 else "recensioni" }}
+                            </p>
+                        {% else %}
+                            <p class="valutazione">Ancora nessuna recensione</p>
+                        {% endif %}
+                    </div>
+                    <div class="risultato-dati">
+                        {% if risultato.distanza_km is not none %}
+                            <p class="risultato-distanza">a {{ "%.1f" | format(risultato.distanza_km) | replace(".", ",") }} km</p>
+                        {% endif %}
+                        <a class="pillola-link" href="{{ url_for('pubblico.salone', salone_id=salone.id) }}">Vedi e prenota</a>
+                    </div>
+                </article>
+            {% else %}
+                <p>Nessun salone trovato.
+                    {% if modo == 'vicino' %}Prova con un raggio più ampio, oppure cerca per regione e provincia.{% else %}Prova con tutta la regione.{% endif %}
+                </p>
+            {% endfor %}
+        </section>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+    <script src="{{ url_for('static', filename='js/ricerca.js') }}"></script>
+    {% if dati_mappa %}
+        {% include "pubblico/_leaflet.html" %}
+        <script src="{{ url_for('static', filename='js/mappa.js') }}"></script>
+    {% endif %}
+{% endblock %}

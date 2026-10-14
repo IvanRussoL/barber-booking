@@ -18,13 +18,14 @@
             <p>Le tue prenotazioni e i tuoi pagamenti</p>
         </figcaption>
     </figure>
-    <p><a class="pulsante" href="{{ url_for('cliente.prenota') }}">Prenota un appuntamento</a></p>
+    <p><a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Prenota un appuntamento</a></p>
 
     <h2>Le mie prenotazioni</h2>
     {% for riga in storico %}
         {% set prenotazione = riga.prenotazione %}
         <article>
-            <h3>{{ prenotazione.inizio | data_ora(fuso_orario) }} · {{ riga.professionista }}</h3>
+            <h3>{{ prenotazione.inizio | data_ora(riga.salone.fuso_orario) }} · {{ riga.professionista }}</h3>
+            <p><a href="{{ url_for('pubblico.salone', salone_id=riga.salone.id) }}">{{ riga.salone.nome }}</a> · {{ riga.salone.indirizzo }}</p>
             <p>
                 {% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}
                 · {{ prenotazione.durata_totale() | durata }}
@@ -39,6 +40,9 @@
             {% endif %}
             {% if riga.annullabile %}
                 <p><a href="{{ url_for('cliente.annulla_prenotazione', prenotazione_id=prenotazione.id) }}">Annulla</a></p>
+            {% endif %}
+            {% if riga.recensibile %}
+                <p><a href="{{ url_for('cliente.recensione', prenotazione_id=prenotazione.id) }}">Lascia una recensione</a></p>
             {% endif %}
         </article>
     {% else %}

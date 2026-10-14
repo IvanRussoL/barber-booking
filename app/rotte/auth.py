@@ -2,6 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 
 from app.db import ottieni_connessione
 from app.eccezioni import CredenzialiNonValideError, DatiNonValidiError, EmailGiaRegistrataError
+from app.limiti import LIMITE_TENTATIVI, limiter, tentativo_fallito
 from app.servizi.auth import AuthService
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -37,9 +38,11 @@ def registrazione():
 
 
 @bp.route("/login", methods=["GET", "POST"])
+@limiter.limit(LIMITE_TENTATIVI, methods=["POST"], deduct_when=tentativo_fallito)
 def login():
     """
     Login: svuota la sessione e vi salva solo l'id dell'utente, poi apre la pagina del suo ruolo.
+    Dopo 5 tentativi sbagliati in un minuto dallo stesso indirizzo IP risponde 429.
     """
     if request.method == "GET":
         return render_template("auth/login.html", email="")

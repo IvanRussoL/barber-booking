@@ -89,6 +89,13 @@ class UtenteRepository:
             righe = cur.fetchall()
         return [_da_riga(riga) for riga in righe]
 
+    def aggiorna_password(self, utente_id: int, password_hash: str) -> None:
+        """
+        Sostituisce l'hash della password, senza fare commit.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute("UPDATE utenti SET password_hash = %s WHERE id = %s", (password_hash, utente_id))
+
     def imposta_attivo(self, utente_id: int, attivo: bool) -> None:
         """
         Attiva o disattiva un account, senza fare commit. Un account disattivato non entra più

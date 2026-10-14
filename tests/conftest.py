@@ -78,9 +78,10 @@ def conn(monkeypatch):
 @pytest.fixture
 def app():
     """
-    App Flask di prova, con la protezione CSRF spenta per inviare moduli senza token.
+    App Flask di prova, con la protezione CSRF spenta per inviare moduli senza token e il limite
+    ai tentativi spento (i test fanno molti login); test_account.py lo riaccende.
     """
-    return create_app({"TESTING": True, "WTF_CSRF_ENABLED": False})
+    return create_app({"TESTING": True, "WTF_CSRF_ENABLED": False, "RATELIMIT_ENABLED": False})
 
 
 @pytest.fixture

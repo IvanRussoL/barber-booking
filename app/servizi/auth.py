@@ -104,6 +104,24 @@ class AuthService:
             riceve_prenotazioni=riceve_prenotazioni,
         )
 
+    def cambia_password(self, utente_id: int, attuale: str, nuova: str, conferma: str) -> None:
+        """
+        Cambia la password di un utente dopo aver controllato quella attuale. Conferma con commit.
+        Raises: DatiNonValidiError se la password attuale è sbagliata, la nuova è troppo corta,
+            le due nuove non coincidono o la nuova è uguale a quella attuale.
+        """
+        utente = self._utenti.leggi_per_id(utente_id)
+        if utente is None or not check_password_hash(utente.password_hash, attuale):
+            raise DatiNonValidiError("La password attuale non è corretta.")
+        if len(nuova) < LUNGHEZZA_MINIMA_PASSWORD:
+            raise DatiNonValidiError(f"La nuova password deve avere almeno {LUNGHEZZA_MINIMA_PASSWORD} caratteri.")
+        if nuova != conferma:
+            raise DatiNonValidiError("Le due nuove password non coincidono.")
+        if nuova == attuale:
+            raise DatiNonValidiError("La nuova password deve essere diversa da quella attuale.")
+        self._utenti.aggiorna_password(utente_id, generate_password_hash(nuova))
+        self._conn.commit()
+
     def autentica(self, email: str, password: str) -> Utente:
         """
         Controlla email e password per il login.

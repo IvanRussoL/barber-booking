@@ -35,6 +35,7 @@
                 {% if g.utente.ruolo == 'proprietario' %}
                     <a href="{{ url_for('proprietario.pannello') }}">Gestione</a>
                 {% endif %}
+                <a href="{{ url_for('account.account') }}">Account</a>
                 <span class="saluto">Ciao, {{ g.utente.nome }}</span>
                 <form method="post" action="{{ url_for('auth.logout') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

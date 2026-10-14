@@ -8,16 +8,18 @@ from app.comandi import crea_proprietario, crea_salone
 from app.db import chiudi_connessione, ottieni_connessione
 from app.eccezioni import BarberBookingError, RisorsaNonTrovataError
 from app.formato import formatta_data_ora, formatta_durata, formatta_euro
+from app.limiti import limiter
 from app.pagamenti.finto import FakeProvider
 from app.repository.salone import SaloneRepository
 from app.repository.utente import UtenteRepository
-from app.rotte import auth, cliente, dipendente, proprietario, pubblico
+from app.rotte import account, auth, cliente, dipendente, proprietario, pubblico
 
 csrf = CSRFProtect()
 
 MESSAGGI_HTTP = {
     403: "Non hai i permessi per aprire questa pagina.",
     404: "Pagina non trovata.",
+    429: "Troppi tentativi sbagliati: aspetta un minuto e riprova.",
 }
 
 
@@ -39,7 +41,7 @@ def gestisci_non_trovato(errore: RisorsaNonTrovataError):
 
 def gestisci_errore_http(errore):
     """
-    Mostra la pagina di errore in italiano per i codici 403 e 404.
+    Mostra la pagina di errore in italiano per i codici 403, 404 e 429.
     Returns: la pagina errore.html con lo stesso codice dell'errore.
     """
     return render_template("errore.html", messaggio=MESSAGGI_HTTP[errore.code]), errore.code
@@ -106,6 +108,7 @@ def create_app(config: dict | None = None) -> Flask:
         app.config.update(config)
 
     csrf.init_app(app)
+    limiter.init_app(app)
     # Provider di pagamento usato dai servizi: per ora solo quello simulato.
     app.extensions["provider_pagamenti"] = app.config.get("PROVIDER_PAGAMENTI") or FakeProvider()
     app.before_request(carica_utente)
@@ -113,6 +116,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     app.register_blueprint(pubblico.bp)
     app.register_blueprint(auth.bp)
+    app.register_blueprint(account.bp)
     app.register_blueprint(cliente.bp)
     app.register_blueprint(dipendente.bp)
     app.register_blueprint(proprietario.bp)

@@ -10,6 +10,7 @@ AREE_PUBBLICHE = {"pubblico", "auth", "static"}
 # Per ogni area riservata, i ruoli che possono entrare.
 # Il proprietario di prova riceve prenotazioni, quindi entra anche nell'area dipendente.
 RUOLI_AMMESSI = {
+    "account": {"cliente", "dipendente", "proprietario"},
     "cliente": {"cliente"},
     "dipendente": {"dipendente", "proprietario"},
     "proprietario": {"proprietario"},

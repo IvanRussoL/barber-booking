@@ -51,6 +51,22 @@ class OrarioRepository:
                 (salone_id, giorno_settimana, turno.ora_inizio, turno.ora_fine),
             )
 
+    def sostituisci_turni_settimanali(self, salone_id: int, giorno_settimana: int, turni: list[Turno]) -> None:
+        """
+        Sostituisce i turni di un giorno della settimana (nessun turno: salone chiuso quel giorno),
+        senza fare commit.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM orari_settimanali WHERE salone_id = %s AND giorno_settimana = %s",
+                (salone_id, giorno_settimana),
+            )
+            cur.executemany(
+                "INSERT INTO orari_settimanali (salone_id, giorno_settimana, ora_inizio, ora_fine) "
+                "VALUES (%s, %s, %s, %s)",
+                [(salone_id, giorno_settimana, turno.ora_inizio, turno.ora_fine) for turno in turni],
+            )
+
     def leggi_eccezione(self, salone_id: int, giorno: date) -> EccezioneData | None:
         """
         Legge l'eccezione di una data, con i suoi turni se il salone è aperto.

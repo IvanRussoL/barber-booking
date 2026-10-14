@@ -4,6 +4,7 @@
 
 {% block contenuto %}
     <h1>Dipendenti</h1>
+    <p><a href="{{ url_for('proprietario.nuovo_dipendente') }}">Nuovo dipendente</a></p>
     {% include "periodi.html" %}
 
     <section class="numeri">
@@ -36,9 +37,37 @@
                     <div><dt>In programma</dt><dd>{{ riga.prossimi }}</dd></div>
                 </dl>
                 <a class="pulsante pulsante-contorno" href="{{ url_for('proprietario.agenda_dipendente', dipendente_id=riga.utente.id) }}">Agenda</a>
+                {% if riga.utente.ruolo == 'dipendente' %}
+                    <form method="post" action="{{ url_for('proprietario.imposta_attivo_dipendente', dipendente_id=riga.utente.id) }}" class="secondario">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="attivo" value="0">
+                        <button type="submit">Disattiva</button>
+                    </form>
+                {% endif %}
             </div>
         {% else %}
             <p>Nessun professionista riceve prenotazioni.</p>
         {% endfor %}
     </div>
+
+    {% if disattivati %}
+        <h2>Disattivati</h2>
+        <p><small>Non entrano nel sito e non ricevono prenotazioni.</small></p>
+        <table>
+            <tbody>
+                {% for utente in disattivati %}
+                    <tr>
+                        <td>{{ utente.nome }} {{ utente.cognome }}<br><small>{{ utente.email }}</small></td>
+                        <td>
+                            <form method="post" action="{{ url_for('proprietario.imposta_attivo_dipendente', dipendente_id=utente.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="attivo" value="1">
+                                <button type="submit" class="riattiva">Riattiva</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 {% endblock %}

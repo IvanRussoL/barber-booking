@@ -1,0 +1,19 @@
+{# Campi "aperto o chiuso" e due turni, usati dagli orari di una data e del calendario settimanale.
+   Variabili: dati (valori dei campi). #}
+<fieldset>
+    <legend>Il salone è</legend>
+    <label><input type="radio" name="aperto" value="si" {% if dati.get('aperto') != 'no' %}checked{% endif %}> Aperto</label>
+    <label><input type="radio" name="aperto" value="no" {% if dati.get('aperto') == 'no' %}checked{% endif %}> Chiuso</label>
+</fieldset>
+<fieldset>
+    <legend>Orari, se aperto</legend>
+    <div class="turni">
+        <label>Mattina dalle <input type="time" name="inizio_1" step="1800" value="{{ dati.get('inizio_1', '') }}"></label>
+        <label>alle <input type="time" name="fine_1" step="1800" value="{{ dati.get('fine_1', '') }}"></label>
+    </div>
+    <div class="turni">
+        <label>Pomeriggio dalle <input type="time" name="inizio_2" step="1800" value="{{ dati.get('inizio_2', '') }}"></label>
+        <label>alle <input type="time" name="fine_2" step="1800" value="{{ dati.get('fine_2', '') }}"></label>
+    </div>
+    <p><small>Lascia vuoto il pomeriggio per un turno unico.</small></p>
+</fieldset>

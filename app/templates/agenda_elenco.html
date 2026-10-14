@@ -1,5 +1,20 @@
 {# Prossimi appuntamenti e storico di un professionista. Variabili: appuntamenti, storico, fuso_orario,
-   endpoint_annulla (rotta di annullamento: quella del dipendente o quella del proprietario). #}
+   endpoint_annulla (rotta di annullamento: quella del dipendente o quella del proprietario),
+   endpoint_saldo (solo per il proprietario: rotta che registra il saldo in sede). #}
+{% macro pagamento(appuntamento) %}
+    {% if appuntamento.prenotazione.stato == 'confermata' %}
+        <p class="riga-agenda-pagamento"><small>Pagato {{ appuntamento.pagato_centesimi | euro }}
+            {%- if appuntamento.da_saldare() %} · da pagare in sede {{ appuntamento.da_saldare() | euro }}{% else %} · saldato{% endif %}</small></p>
+    {% endif %}
+{% endmacro %}
+{% macro saldo(appuntamento) %}
+    {% if endpoint_saldo and appuntamento.saldabile %}
+        <form method="post" action="{{ url_for(endpoint_saldo, prenotazione_id=appuntamento.prenotazione.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Registra saldo di {{ appuntamento.da_saldare() | euro }}</button>
+        </form>
+    {% endif %}
+{% endmacro %}
 <h2>Prossimi appuntamenti</h2>
 {% for appuntamento in appuntamenti %}
     {% set prenotazione = appuntamento.prenotazione %}
@@ -9,10 +24,12 @@
             <p>{% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
             <p><small>{{ appuntamento.cliente.nome }} {{ appuntamento.cliente.cognome }} ·
                 <a href="tel:{{ appuntamento.cliente.telefono }}">{{ appuntamento.cliente.telefono }}</a></small></p>
+            {{ pagamento(appuntamento) }}
         </div>
         {% if appuntamento.annullabile %}
             <a class="link-annulla" href="{{ url_for(endpoint_annulla, prenotazione_id=prenotazione.id) }}">Annulla</a>
         {% endif %}
+        {{ saldo(appuntamento) }}
     </div>
 {% else %}
     <p>Nessun appuntamento in programma.</p>
@@ -26,7 +43,9 @@
             <p class="riga-agenda-quando">{{ prenotazione.inizio | data_ora(fuso_orario) }}</p>
             <p>{% for servizio in prenotazione.servizi %}{{ servizio.nome }}{% if not loop.last %}, {% endif %}{% endfor %}
                 · {{ appuntamento.cliente.nome }} {{ appuntamento.cliente.cognome }}</p>
+            {{ pagamento(appuntamento) }}
         </div>
+        {{ saldo(appuntamento) }}
         {% if prenotazione.stato == 'annullata' %}
             <span class="etichetta-annullata">Annullata {{ "dal salone" if prenotazione.annullata_da == 'salone' else "dal cliente" }}</span>
         {% else %}

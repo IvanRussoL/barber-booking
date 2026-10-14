@@ -584,7 +584,7 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 - `StripeProvider` (Checkout, Google Pay, PayPal) e Blueprint `webhook` (fase 7 e 7b).
 - Prodotti, carrello e ordini (fase 7c): non più previsti, vedi la sezione 10.
 - Tracciamento di visite e click (tabella `eventi`), funnel e occupazione (resto della fase 8): non più previsti, vedi la sezione 10.
-- Pagine del proprietario per il calendario settimanale, assenze, chiusure lunghe, creazione dei dipendenti e saldo in sede: oggi si modificano solo dal database.
+- Pagine del proprietario per il calendario settimanale, assenze, chiusure lunghe, creazione dei dipendenti e saldo in sede: realizzate dopo la consegna, vedi la sezione 12.
 - Blueprint `account` con il cambio password; rate limiting del login con Flask-Limiter.
 
 ### Scelte cambiate o aggiunte durante lo sviluppo
@@ -621,6 +621,7 @@ La sezione 11 descrive la versione consegnata (un solo salone). Questa descrive 
 
 - `/saloni` ricerca con mappa; `/saloni/<id>` pagina del salone, con il link "Apri in Maps" per le indicazioni stradali; `/saloni/<id>/servizi` listino.
 - `/cliente/saloni/<id>/prenota` e `/cliente/saloni/<id>/slot` per la prenotazione; `/cliente/prenotazioni/<id>/recensione`.
+- Proprietario: `/proprietario/orari/settimana/<giorno>` (orario settimanale), `/proprietario/assenze` (assenze dei professionisti e chiusure del salone a giorni interi), `/proprietario/dipendenti/nuovo` e `/proprietario/dipendenti/<id>/attivo` (creazione, disattivazione e riattivazione dei dipendenti), `/proprietario/prenotazioni/<id>/saldo` (saldo in sede, solo dopo l'inizio dell'appuntamento).
 
 ### Sicurezza
 

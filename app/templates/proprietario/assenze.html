@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block titolo %}Assenze e chiusure – Barber Booking{% endblock %}
+
+{% block contenuto %}
+    <h1>Assenze e chiusure</h1>
+    <p>Nei giorni indicati non si prenota: con un professionista solo per lui, con "Tutto il salone" per tutti.</p>
+
+    <h2>In corso e in programma</h2>
+    <div class="elenco-date">
+        {% for periodo in periodi %}
+            <div class="riga-data">
+                <p class="riga-data-quando">
+                    {% if periodo.dal == periodo.al %}{{ periodo.dal.strftime('%d/%m/%Y') }}{% else %}dal {{ periodo.dal.strftime('%d/%m/%Y') }} al {{ periodo.al.strftime('%d/%m/%Y') }}{% endif %}
+                </p>
+                <p>{{ periodo.chi }}{% if periodo.nota %} <small>{{ periodo.nota }}</small>{% endif %}</p>
+                <form method="post" action="{{ url_for('proprietario.elimina_assenza', periodo_id=periodo.id) }}" class="secondario">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Togli</button>
+                </form>
+            </div>
+        {% else %}
+            <p>Nessuna assenza o chiusura in programma.</p>
+        {% endfor %}
+    </div>
+
+    <h2>Aggiungi</h2>
+    {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
+    <form method="post" action="{{ url_for('proprietario.assenze') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Chi
+            <select name="chi">
+                <option value="">Tutto il salone (chiusura)</option>
+                {% for professionista in professionisti %}
+                    <option value="{{ professionista.id }}"{% if dati.get('chi') == professionista.id | string %} selected{% endif %}>{{ professionista.nome }} {{ professionista.cognome }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <div class="turni">
+            <label>Dal <input type="date" name="dal" value="{{ dati.get('dal', '') }}" required></label>
+            <label>Al (compreso) <input type="date" name="al" value="{{ dati.get('al', '') }}"></label>
+        </div>
+        <p><small>Per un giorno solo lascia vuoto "Al".</small></p>
+        <label>Nota (facoltativa) <input name="nota" value="{{ dati.get('nota', '') }}" maxlength="255" placeholder="Ferie, corso, lavori…"></label>
+        <button type="submit">Salva</button>
+    </form>
+{% endblock %}

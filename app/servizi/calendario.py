@@ -56,10 +56,15 @@ def turni_validi(orari: list[tuple[str, str]]) -> list[Turno]:
     return turni
 
 
+# Le prenotazioni si fanno al massimo fino alla fine del mese corrente più 3 mesi: 400 giorni bastano
+# per controllare tutte quelle future quando cambia l'orario settimanale.
+GIORNI_DA_CONTROLLARE = 400
+
+
 class CalendarioService:
     """
-    Orari delle singole date decisi dal proprietario di un salone: festività, chiusure e aperture
-    straordinarie. Il calendario settimanale resta quello di partenza.
+    Orari di un salone decisi dal proprietario: calendario settimanale e orari delle singole date
+    (festività, chiusure e aperture straordinarie).
     """
 
     def __init__(self, connessione, salone_id: int):
@@ -97,6 +102,52 @@ class CalendarioService:
             quante = "c'è 1 prenotazione" if fuori == 1 else f"ci sono {fuori} prenotazioni"
             raise DatiNonValidiError(
                 f"In questa data {quante} fuori dai nuovi orari: "
+                "annullale prima dall'agenda del professionista, poi modifica gli orari."
+            )
+
+    def imposta_giorno_settimana(self, giorno_settimana: int, aperto: str, orari: list[tuple[str, str]],
+                                 adesso: datetime | None = None) -> None:
+        """
+        Cambia l'orario di un giorno della settimana: chiuso, oppure aperto con uno o due turni.
+        Vale per tutte le date di quel giorno senza un orario proprio. Conferma con commit.
+        Args: giorno_settimana da 1 (lunedì) a 7 (domenica).
+        Raises: DatiNonValidiError se un dato non è valido o se resterebbero fuori prenotazioni già fatte.
+        """
+        adesso = adesso or datetime.now(UTC)
+        if giorno_settimana not in range(1, 8):
+            raise DatiNonValidiError("Giorno della settimana non valido.")
+        if aperto not in ("si", "no"):
+            raise DatiNonValidiError("Scegli se il salone è aperto o chiuso.")
+        turni = turni_validi(orari) if aperto == "si" else []
+        self._controlla_prenotazioni_settimana(giorno_settimana, turni, adesso)
+        self._orari.sostituisci_turni_settimanali(self._salone_id, giorno_settimana, turni)
+        self._conn.commit()
+
+    def _controlla_prenotazioni_settimana(self, giorno_settimana: int, turni: list[Turno], adesso: datetime) -> None:
+        """
+        Le prenotazioni future che cadono in quel giorno della settimana (in date senza un orario proprio)
+        devono stare tutte dentro i nuovi turni.
+        Raises: DatiNonValidiError con il numero di prenotazioni che resterebbero fuori.
+        """
+        fuso = self._disponibilita.fuso_orario
+        intervalli = self._prenotazioni.intervalli_attivi_salone(
+            self._salone_id, in_utc(adesso), in_utc(adesso + timedelta(days=GIORNI_DA_CONTROLLARE)), in_utc(adesso)
+        )
+        fuori = 0
+        for inizio, fine in intervalli:
+            # Dal database arrivano in UTC senza fuso: si riportano all'ora locale del salone.
+            inizio_locale = inizio.replace(tzinfo=UTC).astimezone(fuso)
+            fine_locale = fine.replace(tzinfo=UTC).astimezone(fuso)
+            giorno = inizio_locale.date()
+            if giorno.isoweekday() != giorno_settimana or self._orari.leggi_eccezione(self._salone_id, giorno):
+                continue
+            if not any(t.ora_inizio <= inizio_locale.time() and fine_locale.time() <= t.ora_fine
+                       and fine_locale.date() == giorno for t in turni):
+                fuori += 1
+        if fuori:
+            quante = "c'è 1 prenotazione" if fuori == 1 else f"ci sono {fuori} prenotazioni"
+            raise DatiNonValidiError(
+                f"In questo giorno della settimana {quante} fuori dai nuovi orari: "
                 "annullale prima dall'agenda del professionista, poi modifica gli orari."
             )
 

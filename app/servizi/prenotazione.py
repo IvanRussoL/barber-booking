@@ -40,12 +40,20 @@ class RigaStorico:
 @dataclass
 class Appuntamento:
     """
-    Una prenotazione nell'agenda del professionista, con i recapiti del cliente
-    e l'indicazione se il salone può ancora annullarla.
+    Una prenotazione nell'agenda del professionista, con i recapiti del cliente, quanto ha già pagato
+    e l'indicazione se il salone può ancora annullarla o registrare il saldo in sede.
     """
     prenotazione: Prenotazione
     cliente: Utente
     annullabile: bool = False
+    pagato_centesimi: int = 0
+    saldabile: bool = False
+
+    def da_saldare(self) -> int:
+        """
+        Quanto resta da pagare in sede, in centesimi (0 se è già tutto pagato).
+        """
+        return max(self.prenotazione.prezzo_totale() - self.pagato_centesimi, 0)
 
 
 def calcola_acconto(totale_centesimi: int, percentuale: int) -> int:
@@ -393,6 +401,52 @@ class PrenotazioneService:
             )
         return self._annulla_con_rimborso(prenotazione, "salone", adesso)
 
+    # --- Saldo in sede ---
+
+    def puo_saldare(self, prenotazione: Prenotazione, pagato_centesimi: int, adesso: datetime) -> bool:
+        """
+        Il saldo in sede si registra per un appuntamento confermato, già iniziato e non ancora pagato per intero.
+        Prima dell'inizio il salone può ancora annullare, e il rimborso riguarda solo i pagamenti online:
+        così un pagamento in contanti non resta mai dentro un appuntamento annullato.
+        """
+        return (prenotazione.stato == "confermata" and prenotazione.inizio <= in_utc(adesso)
+                and pagato_centesimi < prenotazione.prezzo_totale())
+
+    def registra_saldo(self, prenotazione_id: int, utente: Utente, adesso: datetime | None = None) -> int:
+        """
+        Registra il pagamento in sede di quanto resta da pagare (dopo l'acconto online), per conto del
+        proprietario. La riga è letta con FOR UPDATE: due clic ravvicinati non registrano due saldi.
+        Returns: l'importo registrato in centesimi.
+        Raises: RisorsaNonTrovataError se non è del salone o l'utente non è il proprietario;
+            DatiNonValidiError se l'appuntamento non è saldabile.
+        """
+        adesso = adesso or datetime.now(UTC)
+        if utente.ruolo != "proprietario":
+            raise RisorsaNonTrovataError("Prenotazione non trovata.")
+        prenotazione = self._leggi_per_il_salone(prenotazione_id, utente, per_aggiornamento=True)
+        pagato = self._pagamenti.totale_pagato(prenotazione.id)
+        if not self.puo_saldare(prenotazione, pagato, adesso):
+            raise DatiNonValidiError(
+                "Il saldo si registra solo per appuntamenti confermati, già iniziati e non ancora pagati per intero."
+            )
+        residuo = prenotazione.prezzo_totale() - pagato
+        self._pagamenti.inserisci(Pagamento(
+            tipo="in_sede", importo_centesimi=residuo, prenotazione_id=prenotazione.id, stato="completato",
+        ))
+        self._conn.commit()
+        return residuo
+
+    def _appuntamento(self, prenotazione: Prenotazione, adesso: datetime) -> Appuntamento:
+        """
+        Una prenotazione dell'agenda con cliente, importo pagato e azioni possibili per il salone.
+        """
+        pagato = self._pagamenti.totale_pagato(prenotazione.id)
+        return Appuntamento(
+            prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id),
+            annullabile=self.puo_annullare_salone(prenotazione, adesso), pagato_centesimi=pagato,
+            saldabile=self.puo_saldare(prenotazione, pagato, adesso),
+        )
+
     def agenda(self, dipendente_id: int, adesso: datetime | None = None) -> list[Appuntamento]:
         """
         Prossimi appuntamenti confermati di un professionista, dall'inizio di oggi (ora locale del suo salone).
@@ -405,8 +459,7 @@ class PrenotazioneService:
         fuso = self.disponibilita(dipendente.salone_id).fuso_orario
         inizio_oggi = datetime.combine(adesso.astimezone(fuso).date(), time(0), fuso)
         return [
-            Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id),
-                         self.puo_annullare_salone(prenotazione, adesso))
+            self._appuntamento(prenotazione, adesso)
             for prenotazione in self._prenotazioni.elenca_per_dipendente(dipendente_id, in_utc(inizio_oggi))
         ]
 
@@ -417,7 +470,7 @@ class PrenotazioneService:
         """
         adesso = adesso or datetime.now(UTC)
         return [
-            Appuntamento(prenotazione, self._utenti.leggi_per_id(prenotazione.cliente_id))
+            self._appuntamento(prenotazione, adesso)
             for prenotazione in self._prenotazioni.storico_per_dipendente(dipendente_id, in_utc(adesso))
         ]
 

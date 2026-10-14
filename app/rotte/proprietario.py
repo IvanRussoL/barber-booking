@@ -5,15 +5,20 @@ from flask import (Blueprint, Response, abort, current_app, flash, g, redirect, 
 
 from app.accessi import controlla_accesso
 from app.db import ottieni_connessione
-from app.eccezioni import AnnullamentoNonConsentitoError, DatiNonValidiError, ServizioGiaEsistenteError
+from app.eccezioni import (AnnullamentoNonConsentitoError, DatiNonValidiError, EmailGiaRegistrataError,
+                           ServizioGiaEsistenteError)
 from app.formato import formatta_euro
 from app.repository.utente import UtenteRepository
+from app.servizi.assenze import AssenzeService
 from app.servizi.calendario import CalendarioService
+from app.servizi.personale import PersonaleService
 from app.servizi.prenotazione import PrenotazioneService
 from app.servizi.salone import SaloneService
 from app.servizi.statistiche import StatisticheService, periodo_valido
 
 bp = Blueprint("proprietario", __name__, url_prefix="/proprietario")
+
+GIORNI = ("lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica")
 
 
 @bp.before_request
@@ -170,7 +175,42 @@ def dipendenti():
     ]
     return render_template(
         "proprietario/dipendenti.html", giorni=giorni, righe=righe, riepilogo=statistiche.riepilogo(giorni),
+        disattivati=PersonaleService(connessione, g.utente.salone_id).disattivati(),
     )
+
+
+@bp.route("/dipendenti/nuovo", methods=["GET", "POST"])
+def nuovo_dipendente():
+    """
+    Modulo per creare un dipendente del salone, con una password provvisoria scelta dal proprietario.
+    """
+    if request.method == "GET":
+        return render_template("proprietario/dipendente_modulo.html", dati={})
+    try:
+        PersonaleService(ottieni_connessione(), g.utente.salone_id).crea_dipendente(
+            request.form.get("email", ""), request.form.get("password", ""), request.form.get("nome", ""),
+            request.form.get("cognome", ""), request.form.get("telefono", ""),
+        )
+    except (DatiNonValidiError, EmailGiaRegistrataError) as errore:
+        dati = {campo: valore for campo, valore in request.form.items() if campo != "password"}
+        return render_template("proprietario/dipendente_modulo.html", dati=dati, errore=str(errore)), 400
+    flash("Dipendente creato: comunicagli email e password provvisoria.")
+    return redirect(url_for("proprietario.dipendenti"))
+
+
+@bp.route("/dipendenti/<int:dipendente_id>/attivo", methods=["POST"])
+def imposta_attivo_dipendente(dipendente_id: int):
+    """
+    Disattiva o riattiva un dipendente: il modulo invia attivo = "1" oppure "0".
+    """
+    attivo = request.form.get("attivo") == "1"
+    try:
+        dipendente = PersonaleService(ottieni_connessione(), g.utente.salone_id).imposta_attivo(dipendente_id, attivo)
+    except DatiNonValidiError as errore:
+        flash(str(errore))
+    else:
+        flash(f"{dipendente.nome} riattivato." if attivo else f"{dipendente.nome} disattivato: non entra più e non riceve prenotazioni.")
+    return redirect(url_for("proprietario.dipendenti"))
 
 
 @bp.route("/dipendenti/<int:dipendente_id>")
@@ -213,13 +253,104 @@ def annulla_prenotazione(prenotazione_id: int):
     return redirect(torna_a)
 
 
+@bp.route("/prenotazioni/<int:prenotazione_id>/saldo", methods=["POST"])
+def registra_saldo(prenotazione_id: int):
+    """
+    Registra il pagamento in sede di quanto resta da pagare di un appuntamento.
+    """
+    servizio = _prenotazioni()
+    appuntamento = servizio.prenotazione_per_il_salone(prenotazione_id, g.utente)
+    try:
+        importo = servizio.registra_saldo(prenotazione_id, g.utente)
+    except DatiNonValidiError as errore:
+        flash(str(errore))
+    else:
+        flash(f"Saldo in sede di {formatta_euro(importo)} registrato.")
+    return redirect(url_for("proprietario.agenda_dipendente", dipendente_id=appuntamento.prenotazione.dipendente_id))
+
+
+# --- Orario settimanale ---
+
+def _dati_turni(turni) -> dict:
+    """
+    Valori dei campi del modulo dei turni (aperto, inizio_1, fine_1, inizio_2, fine_2) da una lista di Turni.
+    """
+    dati = {"aperto": "si" if turni else "no"}
+    for numero, turno in enumerate(turni[:2], start=1):
+        dati[f"inizio_{numero}"] = turno.ora_inizio.strftime("%H:%M")
+        dati[f"fine_{numero}"] = turno.ora_fine.strftime("%H:%M")
+    return dati
+
+
+def _orari_del_modulo() -> list[tuple[str, str]]:
+    """
+    I due turni inviati dal modulo, come coppie (inizio, fine).
+    """
+    return [(request.form.get("inizio_1", ""), request.form.get("fine_1", "")),
+            (request.form.get("inizio_2", ""), request.form.get("fine_2", ""))]
+
+
+@bp.route("/orari/settimana/<int:giorno>", methods=["GET", "POST"])
+def orari_settimana(giorno: int):
+    """
+    Modulo per cambiare l'orario di un giorno della settimana (1 = lunedì, 7 = domenica).
+    """
+    if giorno not in range(1, 8):
+        abort(404)
+    calendario = CalendarioService(ottieni_connessione(), g.utente.salone_id)
+    nome_giorno = GIORNI[giorno - 1]
+    if request.method == "POST":
+        try:
+            calendario.imposta_giorno_settimana(giorno, request.form.get("aperto", ""), _orari_del_modulo())
+        except DatiNonValidiError as errore:
+            return render_template("proprietario/orari_settimana.html", giorno=giorno, nome_giorno=nome_giorno,
+                                   dati=request.form, errore=str(errore)), 400
+        flash(f"Orario del {nome_giorno} salvato.")
+        return redirect(url_for("proprietario.orari"))
+    turni = dict(calendario.disponibilita.orario_settimanale())[giorno]
+    return render_template("proprietario/orari_settimana.html", giorno=giorno, nome_giorno=nome_giorno,
+                           dati=_dati_turni(turni))
+
+
+# --- Assenze e chiusure ---
+
+@bp.route("/assenze", methods=["GET", "POST"])
+def assenze():
+    """
+    Assenze dei professionisti e chiusure del salone in corso o future, con il modulo per aggiungerne.
+    """
+    servizio = AssenzeService(ottieni_connessione(), g.utente.salone_id)
+    if request.method == "POST":
+        try:
+            servizio.aggiungi(request.form.get("chi", ""), request.form.get("dal", ""), request.form.get("al", ""),
+                              request.form.get("nota", ""))
+        except DatiNonValidiError as errore:
+            return render_template("proprietario/assenze.html", periodi=servizio.elenca(),
+                                   professionisti=servizio.professionisti(), dati=request.form,
+                                   errore=str(errore)), 400
+        flash("Periodo salvato: in quei giorni non si prenota.")
+        return redirect(url_for("proprietario.assenze"))
+    return render_template("proprietario/assenze.html", periodi=servizio.elenca(),
+                           professionisti=servizio.professionisti(), dati={})
+
+
+@bp.route("/assenze/<int:periodo_id>/elimina", methods=["POST"])
+def elimina_assenza(periodo_id: int):
+    """
+    Toglie un'assenza o una chiusura: quei giorni tornano prenotabili.
+    """
+    AssenzeService(ottieni_connessione(), g.utente.salone_id).elimina(periodo_id)
+    flash("Periodo tolto: quei giorni tornano prenotabili.")
+    return redirect(url_for("proprietario.assenze"))
+
+
 # --- Orari delle singole date ---
 
 @bp.route("/orari")
 def orari():
     """
-    Calendario settimanale (sola lettura) e date speciali dei prossimi 12 mesi: festività da definire,
-    chiusure e aperture decise dal proprietario.
+    Calendario settimanale (ogni giorno si modifica) e date speciali dei prossimi 12 mesi: festività
+    da definire, chiusure e aperture decise dal proprietario.
     """
     calendario = CalendarioService(ottieni_connessione(), g.utente.salone_id)
     oggi = datetime.now(calendario.disponibilita.fuso_orario).date()
@@ -240,9 +371,7 @@ def orari_data():
     if request.method == "POST":
         try:
             giorno = calendario.imposta_eccezione(
-                request.form.get("data", ""), request.form.get("aperto", ""),
-                [(request.form.get("inizio_1", ""), request.form.get("fine_1", "")),
-                 (request.form.get("inizio_2", ""), request.form.get("fine_2", ""))],
+                request.form.get("data", ""), request.form.get("aperto", ""), _orari_del_modulo(),
                 request.form.get("nota", ""),
             )
         except DatiNonValidiError as errore:
@@ -257,14 +386,11 @@ def orari_data():
         return redirect(url_for("proprietario.orari"))
     turni = disponibilita.turni_del_giorno(giorno)
     eccezione = next(iter(disponibilita.giornate_speciali(giorno, giorno)), None)
-    dati = {
+    dati = _dati_turni(turni) | {
         "data": giorno.isoformat(),
         "aperto": "no" if eccezione and eccezione.stato == "chiuso" else "si",
         "nota": (eccezione.nota if eccezione else "") or "",
     }
-    for numero, turno in enumerate(turni[:2], start=1):
-        dati[f"inizio_{numero}"] = turno.ora_inizio.strftime("%H:%M")
-        dati[f"fine_{numero}"] = turno.ora_fine.strftime("%H:%M")
     return render_template("proprietario/orari_data.html", dati=dati, eccezione=eccezione)
 
 

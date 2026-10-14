@@ -12,8 +12,9 @@
         </figcaption>
     </figure>
     <ul class="voci-gestione">
-        <li><a href="{{ url_for('proprietario.dipendenti') }}">Dipendenti</a><span>Agende, incassi e lavoro di ciascuno</span></li>
-        <li><a href="{{ url_for('proprietario.orari') }}">Orari</a><span>Festività, chiusure e aperture straordinarie</span></li>
+        <li><a href="{{ url_for('proprietario.dipendenti') }}">Dipendenti</a><span>Agende, saldi in sede, nuovi dipendenti e lavoro di ciascuno</span></li>
+        <li><a href="{{ url_for('proprietario.orari') }}">Orari</a><span>Orario settimanale, festività e aperture straordinarie</span></li>
+        <li><a href="{{ url_for('proprietario.assenze') }}">Assenze e chiusure</a><span>Ferie dei professionisti e giorni di chiusura</span></li>
         <li><a href="{{ url_for('proprietario.servizi') }}">Servizi</a><span>Listino, durate e prezzi</span></li>
         <li><a href="{{ url_for('proprietario.statistiche') }}">Statistiche</a><span>Andamento, professionisti e fasce di punta</span></li>
         <li><a href="{{ url_for('pubblico.salone', salone_id=salone_utente.id) }}">Pagina pubblica</a><span>Come la vedono i clienti, con le recensioni</span></li>

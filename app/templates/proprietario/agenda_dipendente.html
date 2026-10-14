@@ -6,5 +6,6 @@
     <p><a href="{{ url_for('proprietario.dipendenti') }}">← Dipendenti</a></p>
     <h1>Agenda di {{ professionista.nome }} {{ professionista.cognome }}</h1>
     {% set endpoint_annulla = "proprietario.annulla_prenotazione" %}
+    {% set endpoint_saldo = "proprietario.registra_saldo" %}
     {% include "agenda_elenco.html" %}
 {% endblock %}

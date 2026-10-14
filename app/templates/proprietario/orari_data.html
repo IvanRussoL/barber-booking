@@ -12,23 +12,7 @@
     <form method="post" action="{{ url_for('proprietario.orari_data') }}" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Data <input type="date" name="data" value="{{ dati.get('data', '') }}" required></label>
-        <fieldset>
-            <legend>Il salone è</legend>
-            <label><input type="radio" name="aperto" value="si" {% if dati.get('aperto') != 'no' %}checked{% endif %}> Aperto</label>
-            <label><input type="radio" name="aperto" value="no" {% if dati.get('aperto') == 'no' %}checked{% endif %}> Chiuso</label>
-        </fieldset>
-        <fieldset>
-            <legend>Orari, se aperto</legend>
-            <div class="turni">
-                <label>Mattina dalle <input type="time" name="inizio_1" step="1800" value="{{ dati.get('inizio_1', '') }}"></label>
-                <label>alle <input type="time" name="fine_1" step="1800" value="{{ dati.get('fine_1', '') }}"></label>
-            </div>
-            <div class="turni">
-                <label>Pomeriggio dalle <input type="time" name="inizio_2" step="1800" value="{{ dati.get('inizio_2', '') }}"></label>
-                <label>alle <input type="time" name="fine_2" step="1800" value="{{ dati.get('fine_2', '') }}"></label>
-            </div>
-            <p><small>Lascia vuoto il pomeriggio per un turno unico.</small></p>
-        </fieldset>
+        {% include "proprietario/_turni.html" %}
         <label>Nota (facoltativa) <input name="nota" value="{{ dati.get('nota', '') }}" maxlength="255"></label>
         <button type="submit">Salva</button>
     </form>

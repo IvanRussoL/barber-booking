@@ -39,12 +39,15 @@
     </form>
 
     <h2>Calendario settimanale</h2>
+    <p><small>Assenze dei professionisti e chiusure di più giorni si segnano in
+        <a href="{{ url_for('proprietario.assenze') }}">Assenze e chiusure</a>.</small></p>
     <table>
         <tbody>
             {% for giorno, turni in settimana %}
                 <tr>
                     <th>{{ GIORNI[giorno - 1] }}</th>
                     <td>{% for turno in turni %}{{ turno.ora_inizio.strftime('%H:%M') }}–{{ turno.ora_fine.strftime('%H:%M') }}{% if not loop.last %} · {% endif %}{% else %}Chiuso{% endfor %}</td>
+                    <td><a href="{{ url_for('proprietario.orari_settimana', giorno=giorno) }}">Modifica</a></td>
                 </tr>
             {% endfor %}
         </tbody>

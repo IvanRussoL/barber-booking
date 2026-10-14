@@ -76,6 +76,27 @@ class UtenteRepository:
             righe = cur.fetchall()
         return [_da_riga(riga) for riga in righe]
 
+    def elenca_dipendenti_disattivati(self, salone_id: int) -> list[Utente]:
+        """
+        Dipendenti disattivati di un salone, in ordine di nome, per poterli riattivare.
+        Returns: la lista degli Utenti.
+        """
+        with self._conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                _SELECT + "WHERE salone_id = %s AND ruolo = 'dipendente' AND attivo = FALSE ORDER BY nome, cognome",
+                (salone_id,),
+            )
+            righe = cur.fetchall()
+        return [_da_riga(riga) for riga in righe]
+
+    def imposta_attivo(self, utente_id: int, attivo: bool) -> None:
+        """
+        Attiva o disattiva un account, senza fare commit. Un account disattivato non entra più
+        e non riceve prenotazioni.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute("UPDATE utenti SET attivo = %s WHERE id = %s", (attivo, utente_id))
+
     def blocca(self, utente_id: int) -> None:
         """
         Blocca la riga dell'utente con SELECT ... FOR UPDATE fino al commit o al rollback.

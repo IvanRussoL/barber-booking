@@ -327,3 +327,8 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 - **Test** (`test_stripe.py`, 15 test, senza chiamare Stripe): parametri della sessione, errori, rimborso, firma del webhook calcolata come la calcola Stripe, eventi confermati e ignorati, firme non valide, pagamento simulato spento con Stripe.
 - **Da provare sul PC con le chiavi di test** (non posso farlo da qui): `stripe listen --forward-to http://127.0.0.1:5000/webhook/stripe` stampa il segreto `whsec_` da mettere in `.env`; carta di prova 4242 4242 4242 4242. Restano da verificare dal vivo Google Pay (compare solo su browser e dispositivi che lo supportano) e PayPal (va attivato nel Dashboard). Alternativa scartata: `PayPalProvider` separato con PayPal Sandbox (fase 7b), inutile se PayPal funziona tramite Stripe.
 
+## 2026-10-15 · Chiusura: README aggiornato e versione del corso segnata con un tag
+
+- **Il lavoro di `multi-salone` è unito in `main`** (fast-forward, fatto il 14/10 dopo il link "Apri in Maps"); i passi successivi sono stati fatti direttamente su `main`. La versione consegnata per il corso resta recuperabile con il tag `consegna-corso` sul commit `ff9506c`. Alternativa scartata: tenere `main` fermo alla consegna (la versione da mostrare nel CV è quella completa, e la consegna è comunque segnata dal tag).
+- **README aggiornato**: funzionalità per ruolo (gestione completa del salone, saldo in sede, Account), tecnologie (Flask-Limiter, Stripe), struttura, passi per provare Stripe in modalità test con la Stripe CLI, copertura dei test, sviluppi futuri allineati alla sezione 10 della progettazione.
+

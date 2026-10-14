@@ -292,3 +292,7 @@ Diario delle scelte di sviluppo: cosa ho fatto, perché e quali alternative ho s
 - **Tolti prodotti, carrello e ordini**: la vendita sta meglio nel sito del singolo salone. Cambia la scelta iniziale (fase 7c). Le tabelle `prodotti` e `ordini` restano nello schema, non usate: toglierle richiederebbe modifiche a schema e test senza vantaggi pratici.
 - **Tolti anche** il tracciamento di visite e click con il funnel (le statistiche del proprietario bastano senza e si evitano i cookie), lingue e valute diverse (solo Italia), argon2 (Werkzeug è adeguato), immagine del profilo degli utenti, statistiche di spesa del cliente (c'è già il totale speso) e foto del salone sulla mappa.
 - **Alternativa scartata**: tenere tutto negli sviluppi futuri, che faceva dell'app un insieme di funzioni senza un'identità chiara.
+
+## 2026-10-14 · "Apri in Maps" nella pagina del salone
+
+- **Link alle indicazioni stradali di Google Maps** sotto la mappa di "Dove siamo", con il formato pubblico "Maps URLs" (`https://www.google.com/maps/dir/?api=1&destination=lat,lon`): non serve una chiave API e sul telefono si apre l'app di Maps. Google riceve le coordinate del salone solo se il visitatore clicca. Alternative scartate: link `geo:` (funziona solo su Android), indicazioni dentro la mappa Leaflet (servirebbe un servizio di percorsi).

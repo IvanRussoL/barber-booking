@@ -125,3 +125,8 @@ def test_avviso_solo_con_testo_fisso(client):
     assert "Non è stato possibile usare la tua posizione" in pagina and 'id="cerca-zona"' in pagina
     altro = client.get("/saloni", query_string={"avviso": "<script>alert(1)</script>"}).text
     assert "alert(1)" not in altro and 'class="avviso"' not in altro
+
+
+def test_pagina_del_salone_con_link_a_maps(client, salone_test):
+    pagina = client.get(f"/saloni/{salone_test}").text
+    assert "https://www.google.com/maps/dir/?api=1&destination=" in pagina

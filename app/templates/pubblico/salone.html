@@ -62,6 +62,10 @@
             <p>{{ salone.indirizzo }}</p>
             <p><a href="tel:{{ salone.telefono }}">{{ salone.telefono }}</a></p>
             {% include "pubblico/_mappa.html" %}
+            {# Link alle indicazioni di Google Maps (formato pubblico "Maps URLs", senza chiave API): sul telefono
+               apre l'app di Maps. Google riceve le coordinate del salone solo se il visitatore clicca. #}
+            <p><a class="pillola-link" target="_blank" rel="noopener"
+                  href="https://www.google.com/maps/dir/?api=1&destination={{ salone.latitudine }},{{ salone.longitudine }}">Apri in Maps</a></p>
         </div>
     </section>
 

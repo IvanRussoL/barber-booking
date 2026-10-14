@@ -551,7 +551,6 @@ L'app serve a trovare un barbiere e prenotare, con proprietario e dipendenti che
 - Recupero della password dimenticata tramite email.
 - Pagina pubblica "Registra il tuo salone", con verifica e approvazione prima della pubblicazione.
 - Coordinate dei saloni calcolate dall'indirizzo (geocoding) e mappe da un fornitore con contratto se il traffico cresce.
-- Pulsante "Apri in Maps" nella sezione "Dove siamo" della pagina del salone, per avere le indicazioni stradali fino al salone.
 
 ### Non più previsti (14 ottobre 2026)
 
@@ -620,7 +619,7 @@ La sezione 11 descrive la versione consegnata (un solo salone). Questa descrive 
 
 ### Pagine nuove o spostate
 
-- `/saloni` ricerca con mappa; `/saloni/<id>` pagina del salone; `/saloni/<id>/servizi` listino.
+- `/saloni` ricerca con mappa; `/saloni/<id>` pagina del salone, con il link "Apri in Maps" per le indicazioni stradali; `/saloni/<id>/servizi` listino.
 - `/cliente/saloni/<id>/prenota` e `/cliente/saloni/<id>/slot` per la prenotazione; `/cliente/prenotazioni/<id>/recensione`.
 
 ### Sicurezza

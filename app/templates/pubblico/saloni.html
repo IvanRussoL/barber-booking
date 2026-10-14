@@ -5,6 +5,7 @@
 
 {% block contenuto %}
     <h1>Trova il salone</h1>
+    {% if avviso %}<p class="avviso">{{ avviso }}</p>{% endif %}
     {% include "pubblico/_ricerca.html" %}
     {% if errore %}<p class="errore">{{ errore }}</p>{% endif %}
 

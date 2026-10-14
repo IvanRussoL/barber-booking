@@ -544,15 +544,22 @@ Le versioni sono bloccate in `requirements.txt`.
 Dalla libreria standard di Python uso inoltre `dataclasses` (modelli), `abc` (classe astratta dei provider), `zoneinfo` (fusi orari), `secrets` (valori casuali per chiavi e identificativi) e `calendar` (ultimo giorno del mese).
  
 ## 10. Sviluppi futuri
-- Interfaccia in più lingue (oggi solo italiano) e valute diverse dall'euro, per saloni in altri Paesi.
+
+L'app serve a trovare un barbiere e prenotare, con proprietario e dipendenti che hanno compiti precisi. Restano solo gli sviluppi che servono a questo.
+
 - Conferma dell'indirizzo email con un messaggio di verifica.
-- Hash delle password con argon2, al posto di Werkzeug.
-- Giacenza numerica dei prodotti (pezzi in magazzino) al posto della disponibilità sì/no.
-- Termine per il ritiro degli ordini, con annullamento e rimborso automatici alla scadenza.
 - Recupero della password dimenticata tramite email.
-- Più saloni nello stesso sito (multi tenancy): realizzato dopo la consegna sul branch `multi-salone`, vedi la sezione 12.
 - Pagina pubblica "Registra il tuo salone", con verifica e approvazione prima della pubblicazione.
 - Coordinate dei saloni calcolate dall'indirizzo (geocoding) e mappe da un fornitore con contratto se il traffico cresce.
+- Pulsante "Apri in Maps" nella sezione "Dove siamo" della pagina del salone, per avere le indicazioni stradali fino al salone.
+
+### Non più previsti (14 ottobre 2026)
+
+- Prodotti, carrello e ordini, con giacenza e termine per il ritiro: la vendita sta nel sito del singolo salone. Le parti delle sezioni 1-9 sui prodotti non valgono più; le tabelle `prodotti` e `ordini` restano nello schema ma non sono usate.
+- Tracciamento di visite e click, funnel e occupazione: le statistiche del proprietario bastano senza.
+- Interfaccia in più lingue e valute diverse dall'euro: la ricerca è solo in Italia.
+- Hash delle password con argon2: quello di Werkzeug è già adeguato.
+- Immagine del profilo degli utenti, statistiche di spesa del cliente (l'area cliente mostra già il totale speso), foto del salone come segnaposto sulla mappa.
 
 ## 11. Versione consegnata (14 ottobre 2026)
 
@@ -576,8 +583,8 @@ Per la consegna del corso ho realizzato una versione ridotta del progetto. Le se
 ### Rimandato agli sviluppi futuri
 
 - `StripeProvider` (Checkout, Google Pay, PayPal) e Blueprint `webhook` (fase 7 e 7b).
-- Prodotti, carrello e ordini (fase 7c).
-- Tracciamento di visite e click (tabella `eventi`), funnel e occupazione (resto della fase 8).
+- Prodotti, carrello e ordini (fase 7c): non più previsti, vedi la sezione 10.
+- Tracciamento di visite e click (tabella `eventi`), funnel e occupazione (resto della fase 8): non più previsti, vedi la sezione 10.
 - Pagine del proprietario per il calendario settimanale, assenze, chiusure lunghe, creazione dei dipendenti e saldo in sede: oggi si modificano solo dal database.
 - Blueprint `account` con il cambio password; rate limiting del login con Flask-Limiter.
 

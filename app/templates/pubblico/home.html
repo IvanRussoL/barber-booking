@@ -57,11 +57,6 @@
 {% endblock %}
 
 {% block contenuto %}
-    <section class="cerca-home" id="cerca">
-        <h2>Trova il salone più vicino</h2>
-        {% include "pubblico/_ricerca.html" %}
-    </section>
-
     <section class="card-grandi">
         {% if puo_prenotare %}
             <a class="card-foto" href="{{ url_for('pubblico.ricerca') }}">
@@ -103,6 +98,23 @@
                 <span class="pillola">{{ pillola_seconda }}</span>
             </div>
         </a>
+    </section>
+
+    {# Due modi di cercare: si sceglie qui e si arriva a una sola delle due ricerche. #}
+    <section class="cerca-home" id="cerca">
+        <h2>Trova il salone più vicino</h2>
+        <div class="scelte-ricerca">
+            <div class="scelta-ricerca solo-js">
+                <h3>Vicino a te</h3>
+                <p class="ricerca-nota">Il browser ti chiede il permesso. La posizione serve solo a questa ricerca e non viene salvata.</p>
+                {% include "pubblico/_usa_posizione.html" %}
+            </div>
+            <div class="scelta-ricerca">
+                <h3>Per regione e provincia</h3>
+                <p class="ricerca-nota">Scegli la regione e, se vuoi, la provincia.</p>
+                <a class="pulsante" href="{{ url_for('pubblico.ricerca') }}">Scegli regione e provincia</a>
+            </div>
+        </div>
     </section>
 {% endblock %}
 

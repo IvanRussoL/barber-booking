@@ -1,0 +1,9 @@
+{# Pulsante "Usa la mia posizione" (ricerca.js), nella home e nella ricerca per zona. Il browser chiede il permesso:
+   con la posizione si va ai saloni vicini, senza alla ricerca per regione e provincia con un avviso.
+   Senza JavaScript resta nascosto (classe solo-js). #}
+<div class="usa-posizione solo-js">
+    <button type="button" data-usa-posizione
+            data-url-vicino="{{ url_for('pubblico.ricerca') }}"
+            data-url-zona="{{ url_for('pubblico.ricerca', avviso='posizione') }}">Usa la mia posizione</button>
+    <p class="ricerca-stato" data-stato-posizione aria-live="polite"></p>
+</div>

@@ -1,25 +1,28 @@
-// Ricerca dei saloni: posizione del browser per "Vicino a te" e menu delle province filtrato per regione.
+// Ricerca dei saloni: pulsante "Usa la mia posizione" e menu delle province filtrato per regione.
 
-const moduloVicino = document.getElementById("cerca-vicino");
-if (moduloVicino) {
-    const pulsante = moduloVicino.querySelector("[data-usa-posizione]");
-    const stato = moduloVicino.querySelector("[data-stato-posizione]");
+// Il pulsante sta nella home e nella ricerca per zona; gli indirizzi arrivano dal server negli attributi data-.
+// Con la posizione si va ai saloni vicini; senza (permesso negato, errore, browser che non la supporta)
+// alla ricerca per regione e provincia, con un avviso.
+for (const pulsante of document.querySelectorAll("[data-usa-posizione]")) {
+    const stato = pulsante.parentElement.querySelector("[data-stato-posizione]");
+    const vaiAllaZona = () => {
+        window.location.href = pulsante.dataset.urlZona;
+    };
     pulsante.addEventListener("click", () => {
         if (!("geolocation" in navigator)) {
-            stato.textContent = "Il browser non permette di condividere la posizione: cerca per regione e provincia.";
+            vaiAllaZona();
             return;
         }
         stato.textContent = "Ricerca della posizione...";
         navigator.geolocation.getCurrentPosition(
             (posizione) => {
                 // 3 decimali (circa 100 metri) bastano per trovare i saloni vicini: la posizione esatta non lascia il browser.
-                moduloVicino.elements.lat.value = posizione.coords.latitude.toFixed(3);
-                moduloVicino.elements.lon.value = posizione.coords.longitude.toFixed(3);
-                moduloVicino.submit();
+                const indirizzo = new URL(pulsante.dataset.urlVicino, window.location.href);
+                indirizzo.searchParams.set("lat", posizione.coords.latitude.toFixed(3));
+                indirizzo.searchParams.set("lon", posizione.coords.longitude.toFixed(3));
+                window.location.href = indirizzo.href;
             },
-            () => {
-                stato.textContent = "Posizione non disponibile o non concessa: cerca per regione e provincia.";
-            },
+            vaiAllaZona,
             { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 },
         );
     });

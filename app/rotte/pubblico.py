@@ -12,6 +12,9 @@ from app.servizi.saloni import (ORDINI_VICINO, ORDINI_ZONA, RAGGI_KM, SaloniServ
 
 bp = Blueprint("pubblico", __name__)
 
+# Avvisi della pagina di ricerca: il parametro "avviso" sceglie uno di questi testi e non viene mai mostrato.
+AVVISI = {"posizione": "Non è stato possibile usare la tua posizione: scegli regione e provincia."}
+
 
 def _punto_mappa(salone, con_link: bool = True) -> dict:
     """
@@ -24,7 +27,7 @@ def _punto_mappa(salone, con_link: bool = True) -> dict:
 
 def _dati_ricerca(saloni: SaloniService) -> dict:
     """
-    Variabili per i moduli di ricerca (_ricerca.html): regioni, province, raggi e ordinamenti.
+    Variabili per il modulo di ricerca (_ricerca.html): regioni, province, raggi e ordinamenti.
     """
     return {"regioni": saloni.regioni(), "province": saloni.province(), "raggi": RAGGI_KM,
             "ordini_vicino": ORDINI_VICINO, "ordini_zona": ORDINI_ZONA}
@@ -33,9 +36,9 @@ def _dati_ricerca(saloni: SaloniService) -> dict:
 @bp.route("/")
 def home():
     """
-    Pagina iniziale della piattaforma: carosello e moduli per trovare un salone.
+    Pagina iniziale della piattaforma: carosello, card e scelta del modo di cercare un salone.
     """
-    return render_template("pubblico/home.html", dati={}, **_dati_ricerca(SaloniService(ottieni_connessione())))
+    return render_template("pubblico/home.html")
 
 
 @bp.route("/saloni")
@@ -43,15 +46,18 @@ def ricerca():
     """
     Ricerca dei saloni: vicino al cliente (lat e lon inviate dal browser, con il raggio scelto)
     oppure per regione e provincia. La posizione non viene salvata.
+    La pagina mostra solo il modulo della ricerca in corso: con una posizione valida quello "Vicino a te",
+    altrimenti quello per regione e provincia.
     """
     saloni = SaloniService(ottieni_connessione())
     parametri = request.args
-    risultati, modo, zona, errore, dati_mappa = None, None, None, None, None
+    risultati, modo, zona, errore, dati_mappa, posizione = None, None, None, None, None, None
     try:
         if parametri.get("lat") or parametri.get("lon"):
             modo = "vicino"
             risultati = saloni.cerca_vicino(parametri.get("lat", ""), parametri.get("lon", ""),
                                             parametri.get("raggio", ""), parametri.get("ordine", ""))
+            posizione = posizione_valida(parametri["lat"], parametri["lon"])  # già arrotondata
         elif parametri.get("regione"):
             modo = "zona"
             risultati = saloni.cerca_per_zona(parametri["regione"], parametri.get("provincia", ""),
@@ -63,12 +69,12 @@ def ricerca():
     raggio = raggio_valido(parametri.get("raggio", ""))
     if risultati is not None and (risultati or modo == "vicino"):
         dati_mappa = {"saloni": [_punto_mappa(r.salone) for r in risultati], "tu": None}
-        if modo == "vicino":  # la posizione già arrotondata, rimandata solo a questa pagina
-            lat, lon = posizione_valida(parametri["lat"], parametri["lon"])
-            dati_mappa["tu"] = {"lat": lat, "lon": lon, "raggio_km": raggio}
+        if posizione:  # la posizione già arrotondata, rimandata solo a questa pagina
+            dati_mappa["tu"] = {"lat": posizione[0], "lon": posizione[1], "raggio_km": raggio}
     return render_template(
         "pubblico/saloni.html", dati=parametri, risultati=risultati, modo=modo, zona=zona, errore=errore,
-        raggio=raggio, dati_mappa=dati_mappa, **_dati_ricerca(saloni),
+        raggio=raggio, posizione=posizione, avviso=AVVISI.get(parametri.get("avviso")), dati_mappa=dati_mappa,
+        **_dati_ricerca(saloni),
     ), 400 if errore else 200
 
 

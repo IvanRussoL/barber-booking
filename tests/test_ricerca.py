@@ -94,3 +94,34 @@ def test_pagina_di_ricerca(client, salone_test):
     assert "Salone di prova dei test" in vicino.text and "km" in vicino.text
     assert client.get("/saloni", query_string={"lat": "x", "lon": "y"}).status_code == 400
     assert client.get("/saloni", query_string={"regione": "Campania", "provincia": "RM"}).status_code == 400
+
+
+def test_home_scelta_della_ricerca_sotto_le_card(client):
+    pagina = client.get("/").text
+    assert pagina.index('class="card-grandi"') < pagina.index('id="cerca"')
+    sezione = pagina[pagina.index('id="cerca"'):]
+    assert "data-usa-posizione" in sezione and 'href="/saloni"' in sezione
+    assert "<form" not in sezione  # nella home si sceglie solo come cercare
+
+
+def test_ricerca_mostra_solo_il_modulo_in_corso(client, salone_test):
+    zona = client.get("/saloni").text
+    assert 'id="cerca-zona"' in zona and 'id="cerca-vicino"' not in zona
+    assert "data-usa-posizione" in zona  # per passare alla ricerca per posizione
+    vicino = client.get("/saloni", query_string={"lat": NAPOLI_CENTRO[0], "lon": NAPOLI_CENTRO[1], "raggio": "25"}).text
+    assert 'id="cerca-vicino"' in vicino and 'id="cerca-zona"' not in vicino
+    assert 'name="lat" value="40.84"' in vicino and '<option value="25" selected>' in vicino
+    assert "data-usa-posizione" not in vicino and 'href="/saloni"' in vicino
+
+
+def test_posizione_non_valida_torna_alla_ricerca_per_zona(client):
+    pagina = client.get("/saloni", query_string={"lat": "x", "lon": "y"})
+    assert pagina.status_code == 400
+    assert 'id="cerca-zona"' in pagina.text and 'id="cerca-vicino"' not in pagina.text
+
+
+def test_avviso_solo_con_testo_fisso(client):
+    pagina = client.get("/saloni", query_string={"avviso": "posizione"}).text
+    assert "Non è stato possibile usare la tua posizione" in pagina and 'id="cerca-zona"' in pagina
+    altro = client.get("/saloni", query_string={"avviso": "<script>alert(1)</script>"}).text
+    assert "alert(1)" not in altro and 'class="avviso"' not in altro

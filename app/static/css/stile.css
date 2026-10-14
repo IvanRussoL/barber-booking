@@ -1150,25 +1150,82 @@ main.larga {
 
 /* --- Ricerca dei saloni --- */
 
-/* Due moduli affiancati: vicino a te (solo con JavaScript) e per regione e provincia. */
-.ricerca {
+/* Queste regole stanno prima di .solo-js: senza JavaScript deve vincere il suo display: none. */
+
+/* Home: due scelte affiancate, vicino a te (solo con JavaScript) e per regione e provincia. */
+.scelte-ricerca {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
-    margin: 8px 0 32px;
 }
 
-.ricerca-modulo {
-    max-width: none;
+.scelta-ricerca {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
     padding: 22px 24px;
     background: var(--superficie);
     border: 1px solid var(--bordo);
     border-radius: var(--raggio);
 }
 
-.ricerca-modulo h3 {
+.scelta-ricerca h3 {
     margin: 0;
     font-size: 1.3rem;
+}
+
+/* Pagina Trova il salone: un solo modulo, quello della ricerca in corso. */
+.ricerca-modulo {
+    max-width: 620px;
+    margin: 8px 0 32px;
+    padding: 22px 24px;
+    background: var(--superficie);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+}
+
+.ricerca-modulo h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.ricerca-campi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+/* Collegamento all'altra ricerca, in fondo al modulo. */
+.ricerca-cambio {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--bordo);
+    color: var(--testo-tenue);
+}
+
+.ricerca-cambio p {
+    margin: 0;
+}
+
+.ricerca-cambio button {
+    padding: 8px 18px;
+    background: transparent;
+    color: var(--corallo);
+    border: 1px solid var(--corallo);
+}
+
+.ricerca-cambio button:hover {
+    background: #f6e7df;
+}
+
+.usa-posizione {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .ricerca-nota,
@@ -1178,7 +1235,7 @@ main.larga {
     font-size: 0.95rem;
 }
 
-/* Senza JavaScript la posizione non si può chiedere: il modulo "Vicino a te" resta nascosto. */
+/* Senza JavaScript la posizione non si può chiedere: la scelta "Vicino a te" resta nascosta. */
 .solo-js {
     display: none;
 }
@@ -1188,7 +1245,7 @@ main.larga {
 }
 
 .cerca-home {
-    margin-bottom: 48px;
+    margin-top: 48px;
 }
 
 .cerca-home h2 {
